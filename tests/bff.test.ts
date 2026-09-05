@@ -84,6 +84,26 @@ describe("BFF security boundary", () => {
   ])("rejects unlisted proxy path/query %s", (path) => {
     expect(() => allowedApi(new Request(url(path)))).toThrow();
   });
+  it.each([
+    ["GET", "/api/dashboard"],
+    ["GET", "/api/ranking"],
+    ["GET", "/api/challenges"],
+    ["GET", "/api/challenges/find-max"],
+    ["GET", "/api/attempts/00000000-0000-0000-0000-000000000001"],
+    ["GET", "/api/submissions/00000000-0000-0000-0000-000000000001"],
+    ["GET", "/api/drafts?challengeId=find-max&languageId=typescript"],
+    ["POST", "/api/attempts"],
+    ["POST", "/api/runs"],
+    ["POST", "/api/submissions"],
+    ["POST", "/api/attempts/00000000-0000-0000-0000-000000000001/hints"],
+    ["POST", "/api/challenges/find-max/solution-access"],
+    ["POST", "/api/tutor/messages"],
+    ["PUT", "/api/drafts"],
+  ])("allows documented BFF route %s %s", (method, path) => {
+    expect(allowedApi(new Request(url(path), { method })).pathname).toBe(
+      new URL(url(path)).pathname,
+    );
+  });
   it("rejects methods and cross-origin/tokenless mutations", () => {
     expect(() =>
       allowedApi(new Request(url("/api/drafts"), { method: "DELETE" })),
