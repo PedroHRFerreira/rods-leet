@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem("rods-leet-theme") === "light"
+            ? "light"
+            : "dark";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Evolua na programação com desafios práticos, trilhas de aprendizado e progresso que acompanha sua jornada."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Rods Leet — prática de programação</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

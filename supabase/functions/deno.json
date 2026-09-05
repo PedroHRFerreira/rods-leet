@@ -1,0 +1,4 @@
+{
+  "compilerOptions": { "strict": true, "lib": ["deno.ns", "dom", "esnext"] },
+  "imports": { "e2b": "npm:e2b@2.13.0" }
+}
