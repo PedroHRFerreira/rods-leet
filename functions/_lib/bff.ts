@@ -53,6 +53,15 @@ function validateEnv(env: Environment, request: Request) {
   )
     throw new HttpError(503, "service_unconfigured");
 }
+async function fetchWithoutRedirect(url: URL | string, init: RequestInit) {
+  // workerd only supports manual/follow; never forward credentials to a redirect.
+  const response = await fetch(url, { ...init, redirect: "manual" });
+  if (response.status >= 300 && response.status < 400) {
+    await response.body?.cancel();
+    throw new HttpError(502, "upstream_redirect_rejected");
+  }
+  return response;
+}
 async function upstream(
   env: Environment,
   path: string,
@@ -62,9 +71,8 @@ async function upstream(
   idempotency = "",
 ) {
   const url = new URL(env.SUPABASE_URL + path);
-  return fetch(url, {
+  return fetchWithoutRedirect(url, {
     method,
-    redirect: "error",
     signal: AbortSignal.timeout(20_000),
     headers: {
       "Content-Type": "application/json",
@@ -106,7 +114,7 @@ async function authToken(
   grant: "pkce" | "refresh_token",
   input: Record<string, string>,
 ): Promise<Omit<Tokens, "csrf">> {
-  const response = await fetch(
+  const response = await fetchWithoutRedirect(
     `${env.SUPABASE_URL}/auth/v1/token?grant_type=${grant}`,
     {
       method: "POST",
@@ -116,7 +124,6 @@ async function authToken(
       },
       body: JSON.stringify(input),
       signal: AbortSignal.timeout(10_000),
-      redirect: "error",
     },
   );
   const data = JSON.parse(await readBounded(response.body, 64 * 1024));
@@ -319,7 +326,7 @@ export async function handleBff(
       // Server-side revocation is durable even if the external logout endpoint is unavailable.
       if (current) {
         try {
-          const r = await fetch(
+          const r = await fetchWithoutRedirect(
             `${env.SUPABASE_URL}/auth/v1/logout?scope=local`,
             {
               method: "POST",
@@ -328,7 +335,6 @@ export async function handleBff(
                 Authorization: `Bearer ${current.access_token}`,
               },
               signal: AbortSignal.timeout(5000),
-              redirect: "error",
             },
           );
           await r.body?.cancel();

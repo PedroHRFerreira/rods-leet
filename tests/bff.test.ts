@@ -144,6 +144,22 @@ describe("BFF security boundary", () => {
     ).toBe(403);
     expect(upstream).not.toHaveBeenCalled();
   });
+  it("uses workerd-compatible manual redirects and rejects upstream redirects", async () => {
+    const upstream = vi.fn(async (_url, init) => {
+      expect(init.redirect).toBe("manual");
+      return new Response(null, {
+        status: 302,
+        headers: { Location: "https://untrusted.example" },
+      });
+    });
+    vi.stubGlobal("fetch", upstream);
+    const response = await handleBff(new Request(url("/api/session")), env);
+    expect(response.status).toBe(502);
+    expect(await response.json()).toMatchObject({
+      error: { code: "upstream_redirect_rejected" },
+    });
+    expect(upstream).toHaveBeenCalledTimes(1);
+  });
   it("returns only user and CSRF; never tokens, ciphertext or upstream headers", async () => {
     const token = randomToken();
     const id = await digest(token);
