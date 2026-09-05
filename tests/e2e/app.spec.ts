@@ -140,6 +140,7 @@ test("Monaco loads and drafts survive refresh without grading locally", async ({
   await page
     .getByRole("combobox", { name: "Linguagem" })
     .selectOption("typescript");
+  await expect(page.getByRole("tab", { name: "solution.ts" })).toBeVisible();
   await page
     .getByRole("button", { name: "Editor simples", exact: true })
     .click();
