@@ -3,6 +3,7 @@ import { levelForXp } from "./presenters.ts";
 import { recommend } from "./recommendations.ts";
 import { getEditorial } from "./editorial.ts";
 import { challenges } from "../../../src/content/catalog.ts";
+import { ApiError, databaseResponse } from "./db.ts";
 function assert(
   condition: unknown,
   message = "Assertion failed",
@@ -51,6 +52,27 @@ Deno.test(
       validateFiles([{ path: "solution.ts", content: "x" }], ["solution.ts"])
         .length === 1,
     );
+  },
+);
+Deno.test(
+  "database responses accept empty success bodies and reject invalid JSON",
+  async () => {
+    assert(
+      (await databaseResponse<undefined>(
+        new Response(null, { status: 204 }),
+      )) === undefined,
+    );
+    const parsed = await databaseResponse<{ ok: boolean }>(
+      Response.json({ ok: true }),
+    );
+    assert(parsed.ok);
+    let error: unknown;
+    try {
+      await databaseResponse(new Response("not-json", { status: 200 }));
+    } catch (cause) {
+      error = cause;
+    }
+    assert(error instanceof ApiError && error.code === "database_error");
   },
 );
 Deno.test("level thresholds and personalized recommendations", () => {

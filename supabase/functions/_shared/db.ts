@@ -8,6 +8,30 @@ export class ApiError extends Error {
   }
 }
 
+export async function databaseResponse<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  let body: unknown = undefined;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      throw new ApiError("database_error", 500);
+    }
+  }
+  if (!response.ok) {
+    const message =
+      body && typeof body === "object" && "message" in body
+        ? (body as { message?: unknown }).message
+        : undefined;
+    const code =
+      typeof message === "string" && /^[a-z_]+$/.test(message)
+        ? message
+        : "database_error";
+    throw new ApiError(code, code === "database_error" ? 500 : 409);
+  }
+  return body as T;
+}
+
 export function env(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new ApiError("service_unconfigured", 503);
@@ -28,15 +52,7 @@ export class Database {
       },
       signal: AbortSignal.timeout(10000),
     });
-    const body = await response.json();
-    if (!response.ok) {
-      const code =
-        typeof body.message === "string" && /^[a-z_]+$/.test(body.message)
-          ? body.message
-          : "database_error";
-      throw new ApiError(code, code === "database_error" ? 500 : 409);
-    }
-    return body as T;
+    return databaseResponse<T>(response);
   }
   rpc<T>(name: string, args: Record<string, unknown> = {}) {
     return this.request<T>(`rpc/${name}`, {
