@@ -1,0 +1,5 @@
+flowchart LR
+  U["Navegador: CSP e token"] -->|Bearer| A["API Supabase: autorização e limites gerais"]
+  U -->|PKCE| H[Supabase Auth]
+  A --> H
+  A --> D[(Banco: progresso e regras)]

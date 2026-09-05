@@ -1,3 +1,4 @@
+import { rateLimit, sha256, verifyBff } from "../_shared/bff.ts";
 import { challenges } from "../../../src/content/catalog.ts";
 import { getEditorial } from "../_shared/editorial.ts";
 import {
@@ -46,7 +47,7 @@ export async function handler(request: Request): Promise<Response> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "Cache-Control": "no-store",
-    "Vary": "Origin",
+    Vary: "Origin",
     "X-Content-Type-Options": "nosniff",
   };
   if (origin === allowedOrigin) {
@@ -70,12 +71,28 @@ export async function handler(request: Request): Promise<Response> {
       throw new ApiError("origin_not_allowed", 403);
     }
     const url = new URL(request.url);
-    const path = url.pathname.replace(/^\/functions\/v1\/api/, "").replace(
-      /^\/api/,
-      "",
-    );
-    const user = await authenticatedUser(request);
+    const path = url.pathname
+      .replace(/^\/functions\/v1\/api/, "")
+      .replace(/^\/api/, "");
     const db = new Database();
+    if (Deno.env.get("BFF_REQUIRED") === "true") await verifyBff(request, db);
+    const user = await authenticatedUser(request);
+    await rateLimit(
+      db,
+      `api:${request.method === "GET" ? "read" : "write"}:${user.id}`,
+      request.method === "GET" ? 60 : 20,
+    );
+    if (["POST", "PUT"].includes(request.method) && path !== "/drafts") {
+      const copy = request.clone();
+      // Bounded parse before hashing, including calls whose contract has an empty body.
+      const body = copy.body ? await readJson(copy) : {};
+      await db.rpc("bind_request", {
+        p_user: user.id,
+        p_key: idempotencyKey(request),
+        p_operation: `${request.method}:${path}`,
+        p_digest: await sha256(JSON.stringify(body)),
+      });
+    }
     const profile = await db.rpc<Row>("admit_user", {
       p_user: user.id,
       p_email: user.email,
@@ -89,18 +106,19 @@ export async function handler(request: Request): Promise<Response> {
     const versions = new Set(published.map((r) => r.id));
     const catalog = challenges.filter((c) => versions.has(c.versionId));
     const challenge = (id: unknown) => {
-      const result = catalog.find((c) =>
-        c.id === id || c.slug === id || c.versionId === id
+      const result = catalog.find(
+        (c) => c.id === id || c.slug === id || c.versionId === id,
       );
       if (!result) throw new ApiError("challenge_not_found", 404);
       return result;
     };
-    const publicChallenge = (c: typeof challenges[number]) => ({
+    const publicChallenge = (c: (typeof challenges)[number]) => ({
       ...c,
       availableModes: context.hardEnabled ? c.availableModes : ["normal"],
       executionAvailable: Boolean(
-        context.executionEnabled && context.budgetAvailable &&
-          c.languageIds.some((id) => context.availableLanguages.includes(id)),
+        context.executionEnabled &&
+        context.budgetAvailable &&
+        c.languageIds.some((id) => context.availableLanguages.includes(id)),
       ),
     });
     const ownAttempt = async (id: string) => {
@@ -119,15 +137,15 @@ export async function handler(request: Request): Promise<Response> {
         ),
         db.rows<Row>(
           "completions",
-          `user_id=eq.${user.id}&challenge_id=eq.${
-            encodeURIComponent(a.challenge_id)
-          }`,
+          `user_id=eq.${user.id}&challenge_id=eq.${encodeURIComponent(
+            a.challenge_id,
+          )}`,
         ),
         db.rows<Row>(
           "attempts",
-          `user_id=eq.${user.id}&challenge_id=eq.${
-            encodeURIComponent(a.challenge_id)
-          }&select=rejected_count`,
+          `user_id=eq.${user.id}&challenge_id=eq.${encodeURIComponent(
+            a.challenge_id,
+          )}&select=rejected_count`,
         ),
       ]);
       return presentAttempt(
@@ -139,24 +157,28 @@ export async function handler(request: Request): Promise<Response> {
       );
     };
     if (request.method === "GET" && path === "/challenges") {
-      const filtered = catalog.filter((c) =>
-        (!url.searchParams.get("topicId") ||
-          c.topicId === url.searchParams.get("topicId")) &&
-        (!url.searchParams.get("difficulty") ||
-          c.difficulty === url.searchParams.get("difficulty")) &&
-        (!url.searchParams.get("languageId") ||
-          c.languageIds.includes(
-            url.searchParams.get("languageId") as never,
-          )) &&
-        (!url.searchParams.get("mode") ||
-          (url.searchParams.get("mode") === "normal" || context.hardEnabled) &&
-            c.availableModes?.includes(
-              url.searchParams.get("mode") as never,
+      const filtered = catalog.filter(
+        (c) =>
+          (!url.searchParams.get("topicId") ||
+            c.topicId === url.searchParams.get("topicId")) &&
+          (!url.searchParams.get("difficulty") ||
+            c.difficulty === url.searchParams.get("difficulty")) &&
+          (!url.searchParams.get("languageId") ||
+            c.languageIds.includes(
+              url.searchParams.get("languageId") as never,
             )) &&
-        (!url.searchParams.get("search") ||
-          `${c.title} ${c.description}`.toLocaleLowerCase("pt-BR").includes(
-            url.searchParams.get("search")!.toLocaleLowerCase("pt-BR"),
-          ))
+          (!url.searchParams.get("mode") ||
+            ((url.searchParams.get("mode") === "normal" ||
+              context.hardEnabled) &&
+              c.availableModes?.includes(
+                url.searchParams.get("mode") as never,
+              ))) &&
+          (!url.searchParams.get("search") ||
+            `${c.title} ${c.description}`
+              .toLocaleLowerCase("pt-BR")
+              .includes(
+                url.searchParams.get("search")!.toLocaleLowerCase("pt-BR"),
+              )),
       );
       return json(filtered.map(publicChallenge));
     }
@@ -180,14 +202,16 @@ export async function handler(request: Request): Promise<Response> {
       return json(await attemptResponse(await ownAttempt(path.split("/")[2])));
     }
     if (
-      request.method === "POST" && (path === "/runs" || path === "/submissions")
+      request.method === "POST" &&
+      (path === "/runs" || path === "/submissions")
     ) {
       const body = await readJson(request);
       const c = challenge(body.challengeVersionId);
       const language = stringValue(body.languageId, "language");
-      const starter = c.starterFilesByLanguage[
-        language as keyof typeof c.starterFilesByLanguage
-      ];
+      const starter =
+        c.starterFilesByLanguage[
+          language as keyof typeof c.starterFilesByLanguage
+        ];
       if (!starter) throw new ApiError("language_unavailable");
       if (
         body.customTests !== undefined &&
@@ -199,7 +223,10 @@ export async function handler(request: Request): Promise<Response> {
           "Testes personalizados estarão disponíveis com os projetos da fase 2.",
         );
       }
-      const files = validateFiles(body.files, starter.map((f) => f.path));
+      const files = validateFiles(
+        body.files,
+        starter.map((f) => f.path),
+      );
       const s = await db.rpc<Row>("enqueue_submission", {
         p_user: user.id,
         p_attempt: stringValue(body.attemptId, "attempt"),
@@ -218,13 +245,15 @@ export async function handler(request: Request): Promise<Response> {
         },
         body: "{}",
         signal: AbortSignal.timeout(5000),
-      }).then((r) => {
-        if (!r.ok) {
-          console.error(
-            JSON.stringify({ event: "wake_failed", status: r.status }),
-          );
-        }
-      }).catch(() => console.error('{"event":"wake_failed"}'));
+      })
+        .then((r) => {
+          if (!r.ok) {
+            console.error(
+              JSON.stringify({ event: "wake_failed", status: r.status }),
+            );
+          }
+        })
+        .catch(() => console.error('{"event":"wake_failed"}'));
       EdgeRuntime.waitUntil(wake);
       return json(presentSubmission(s), 202);
     }
@@ -234,7 +263,8 @@ export async function handler(request: Request): Promise<Response> {
         `id=eq.${encodeURIComponent(path.split("/")[2])}&user_id=eq.${user.id}`,
       );
       if (!rows[0]) throw new ApiError("submission_not_found", 404);
-      const s = rows[0], a = await ownAttempt(s.attempt_id);
+      const s = rows[0],
+        a = await ownAttempt(s.attempt_id);
       const xp = await db.rows<Row>(
         "xp_events",
         `submission_id=eq.${s.id}&user_id=eq.${user.id}&select=amount`,
@@ -301,23 +331,24 @@ export async function handler(request: Request): Promise<Response> {
       const c = a
         ? challenge(a.challenge_id)
         : body.challengeVersionId
-        ? challenge(body.challengeVersionId)
-        : null;
+          ? challenge(body.challengeVersionId)
+          : null;
       // Challenge context must be attached to an owned active attempt to avoid free challenge assistance.
       if (c && !a) throw new ApiError("attempt_required");
       let hint: string | undefined;
       if (a) {
         const solved = await db.rows<Row>(
           "completions",
-          `user_id=eq.${user.id}&challenge_id=eq.${
-            encodeURIComponent(a.challenge_id)
-          }&select=challenge_id`,
+          `user_id=eq.${user.id}&challenge_id=eq.${encodeURIComponent(
+            a.challenge_id,
+          )}&select=challenge_id`,
         );
         if (
           !solved.length &&
           (a.state !== "active" ||
             (a.deadline_at && new Date(a.deadline_at).getTime() < Date.now()))
-        ) throw new ApiError("attempt_closed");
+        )
+          throw new ApiError("attempt_closed");
         if (!solved.length) {
           const ed = getEditorial(a.challenge_id, "typescript");
           const h = await db.rpc<Row>("consume_hint", {
@@ -329,7 +360,8 @@ export async function handler(request: Request): Promise<Response> {
           hint = ed.hints[Math.min(h.hintIndex, ed.hints.length - 1)];
         }
       }
-      const fallback = hint ??
+      const fallback =
+        hint ??
         "Revise os exemplos do enunciado, escreva casos de borda e explique sua estratégia antes de programar. Depois pratique um desafio recomendado no seu painel.";
       let response = {
         message: fallback,
@@ -351,9 +383,9 @@ export async function handler(request: Request): Promise<Response> {
             "submissions",
             `user_id=eq.${user.id}&kind=eq.submission&status=eq.finished&select=challenge_version_id,verdict&order=created_at.desc&limit=20`,
           );
-          const studySummary = recommend(catalog, [], history as never).map(
-            (r) => r.reason,
-          ).join(" ");
+          const studySummary = recommend(catalog, [], history as never)
+            .map((r) => r.reason)
+            .join(" ");
           response = {
             message: await tutor.respond({
               message,
@@ -416,19 +448,19 @@ export async function handler(request: Request): Promise<Response> {
         streakDays: streak,
         completedChallengeIds: ids,
         activityDays: [...days].sort(),
-        recentSubmissions: recent.slice(0, 8).map((r) =>
-          presentSubmission(r, 0, true)
-        ),
+        recentSubmissions: recent
+          .slice(0, 8)
+          .map((r) => presentSubmission(r, 0, true)),
         recommendations: recommend(catalog, ids, recent as never),
         remoteRunsRemaining: Math.max(0, 10 - context.usage.executions),
         tutorMessagesRemaining: Math.max(0, 2 - context.usage.tutor_calls),
         executionStatus: !context.executionEnabled
           ? "paused"
           : !context.availableLanguages.length
-          ? "unconfigured"
-          : !context.budgetAvailable || context.usage.executions >= 10
-          ? "quota_exhausted"
-          : "available",
+            ? "unconfigured"
+            : !context.budgetAvailable || context.usage.executions >= 10
+              ? "quota_exhausted"
+              : "available",
       });
     }
     if (request.method === "GET" && path === "/ranking") {
@@ -436,21 +468,25 @@ export async function handler(request: Request): Promise<Response> {
         db.rows<Row>("profiles", "select=id,display_name,xp,reached_at"),
         db.rows<Row>("completions", "select=user_id,challenge_id"),
       ]);
-      const ranked = players.map((p) => ({
-        userId: p.id,
-        displayName: p.display_name,
-        xp: p.xp,
-        completedCount: new Set(
-          completed.filter((c) => c.user_id === p.id).map((c) =>
-            c.challenge_id
-          ),
-        ).size,
-        reachedAt: p.reached_at,
-        isCurrentUser: p.id === user.id,
-      })).sort((a, b) =>
-        b.xp - a.xp || b.completedCount - a.completedCount ||
-        a.reachedAt.localeCompare(b.reachedAt)
-      );
+      const ranked = players
+        .map((p) => ({
+          userId: p.id,
+          displayName: p.display_name,
+          xp: p.xp,
+          completedCount: new Set(
+            completed
+              .filter((c) => c.user_id === p.id)
+              .map((c) => c.challenge_id),
+          ).size,
+          reachedAt: p.reached_at,
+          isCurrentUser: p.id === user.id,
+        }))
+        .sort(
+          (a, b) =>
+            b.xp - a.xp ||
+            b.completedCount - a.completedCount ||
+            a.reachedAt.localeCompare(b.reachedAt),
+        );
       return json(ranked);
     }
     if (path === "/drafts" && request.method === "GET") {
@@ -461,19 +497,19 @@ export async function handler(request: Request): Promise<Response> {
       );
       const rows = await db.rows<Row>(
         "drafts",
-        `user_id=eq.${user.id}&challenge_id=eq.${
-          encodeURIComponent(c.id)
-        }&language_id=eq.${encodeURIComponent(language)}`,
+        `user_id=eq.${user.id}&challenge_id=eq.${encodeURIComponent(
+          c.id,
+        )}&language_id=eq.${encodeURIComponent(language)}`,
       );
       return json(
         rows[0]
           ? {
-            challengeId: c.id,
-            languageId: language,
-            files: rows[0].files,
-            updatedAt: rows[0].updated_at,
-            revision: rows[0].revision,
-          }
+              challengeId: c.id,
+              languageId: language,
+              files: rows[0].files,
+              updatedAt: rows[0].updated_at,
+              revision: rows[0].revision,
+            }
           : null,
       );
     }
@@ -484,11 +520,15 @@ export async function handler(request: Request): Promise<Response> {
       const body = await readJson(request);
       const c = challenge(body.challengeId);
       const language = stringValue(body.languageId, "language");
-      const starter = c.starterFilesByLanguage[
-        language as keyof typeof c.starterFilesByLanguage
-      ];
+      const starter =
+        c.starterFilesByLanguage[
+          language as keyof typeof c.starterFilesByLanguage
+        ];
       if (!starter) throw new ApiError("language_unavailable");
-      const files = validateFiles(body.files, starter.map((f) => f.path));
+      const files = validateFiles(
+        body.files,
+        starter.map((f) => f.path),
+      );
       const revision = body.revision ?? 0;
       if (!Number.isSafeInteger(revision) || Number(revision) < 0) {
         throw new ApiError("invalid_revision");
@@ -508,21 +548,25 @@ export async function handler(request: Request): Promise<Response> {
     }
     throw new ApiError("not_found", 404);
   } catch (error) {
-    const e = error instanceof ApiError
-      ? error
-      : new ApiError("internal_error", 500);
+    const e =
+      error instanceof ApiError ? error : new ApiError("internal_error", 500);
     if (e.status >= 500) {
       console.error(JSON.stringify({ event: "api_error", code: e.code }));
     }
-    return json({
-      error: {
-        code: e.code,
-        message: errorMessages[e.code] ??
-          (e.status >= 500
-            ? "Serviço temporariamente indisponível. Tente novamente."
-            : e.message),
+    if (e.status === 429) headers["Retry-After"] = "60";
+    return json(
+      {
+        error: {
+          code: e.code,
+          message:
+            errorMessages[e.code] ??
+            (e.status >= 500
+              ? "Serviço temporariamente indisponível. Tente novamente."
+              : e.message),
+        },
       },
-    }, e.status);
+      e.status,
+    );
   }
 }
 

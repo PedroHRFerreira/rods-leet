@@ -13,11 +13,7 @@ export interface ExecutionRequest {
 }
 export interface CaseExecution {
   termination:
-    | "ok"
-    | "runtime_error"
-    | "time_limit"
-    | "memory_limit"
-    | "output_limit";
+    "ok" | "runtime_error" | "time_limit" | "memory_limit" | "output_limit";
   stdout: string;
   stderr: string;
   metrics: { cpuMs: number; wallMs: number; peakMemoryKiB: number };
@@ -71,10 +67,12 @@ export class E2BExecutionProvider implements CodeExecutionProvider {
         }),
         { user: "root" },
       );
-      await sandbox.commands.run(
-        "/opt/python/bin/python3 -I /opt/codegamer/supervisor.py",
-        { user: "root", timeoutMs: 85000 },
-      ).catch(() => {});
+      await sandbox.commands
+        .run("/opt/python/bin/python3 -I /opt/codegamer/supervisor.py", {
+          user: "root",
+          timeoutMs: 85000,
+        })
+        .catch(() => {});
       const text = await sandbox.files.read("/run/codegamer/result.json", {
         user: "root",
       });
@@ -83,9 +81,11 @@ export class E2BExecutionProvider implements CodeExecutionProvider {
       }
       const result = JSON.parse(text);
       if (
-        !result || typeof result.termination !== "string" ||
+        !result ||
+        typeof result.termination !== "string" ||
         !Array.isArray(result.cases)
-      ) throw new ApiError("invalid_executor_result", 503);
+      )
+        throw new ApiError("invalid_executor_result", 503);
       return { ...result, executionRef: sandbox.sandboxId };
     } finally {
       try {

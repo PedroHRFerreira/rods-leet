@@ -6,7 +6,7 @@ from sql_policy import validate_query
 class SqlPolicyTests(unittest.TestCase):
     def test_all_published_reference_queries_pass_policy(self):
         source=(Path(__file__).resolve().parents[1]/'judge/sql.ts').read_text().split('};',1)[0]
-        values=re.findall(r"^\s*'sql-[^']+': (.+),$",source,re.MULTILINE)
+        values=re.findall(r'''["']sql-[^"']+["']\s*:\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*,''',source)
         self.assertEqual(len(values),10)
         for literal in values:self.assertTrue(validate_query(ast.literal_eval(literal)))
     def test_reads(self):

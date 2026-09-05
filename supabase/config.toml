@@ -25,3 +25,6 @@ verify_jwt = false
 
 # API verifies Bearer credentials with Auth /user; coordinator verifies a separate secret.
 # PostgreSQL 18 is the student's SQL runtime, independent from Supabase's DB version.
+
+[functions.session]
+verify_jwt = false

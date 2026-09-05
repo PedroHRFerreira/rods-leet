@@ -10,3 +10,7 @@ coverage/
 .DS_Store
 backups/
 .supabase/
+.dev.vars*
+!.dev.vars.example
+.wrangler/
+supabase/.temp/

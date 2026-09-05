@@ -1,5 +1,6 @@
 """Runs repository-authored reference code only, in disposable local folders."""
 import json
+import ast
 from pathlib import Path
 import re
 import shutil
@@ -28,7 +29,10 @@ class TypeScriptAdapterTests(unittest.TestCase):
             finally:adapters.WORK=original
     def test_multifile_dijkstra_module_resolution(self):
         source=(ROOT/'judge/editorial-sources.ts').read_text()
-        def literal(name):return json.loads(re.search(r'export const '+name+r' = (".*");',source).group(1))
+        def literal(name):
+            match=re.search(r'''export const '''+name+r'''\s*=\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')\s*;''',source)
+            self.assertIsNotNone(match, f'Missing reference export: {name}')
+            return ast.literal_eval(match.group(1))
         value={'graph':[[{'to':1,'weight':4},{'to':2,'weight':1}],[{'to':3,'weight':1}],[{'to':1,'weight':2},{'to':3,'weight':5}],[]],'start':0,'end':3}
         self.assertEqual(self.execute_reference({'solution.ts':literal('shortestPathSource'),'min-heap.ts':literal('heapSource')},'shortestPath',value),[0,2,1,3])
     def test_max_100000_compact_output(self):

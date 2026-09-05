@@ -1,11 +1,50 @@
 {
   "schemaVersion": 1,
   "homologated": false,
-  "languages": ["python", "javascript", "typescript", "java", "csharp", "cpp", "c", "go", "rust", "kotlin", "sql"],
+  "languages": [
+    "python",
+    "javascript",
+    "typescript",
+    "java",
+    "csharp",
+    "cpp",
+    "c",
+    "go",
+    "rust",
+    "kotlin",
+    "sql"
+  ],
   "versions": {
-    "python": "3.11", "javascript": "22.14.0", "typescript": "5.9.3", "java": "17", "csharp": "8.0.407",
-    "cpp": "C++20", "c": "C17", "go": "1.23.7", "rust": "1.85.0", "kotlin": "2.1.10", "sql": "18"
+    "python": "3.11",
+    "javascript": "22.14.0",
+    "typescript": "5.9.3",
+    "java": "17",
+    "csharp": "8.0.407",
+    "cpp": "C++20",
+    "c": "C17",
+    "go": "1.23.7",
+    "rust": "1.85.0",
+    "kotlin": "2.1.10",
+    "sql": "18"
   },
-  "libraries": {"jackson": "2.18.3", "serde_json": "1.0.140", "kotlinx-serialization-json": "1.8.0", "pglast": "8.4", "psycopg": "3.2.6"},
-  "limits": {"vcpu":2,"templateMemoryMiB":2048,"studentMemoryMiB":1024,"postgresMemoryMiB":512,"processes":64,"compileMs":45000,"caseCpuMs":2000,"caseWallMs":5000,"jobWallMs":90000,"caseOutputBytes":65536,"jobOutputBytes":262144}
+  "libraries": {
+    "jackson": "2.18.3",
+    "serde_json": "1.0.140",
+    "kotlinx-serialization-json": "1.8.0",
+    "pglast": "8.4",
+    "psycopg": "3.2.6"
+  },
+  "limits": {
+    "vcpu": 2,
+    "templateMemoryMiB": 2048,
+    "studentMemoryMiB": 1024,
+    "postgresMemoryMiB": 512,
+    "processes": 64,
+    "compileMs": 45000,
+    "caseCpuMs": 2000,
+    "caseWallMs": 5000,
+    "jobWallMs": 90000,
+    "caseOutputBytes": 65536,
+    "jobOutputBytes": 262144
+  }
 }

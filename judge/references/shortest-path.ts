@@ -1,9 +1,19 @@
-import { MinHeap } from './min-heap.ts';
+import { MinHeap } from "./min-heap.ts";
 
-export type Graph = ReadonlyArray<ReadonlyArray<{ to: number; weight: number }>>;
-export interface PathInput { graph: Graph; start: number; end: number }
+export type Graph = ReadonlyArray<
+  ReadonlyArray<{ to: number; weight: number }>
+>;
+export interface PathInput {
+  graph: Graph;
+  start: number;
+  end: number;
+}
 
-export function shortestPath(graph: Graph, start: number, end: number): number[] {
+export function shortestPath(
+  graph: Graph,
+  start: number,
+  end: number,
+): number[] {
   const distance = Array<number>(graph.length).fill(Infinity);
   const previous = Array<number>(graph.length).fill(-1);
   const heap = new MinHeap<[number, number]>((a, b) => a[0] - b[0]);
@@ -24,20 +34,27 @@ export function shortestPath(graph: Graph, start: number, end: number): number[]
   }
   if (distance[end] === Infinity) return [];
   const path: number[] = [];
-  for (let vertex = end; vertex !== -1; vertex = previous[vertex]) path.push(vertex);
+  for (let vertex = end; vertex !== -1; vertex = previous[vertex])
+    path.push(vertex);
   return path.reverse();
 }
 
 export function pathCost(input: PathInput, path: unknown): number | null {
-  if (!Array.isArray(path) || !path.every(v => Number.isInteger(v) && v >= 0 && v < input.graph.length)) return null;
+  if (
+    !Array.isArray(path) ||
+    !path.every((v) => Number.isInteger(v) && v >= 0 && v < input.graph.length)
+  )
+    return null;
   if (!path.length) return Infinity;
-  if (path[0] !== input.start || path[path.length - 1] !== input.end) return null;
+  if (path[0] !== input.start || path[path.length - 1] !== input.end)
+    return null;
   // Restrict to a simple path. Removing nonnegative cycles never worsens a shortest path.
   if (new Set(path).size !== path.length) return null;
   let cost = 0;
   for (let i = 1; i < path.length; i++) {
     let weight = Infinity;
-    for (const edge of input.graph[path[i - 1]]) if (edge.to === path[i]) weight = Math.min(weight, edge.weight);
+    for (const edge of input.graph[path[i - 1]])
+      if (edge.to === path[i]) weight = Math.min(weight, edge.weight);
     if (!Number.isFinite(weight)) return null;
     cost += weight;
   }
@@ -45,7 +62,14 @@ export function pathCost(input: PathInput, path: unknown): number | null {
 }
 
 /** Expected is a trusted reference path; equal-cost alternatives are accepted. */
-export function comparePath(input: PathInput, expected: unknown, actual: unknown): boolean {
-  const expectedCost = pathCost(input, expected), actualCost = pathCost(input, actual);
-  return expectedCost !== null && actualCost !== null && expectedCost === actualCost;
+export function comparePath(
+  input: PathInput,
+  expected: unknown,
+  actual: unknown,
+): boolean {
+  const expectedCost = pathCost(input, expected),
+    actualCost = pathCost(input, actual);
+  return (
+    expectedCost !== null && actualCost !== null && expectedCost === actualCost
+  );
 }

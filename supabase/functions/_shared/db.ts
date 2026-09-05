@@ -1,5 +1,9 @@
 export class ApiError extends Error {
-  constructor(public code: string, public status = 400, message = code) {
+  constructor(
+    public code: string,
+    public status = 400,
+    message = code,
+  ) {
     super(message);
   }
 }
@@ -60,9 +64,11 @@ export async function authenticatedUser(request: Request) {
   if (!response.ok) throw new ApiError("authentication_required", 401);
   const user = await response.json();
   if (
-    typeof user.id !== "string" || typeof user.email !== "string" ||
+    typeof user.id !== "string" ||
+    typeof user.email !== "string" ||
     !user.email_confirmed_at
-  ) throw new ApiError("verified_email_required", 403);
+  )
+    throw new ApiError("verified_email_required", 403);
   return {
     id: user.id as string,
     email: user.email as string,
@@ -112,9 +118,13 @@ export async function readJson(
 
 export function stringValue(value: unknown, name: string, max = 200): string {
   if (
-    typeof value !== "string" || !value.length || value.length > max ||
+    typeof value !== "string" ||
+    !value.length ||
+    value.length > max ||
+    // eslint-disable-next-line no-control-regex -- Intentionally reject or strip control characters from untrusted input.
     /[\u0000-\u001f]/.test(value)
-  ) throw new ApiError(`invalid_${name}`);
+  )
+    throw new ApiError(`invalid_${name}`);
   return value;
 }
 

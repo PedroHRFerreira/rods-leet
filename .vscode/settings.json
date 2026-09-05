@@ -1,0 +1,23 @@
+{
+  "githubPullRequests.pullBranch": "never",
+  "editor.formatOnSave": true,
+  "editor.linkedEditing": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "git.confirmSync": false,
+  "githubPullRequests.createOnPublishBranch": "never",
+  "files.autoSave": "onWindowChange",
+  "editor.fontSize": 16,
+  "editor.wordWrap": "on",
+  "git.ignoreRebaseWarning": true,
+  "editor.fontFamily": "'Fira Code', Consolas, 'Courier New', monospace",
+  "RainbowBrackets.depreciation-notice": false,
+  "tabnine.experimentalAutoImports": true,
+  "git.autofetch": true,
+  "workbench.iconTheme": "material-icon-theme",
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "explorer.excludeGitIgnore": true,
+  "workbench.colorTheme": "Rods Themes: Jamaica South Korea Neon Black"
+}

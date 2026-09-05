@@ -6,35 +6,35 @@ Cada avaliação possui `cases: {input, expected, public}[]` e `compare(input, e
 
 ## Funções JSON — 38 desafios
 
-| Linguagem | Arquivo | Assinatura | Dependência instalada na imagem |
-|---|---|---|---|
-| TypeScript | solution.ts | `export solve(input: any): any` | TypeScript |
-| JavaScript | solution.js | `export solve(input)` | Node.js |
-| Python | solution.py | `solve(input)` | biblioteca padrão json |
-| Java | Solution.java | `Solution.solve(JsonNode): JsonNode` | Jackson Databind |
-| C# | Solution.cs | `Solution.Solve(JsonNode?): JsonNode?` | System.Text.Json.Nodes |
-| C++ | solution.cpp | `solve(const nlohmann::json&): nlohmann::json` | nlohmann/json |
-| C | solution.c | `solve(const cJSON*): cJSON*` | cJSON; resultado pertence ao adaptador |
-| Go | solution.go | pacote solution, `Solve(any) any` | encoding/json; números decodificados como float64 |
-| Rust | solution.rs | `solve(serde_json::Value): serde_json::Value` | serde_json |
-| Kotlin | Solution.kt | `solve(JsonElement): JsonElement` | kotlinx.serialization.json |
+| Linguagem  | Arquivo       | Assinatura                                     | Dependência instalada na imagem                   |
+| ---------- | ------------- | ---------------------------------------------- | ------------------------------------------------- |
+| TypeScript | solution.ts   | `export solve(input: any): any`                | TypeScript                                        |
+| JavaScript | solution.js   | `export solve(input)`                          | Node.js                                           |
+| Python     | solution.py   | `solve(input)`                                 | biblioteca padrão json                            |
+| Java       | Solution.java | `Solution.solve(JsonNode): JsonNode`           | Jackson Databind                                  |
+| C#         | Solution.cs   | `Solution.Solve(JsonNode?): JsonNode?`         | System.Text.Json.Nodes                            |
+| C++        | solution.cpp  | `solve(const nlohmann::json&): nlohmann::json` | nlohmann/json                                     |
+| C          | solution.c    | `solve(const cJSON*): cJSON*`                  | cJSON; resultado pertence ao adaptador            |
+| Go         | solution.go   | pacote solution, `Solve(any) any`              | encoding/json; números decodificados como float64 |
+| Rust       | solution.rs   | `solve(serde_json::Value): serde_json::Value`  | serde_json                                        |
+| Kotlin     | Solution.kt   | `solve(JsonElement): JsonElement`              | kotlinx.serialization.json                        |
 
 O adaptador parseia o input JSON, chama a função uma vez e serializa seu retorno como `actual`. Inteiros nos contratos estão no intervalo seguro do IEEE-754. `null`, booleanos, números e strings mantêm tipos; arrays mantêm ordem. Não há acesso à rede nem instalação dinâmica. Versões exatas pertencem ao manifesto de cada runtime e precisam de homologação remota antes da habilitação.
 
 ## Maior pontuação — 10 linguagens
 
-| Linguagem | Assinatura |
-|---|---|
-| TypeScript | `findMax(readonly number[]): number | null` |
-| JavaScript | `findMax(values)` |
-| Python | `find_max(list[int]) -> int | None` |
-| Java | `Solution.findMax(int[]): Integer` |
-| C# | `Solution.FindMax(int[]): int?` |
-| C++ | `find_max(const std::vector<int>&): std::optional<int>` |
-| C | `find_max(const int*, size_t): MaxResult { bool present; int value; }` |
-| Go | pacote solution, `FindMax([]int) (int, bool)` |
-| Rust | `find_max(&[i32]): Option<i32>` |
-| Kotlin | `findMax(IntArray): Int?` |
+| Linguagem  | Assinatura                                                             |
+| ---------- | ---------------------------------------------------------------------- |
+| TypeScript | `findMax(readonly number[]): number                                    | null` |
+| JavaScript | `findMax(values)`                                                      |
+| Python     | `find_max(list[int]) -> int                                            | None` |
+| Java       | `Solution.findMax(int[]): Integer`                                     |
+| C#         | `Solution.FindMax(int[]): int?`                                        |
+| C++        | `find_max(const std::vector<int>&): std::optional<int>`                |
+| C          | `find_max(const int*, size_t): MaxResult { bool present; int value; }` |
+| Go         | pacote solution, `FindMax([]int) (int, bool)`                          |
+| Rust       | `find_max(&[i32]): Option<i32>`                                        |
+| Kotlin     | `findMax(IntArray): Int?`                                              |
 
 O adaptador normaliza ausência para null. Copia a entrada antes da chamada e produz `{result, inputUnchanged: boolean}` depois de comparar o estado final com a cópia. O comparador exige `inputUnchanged === true`. Em testes locais confiáveis, aceita também `{result, inputAfter}`. O envelope compacto evita transportar 100.000 inteiros como saída adicional, que ultrapassaria a cota por caso.
 

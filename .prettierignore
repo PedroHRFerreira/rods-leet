@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.git/
+.wrangler/
+.supabase/
+supabase/.temp/
+coverage/
+playwright-report/
+test-results/
+backups/
+worker-configuration.d.ts
+package-lock.json
+.env*
+.dev.vars*

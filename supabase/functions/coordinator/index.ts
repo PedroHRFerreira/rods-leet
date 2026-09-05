@@ -19,8 +19,8 @@ export async function processOne(): Promise<void> {
   };
   let executionRef: string | undefined;
   try {
-    const challenge = challenges.find((c) =>
-      c.versionId === s.challenge_version_id
+    const challenge = challenges.find(
+      (c) => c.versionId === s.challenge_version_id,
     );
     if (!challenge) throw new Error("version_unavailable");
     const evaluation = getEvaluation(challenge.id, s.language_id, s.kind);
@@ -31,9 +31,8 @@ export async function processOne(): Promise<void> {
       manifestSha256: runtime.manifest_sha256,
       languageId: s.language_id,
       runtimeVersion: runtime.runtime_version,
-      functionName: challenge.kind === "sql"
-        ? "sql"
-        : challenge.functionName ?? "solve",
+      functionName:
+        challenge.kind === "sql" ? "sql" : (challenge.functionName ?? "solve"),
       files: s.files,
       cases: evaluation.cases.map((c) => ({ input: c.input })),
       sqlSchema: challenge.sqlSchema,
@@ -41,25 +40,29 @@ export async function processOne(): Promise<void> {
     executionRef = execution.executionRef;
     if (execution.termination !== "ok") {
       verdict = [
-          "compile_error",
-          "time_limit",
-          "memory_limit",
-          "output_limit",
-          "runtime_error",
-        ].includes(execution.termination)
+        "compile_error",
+        "time_limit",
+        "memory_limit",
+        "output_limit",
+        "runtime_error",
+      ].includes(execution.termination)
         ? execution.termination
         : "infrastructure_error";
     } else {
       verdict = "accepted";
-      let cpuMs = 0, wallMs = 0, peakMemoryKiB = 0;
+      let cpuMs = 0,
+        wallMs = 0,
+        peakMemoryKiB = 0;
       const publicCases: Row[] = [];
       for (let index = 0; index < evaluation.cases.length; index++) {
-        const test = evaluation.cases[index], actual = execution.cases[index];
+        const test = evaluation.cases[index],
+          actual = execution.cases[index];
         if (!actual) {
           verdict = "infrastructure_error";
           break;
         }
-        let passed = false, value: unknown;
+        let passed = false,
+          value: unknown;
         if (actual.termination !== "ok") verdict = actual.termination;
         else {
           try {
@@ -85,13 +88,14 @@ export async function processOne(): Promise<void> {
         if (!passed) break;
       }
       result = {
-        message: verdict === "accepted"
-          ? "Todos os testes obrigatórios passaram."
-          : verdict === "wrong_answer"
-          ? "A solução falhou em um caso obrigatório. Revise os casos de borda."
-          : verdict === "infrastructure_error"
-          ? "Falha da infraestrutura. Sua tentativa foi preservada."
-          : "Seu programa excedeu um limite ou encerrou com erro.",
+        message:
+          verdict === "accepted"
+            ? "Todos os testes obrigatórios passaram."
+            : verdict === "wrong_answer"
+              ? "A solução falhou em um caso obrigatório. Revise os casos de borda."
+              : verdict === "infrastructure_error"
+                ? "Falha da infraestrutura. Sua tentativa foi preservada."
+                : "Seu programa excedeu um limite ou encerrou com erro.",
         publicCases,
         metrics: { cpuMs, wallMs, peakMemoryKiB },
       };
@@ -109,9 +113,11 @@ export async function processOne(): Promise<void> {
       };
       result = { message: messages[verdict] ?? messages.infrastructure_error };
       if (verdict === "compile_error" && execution.compilation?.stderr) {
-        const bytes = new TextEncoder().encode(execution.compilation.stderr)
+        const bytes = new TextEncoder()
+          .encode(execution.compilation.stderr)
           .slice(0, 4096);
         const diagnostic = new TextDecoder().decode(bytes).replace(
+          // eslint-disable-next-line no-control-regex -- Intentionally reject or strip control characters from untrusted input.
           /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,
           "",
         );
@@ -136,12 +142,14 @@ declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 export async function handler(request: Request): Promise<Response> {
   const expected = Deno.env.get("COORDINATOR_SECRET");
   if (
-    request.method !== "POST" || !expected ||
-    !await secretsMatch(
+    request.method !== "POST" ||
+    !expected ||
+    !(await secretsMatch(
       request.headers.get("x-coordinator-secret") ?? "",
       expected,
-    )
-  ) return new Response(null, { status: 401 });
+    ))
+  )
+    return new Response(null, { status: 401 });
   EdgeRuntime.waitUntil(
     processOne().catch(() => console.error('{"event":"coordinator_failed"}')),
   );

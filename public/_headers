@@ -1,0 +1,16 @@
+# Pages applies these to static assets. Functions must also set security headers.
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), display-capture=()
+  Strict-Transport-Security: max-age=31536000
+
+# HTML and the pre-paint theme must revalidate after releases.
+/
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/theme-init.js
+  Cache-Control: no-cache

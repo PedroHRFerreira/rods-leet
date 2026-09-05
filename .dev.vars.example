@@ -1,0 +1,4 @@
+# Server only. Copy to .dev.vars for local Pages development. Never use VITE_ prefixes.
+SUPABASE_ANON_KEY=public-project-key
+BFF_SHARED_SECRET=replace-with-at-least-32-random-bytes
+BFF_ENCRYPTION_KEY=replace-with-64-hex-characters

@@ -1,32 +1,41 @@
-name: Verify CodeGamer
+name: Verify Rods Leet
 on:
   push:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   application:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
       - run: npm test -- --run
+      - run: npm run typecheck:bff
       - run: npm run build
+      - run: npm run build:bff
+      - run: npm audit --omit=dev --audit-level=high
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.9.6
-      - run: deno check --config supabase/functions/deno.json supabase/functions/api/index.ts supabase/functions/coordinator/index.ts
-      - run: deno test --allow-env --config supabase/functions/deno.json supabase/functions/_shared/tests.ts
+      - run: deno check --config supabase/functions/deno.json supabase/functions/api/index.ts supabase/functions/coordinator/index.ts supabase/functions/session/index.ts
+      - run: deno test --allow-env --config supabase/functions/deno.json supabase/functions/_shared/tests.ts supabase/functions/_shared/bff_test.ts
       - run: deno run --allow-run=docker --config supabase/functions/deno.json scripts/test-sql-references.ts
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - run: pip install -r executor/requirements.txt
       - run: python3 -m unittest discover -s executor -p 'test_*.py'
       - run: python3 scripts/test-database.py

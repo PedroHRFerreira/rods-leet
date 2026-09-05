@@ -1,12 +1,11 @@
-import { Component, lazy, Suspense, useEffect, useState } from "react";
+import { Component, lazy, Suspense, useEffect } from "react";
 import type { ErrorInfo, ReactNode } from "react";
-import { Link, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, Route, Routes } from "react-router-dom";
 import Shell from "./components/Shell";
 import { EmptyState, LoadingState } from "./components/ui";
 import DashboardPage from "./pages/DashboardPage";
 import CatalogPage from "./pages/CatalogPage";
 import TracksPage from "./pages/TracksPage";
-import { useGateway } from "./lib/gateway-context";
 
 const ChallengePage = lazy(() => import("./pages/ChallengePage"));
 const TutorPage = lazy(() => import("./pages/TutorPage"));
@@ -44,42 +43,19 @@ class PageBoundary extends Component<
 }
 
 function AuthCallback() {
-  const gateway = useGateway();
-  const navigate = useNavigate();
-  const [error, setError] = useState<string>();
   useEffect(() => {
-    let active = true;
-    const parameters = new URLSearchParams(window.location.hash.slice(1));
-    const oauthError =
-      parameters.get("error_description") ??
-      new URLSearchParams(window.location.search).get("error_description");
-    if (oauthError) {
-      setError(
-        "Não foi possível concluir o login. Volte ao perfil e tente novamente.",
-      );
-      return;
-    }
-    gateway
-      .getDashboard()
-      .then(() => {
-        if (active) navigate("/perfil", { replace: true });
-      })
-      .catch((e) => {
-        if (active)
-          setError(e instanceof Error ? e.message : "Não foi possível entrar.");
-      });
-    return () => {
-      active = false;
-    };
-  }, [gateway, navigate]);
-  return error ? (
-    <EmptyState title="Acesso ao beta" description={error}>
+    // The server owns the OAuth exchange. Never process codes or error details in the SPA.
+    window.history.replaceState(null, "", "/auth/callback");
+  }, []);
+  return (
+    <EmptyState
+      title="Acesso ao beta"
+      description="Não foi possível concluir o login. Volte ao perfil e tente novamente."
+    >
       <Link className="button button-primary" to="/perfil">
         Voltar ao perfil
       </Link>
     </EmptyState>
-  ) : (
-    <LoadingState label="Concluindo seu acesso…" />
   );
 }
 

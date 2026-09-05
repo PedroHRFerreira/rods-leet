@@ -18,76 +18,101 @@ function rejects(callback: () => unknown) {
   }
   assert(failed);
 }
-Deno.test("workspace refuses traversal, duplicate files, missing files and byte overflow", () => {
-  for (
-    const path of [
+Deno.test(
+  "workspace refuses traversal, duplicate files, missing files and byte overflow",
+  () => {
+    for (const path of [
       "../solution.ts",
       "/solution.ts",
       "x/../solution.ts",
       "solution.ts\0",
       "solution.ts\\x",
-    ]
-  ) rejects(() => validateFiles([{ path, content: "x" }], ["solution.ts"]));
-  rejects(() =>
-    validateFiles([{ path: "solution.ts", content: "a" }, {
-      path: "solution.ts",
-      content: "b",
-    }], ["solution.ts"])
-  );
-  rejects(() =>
-    validateFiles([{ path: "solution.ts", content: "á".repeat(131073) }], [
-      "solution.ts",
     ])
-  );
-  assert(
-    validateFiles([{ path: "solution.ts", content: "x" }], ["solution.ts"])
-      .length === 1,
-  );
-});
+      rejects(() => validateFiles([{ path, content: "x" }], ["solution.ts"]));
+    rejects(() =>
+      validateFiles(
+        [
+          { path: "solution.ts", content: "a" },
+          {
+            path: "solution.ts",
+            content: "b",
+          },
+        ],
+        ["solution.ts"],
+      ),
+    );
+    rejects(() =>
+      validateFiles(
+        [{ path: "solution.ts", content: "á".repeat(131073) }],
+        ["solution.ts"],
+      ),
+    );
+    assert(
+      validateFiles([{ path: "solution.ts", content: "x" }], ["solution.ts"])
+        .length === 1,
+    );
+  },
+);
 Deno.test("level thresholds and personalized recommendations", () => {
   assert(levelForXp(149).level === 0);
   assert(levelForXp(150).level === 1);
   assert(levelForXp(450).level === 2);
-  const catalog = [{
-    id: "a",
-    versionId: "a:v1",
-    topicId: "logic",
-    difficulty: "easy",
-  }, { id: "b", versionId: "b:v1", topicId: "sql", difficulty: "easy" }];
+  const catalog = [
+    {
+      id: "a",
+      versionId: "a:v1",
+      topicId: "logic",
+      difficulty: "easy",
+    },
+    { id: "b", versionId: "b:v1", topicId: "sql", difficulty: "easy" },
+  ];
   assert(recommend(catalog, [], [])[0].challengeId === "a");
   assert(
-    recommend(catalog, [], [{
-      challenge_version_id: "b:v1",
-      verdict: "wrong_answer",
-    }])[0].challengeId === "b",
+    recommend(
+      catalog,
+      [],
+      [
+        {
+          challenge_version_id: "b:v1",
+          verdict: "wrong_answer",
+        },
+      ],
+    )[0].challengeId === "b",
   );
   assert(
-    recommend(catalog, ["b"], [{
-      challenge_version_id: "b:v1",
-      verdict: "wrong_answer",
-    }])[0].challengeId === "a",
+    recommend(
+      catalog,
+      ["b"],
+      [
+        {
+          challenge_version_id: "b:v1",
+          verdict: "wrong_answer",
+        },
+      ],
+    )[0].challengeId === "a",
   );
 });
-Deno.test("canonical heap references fit the published editable workspace", () => {
-  for (
-    const id of [
+Deno.test(
+  "canonical heap references fit the published editable workspace",
+  () => {
+    for (const id of [
       "topological-sort",
       "median-stream",
       "heap-top-k",
       "shortest-path",
-    ]
-  ) {
-    const c = challenges.find((c) => c.id === id)!;
-    const ed = getEditorial(id, "typescript");
-    validateFiles(
-      ed.files,
-      c.starterFilesByLanguage.typescript!.map((f) => f.path),
-    );
-    if (id !== "shortest-path") {
-      assert(
-        ed.files.length === 1 &&
-          !ed.files[0].content.includes('from "./min-heap"'),
+    ]) {
+      const c = challenges.find((c) => c.id === id)!;
+      const ed = getEditorial(id, "typescript");
+      validateFiles(
+        ed.files,
+        c.starterFilesByLanguage.typescript!.map((f) => f.path),
       );
+      if (id !== "shortest-path") {
+        assert(
+          ed.files.length === 1 &&
+            !ed.files[0].content.includes('from "./min-heap"'),
+        );
+      }
     }
-  }
-});
+  },
+);

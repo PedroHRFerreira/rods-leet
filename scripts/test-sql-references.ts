@@ -5,7 +5,8 @@ import { sqlReferenceQueries } from "../judge/sql.ts";
 import type { SqlColumn, SqlResult } from "../judge/comparators.ts";
 
 const container = `codegamer-sql-reference-${crypto.randomUUID().slice(0, 8)}`;
-const encoder = new TextEncoder(), decoder = new TextDecoder();
+const encoder = new TextEncoder(),
+  decoder = new TextDecoder();
 async function docker(args: string[], input?: string) {
   const command = new Deno.Command("docker", {
     args,
@@ -75,24 +76,27 @@ SELECT json_build_object(
 );
 ROLLBACK;
 `;
-      const output = await docker([
-        "exec",
-        "-i",
-        "-e",
-        "PGPASSWORD=local-test-only",
-        container,
-        "psql",
-        "-X",
-        "-q",
-        "-t",
-        "-A",
-        "-h",
-        "127.0.0.1",
-        "-U",
-        "postgres",
-        "-v",
-        "ON_ERROR_STOP=1",
-      ], script);
+      const output = await docker(
+        [
+          "exec",
+          "-i",
+          "-e",
+          "PGPASSWORD=local-test-only",
+          container,
+          "psql",
+          "-X",
+          "-q",
+          "-t",
+          "-A",
+          "-h",
+          "127.0.0.1",
+          "-U",
+          "postgres",
+          "-v",
+          "ON_ERROR_STOP=1",
+        ],
+        script,
+      );
       const raw = JSON.parse(output.trim()) as {
         columns: SqlColumn[];
         rows: Record<string, unknown>[];
@@ -100,16 +104,16 @@ ROLLBACK;
       const actual: SqlResult = {
         columns: raw.columns,
         rows: raw.rows.map((row) =>
-          raw.columns.map((column) => row[column.name])
+          raw.columns.map((column) => row[column.name]),
         ),
       };
       if (!evaluation.compare(test.input, test.expected, actual)) {
         throw new Error(
           `${challenge.id} case ${
             index + 1
-          }: comparator rejected reference\nExpected ${
-            JSON.stringify(test.expected)
-          }\nActual ${JSON.stringify(actual)}`,
+          }: comparator rejected reference\nExpected ${JSON.stringify(
+            test.expected,
+          )}\nActual ${JSON.stringify(actual)}`,
         );
       }
       count++;

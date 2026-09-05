@@ -32,3 +32,11 @@ Backups externos e ensaio de restauração ainda precisam ser configurados antes
 - Rascunho sincronizado e preservado após recarga. O comentário usado na verificação foi removido, preservando o template inicial.
 - Após tentar Executar com executor pausado: uma conta, um rascunho, zero submissões, zero execuções cobradas, zero rejeições e zero XP, confirmados no banco.
 - Botão de login GitHub e erro do modo local verificados em navegador em desktop e 390 × 844, sem cortes no card. Typecheck e build aprovados após o ajuste do provedor Google.
+
+## Atualização BFF, lint e formatação
+
+Migração `202609050003_security.sql` aplicada: armazenamento privado de sessões cifradas, transações OAuth de uso único, nonces, limites atômicos e idempotência vinculada ao conteúdo. Função `session` publicada. BFF Pages Functions usa cookies HttpOnly/Secure/SameSite, CSRF, rotas permitidas e cabeçalhos de segurança. Segredos do BFF foram autorizados e configurados no projeto Cloudflare de produção; nenhuma chave administrativa do Supabase foi enviada à Cloudflare.
+
+Ao finalizar o rollout, `BFF_REQUIRED=true` deve estar ativo na API. O caminho assinado omite o prefixo `/functions/v1`, removido pelo gateway Supabase. API também valida JWT, convite e propriedade dos dados. O registro da publicação e dos workflows deve ser conferido no commit implantado; implementação local não substitui essa verificação.
+
+Validação local: 180 testes Vitest, 4 Deno, 8 Python, 40 execuções de referências SQL e invariantes PostgreSQL. Os fluxos do navegador foram exercitados em desktop/mobile; a fixture de corrida de rascunhos foi atualizada para o contrato BFF e o onboarding. ESLint e Prettier integram o workflow. Executor e tutor remoto continuam indisponíveis conforme a seção de custos, sem cobrança automática.

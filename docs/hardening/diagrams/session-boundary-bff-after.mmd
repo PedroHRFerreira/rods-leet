@@ -1,0 +1,8 @@
+flowchart LR
+  U["Navegador: sessão opaca"] -->|"Cookie HttpOnly + CSRF"| B["BFF Cloudflare: sessão, proxy e limites"]
+  B -->|PKCE e renovação| H[Supabase Auth]
+  B -->|"JWT do usuário + assinatura BFF"| A["API Supabase: assinatura e autorização"]
+  A --> H
+  B -->|"operações de sessão autenticadas"| S[Serviço de sessões]
+  S --> D[(Banco: sessões privadas, progresso e regras)]
+  A --> D

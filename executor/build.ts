@@ -31,10 +31,9 @@ const template = Template({
     "executor/test_*.py",
     "executor/__pycache__",
   ],
-}).fromDockerfile(dockerfile).setStartCmd(
-  "/opt/codegamer/boot.sh",
-  waitForFile("/run/codegamer/ready"),
-);
+})
+  .fromDockerfile(dockerfile)
+  .setStartCmd("/opt/codegamer/boot.sh", waitForFile("/run/codegamer/ready"));
 const built = await Template.build(template, "codegamer-beta-v1", {
   apiKey: key,
   cpuCount: 2,

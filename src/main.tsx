@@ -1,43 +1,88 @@
-import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createClient } from '@supabase/supabase-js';
-import App from './App';
-import { createGateway, type GatewayAuth } from './lib/gateway';
-import { GatewayContext } from './lib/gateway-context';
-import './styles.css';
+import React, { useEffect, useState } from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import App from "./App";
+import { createGateway } from "./lib/gateway";
+import { createBffAuth } from "./lib/bff-auth";
+import { GatewayContext } from "./lib/gateway-context";
+import "./styles.css";
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 }, mutations: { retry: false } } });
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const client = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { flowType: 'pkce', detectSessionInUrl: true } }) : null;
-const auth: GatewayAuth | undefined = client ? {
-  getSession: async () => { const { data, error } = await client.auth.getSession(); if (error) throw error; return data.session; },
-  signIn: async provider => { const { error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo: `${window.location.origin}/auth/callback` } }); if (error) throw error; },
-  signOut: async () => { const { error } = await client.auth.signOut(); if (error) throw error; },
-} : undefined;
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 30_000, retry: 1 },
+    mutations: { retry: false },
+  },
+});
+const liveEnabled = import.meta.env.PROD
+  ? import.meta.env.VITE_BFF_ENABLED !== "false"
+  : import.meta.env.VITE_BFF_ENABLED === "true";
+const identityListeners = new Set<(identity: string) => void>();
+let currentIdentity = "initial";
+const auth = liveEnabled
+  ? createBffAuth({
+      onSessionChange: (userId) => {
+        const identity = userId ?? "guest";
+        // A session request can finish during another component's update.
+        queueMicrotask(() => {
+          if (currentIdentity === identity) return;
+          currentIdentity = identity;
+          queryClient.clear();
+          identityListeners.forEach((listener) => listener(identity));
+        });
+      },
+    })
+  : undefined;
 let storage: Storage | undefined;
-try { storage = window.localStorage; } catch { /* The editor can still be used when browser storage is unavailable. */ }
-const gateway = createGateway({ auth, apiUrl: import.meta.env.VITE_API_URL || (supabaseUrl ? `${supabaseUrl}/functions/v1/api` : undefined), apiKey: supabaseKey, storage, onSignOut: () => queryClient.clear() });
+try {
+  storage = window.localStorage;
+  // Remove only credentials left by the old browser-auth implementation.
+  storage.removeItem("sb-bsjcuygtpiqyomnulpsw-auth-token");
+  storage.removeItem("sb-bsjcuygtpiqyomnulpsw-auth-token-code-verifier");
+} catch {
+  /* The editor can still be used when browser storage is unavailable. */
+}
+const gateway = createGateway({
+  auth,
+  storage,
+  onSignOut: () => queryClient.clear(),
+});
 
 function Application() {
-  const [identity, setIdentity] = useState('initial');
+  const [identity, setIdentity] = useState(currentIdentity);
   useEffect(() => {
-    if (!client) return;
-    let previousUser: string | undefined;
-    const { data } = client.auth.onAuthStateChange((_event, session) => {
-      const nextUser = session?.user.id ?? 'guest';
-      if (nextUser === previousUser) return;
-      previousUser = nextUser;
-      queryClient.clear();
-      // Remount page state as well as clearing cached queries on a cross-tab account change.
-      // No Supabase operation is awaited inside its auth callback.
-      setIdentity(nextUser);
-    });
-    return () => data.subscription.unsubscribe();
+    if (!auth) return;
+    identityListeners.add(setIdentity);
+    setIdentity(currentIdentity);
+    const checkSession = () => {
+      // The next app request still reports unavailable authentication explicitly.
+      void auth.getSession().catch(() => undefined);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkSession();
+    };
+    checkSession();
+    window.addEventListener("focus", checkSession);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      identityListeners.delete(setIdentity);
+      window.removeEventListener("focus", checkSession);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
-  return <QueryClientProvider client={queryClient}><GatewayContext.Provider value={gateway}><BrowserRouter><App key={identity} /></BrowserRouter></GatewayContext.Provider></QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <GatewayContext.Provider value={gateway}>
+        <BrowserRouter>
+          <App key={identity} />
+        </BrowserRouter>
+      </GatewayContext.Provider>
+    </QueryClientProvider>
+  );
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><Application /></React.StrictMode>);
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <Application />
+  </React.StrictMode>,
+);
