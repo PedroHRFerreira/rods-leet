@@ -1,4 +1,4 @@
-# Operação do beta CodeGamer
+# Operação do beta Rods Leet
 
 ## Estado entregue e condições para abrir os convites
 
@@ -43,7 +43,7 @@ Preencha `coordinator_url`, `coordinator_secret` e `execution_enabled=true` some
 
 ## Publicação, tutor e recuperação
 
-Publique a aplicação estática em Cloudflare Pages: build `npm run build`, saída `dist`. Configure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` e o retorno OAuth de produção. Publique funções com `supabase functions deploy api` e `supabase functions deploy coordinator`; segredos ficam no ambiente de funções. Nenhum comando de provisionamento ou deploy remoto foi executado.
+Publique a aplicação estática em Cloudflare Pages: build `npm run build`, saída `dist`. Configure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` e o retorno OAuth de produção. Publique funções com `supabase functions deploy api` e `supabase functions deploy coordinator`; segredos ficam no ambiente de funções. O primeiro deploy foi realizado em 5 de setembro de 2026; consulte [estado do ambiente](deployment-status.md) para o que está ativo e as verificações pendentes.
 
 O tutor usa REST Workers AI a partir do Supabase, com token restrito a inferência. O modelo é `@cf/qwen/qwen3-30b-a3b-fp8`. Entrada incluindo instruções tem cap conservador inferior a 2.048 tokens; saída, 1.024. Cada inferência reserva 100 neurons, com teto de 8.000 por dia e duas chamadas por usuário. Verifique tarifas do modelo antes da ativação. Falta de configuração/cota produz uma dica editorial. Assistência em desafio ainda não resolvido usa o saldo de dicas e exige uma sessão ativa. Recomendações usam conclusões e os erros recentes por tópico.
 

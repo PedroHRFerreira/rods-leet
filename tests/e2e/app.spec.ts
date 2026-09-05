@@ -117,7 +117,7 @@ test('tutor, ranking and sign-in expose honest unavailable states', async ({ pag
   await expect(page.getByRole('heading', { name: 'Nenhuma pontuação registrada' })).toBeVisible();
   await expect(page.locator('.ranking-table tbody tr')).toHaveCount(0);
   await page.goto('/perfil');
-  await page.getByRole('button', { name: 'Continuar com Google' }).click();
+  await page.getByRole('button', { name: 'Continuar com GitHub' }).click();
   await expect(page.getByRole('alert')).toContainText('O acesso por convite será liberado no beta');
 });
 
