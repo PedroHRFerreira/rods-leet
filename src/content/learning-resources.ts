@@ -1,4 +1,8 @@
-import type { LanguageId, LearningResource, TopicId } from "../lib/contracts";
+import type {
+  LanguageId,
+  LearningResource,
+  TopicId,
+} from "../lib/contracts.ts";
 
 const languageResources: Record<
   LanguageId,
