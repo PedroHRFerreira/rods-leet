@@ -37,6 +37,7 @@ import {
   TopicIcon,
 } from "../components/ui";
 import { topics } from "../content/catalog";
+import { LearningResourceList } from "../components/LearningResourceList";
 import { LANGUAGES, rewardPercent } from "../domain/rules";
 import type {
   Attempt,
@@ -169,7 +170,7 @@ function ChallengeWorkspace({
   const [hints, setHints] = useState<string[]>([]);
   const [solution, setSolution] = useState<SolutionResult | null>(null);
   const [activePanel, setActivePanel] = useState<
-    "description" | "hints" | "solution"
+    "description" | "learning" | "hints" | "solution"
   >("description");
   const gateway = useGateway();
   const queryClient = useQueryClient();
@@ -416,6 +417,11 @@ function ChallengeWorkspace({
             {(
               [
                 { id: "description", label: "Enunciado", icon: BookOpen },
+                {
+                  id: "learning",
+                  label: "Plano de aprendizado",
+                  icon: Sparkles,
+                },
                 { id: "hints", label: "Dicas", icon: Lightbulb },
                 { id: "solution", label: "Gabarito", icon: LockKeyhole },
               ] as const
@@ -540,6 +546,36 @@ function ChallengeWorkspace({
                   respostas esperadas permanecem privados.
                 </p>
               </>
+            )}
+            {activePanel === "learning" && (
+              <div className="learning-panel">
+                <span className="assistance-icon">
+                  <Sparkles size={28} />
+                </span>
+                <h2>Plano de aprendizado</h2>
+                <p>
+                  Use estas referências para entender o conceito e escrever sua
+                  solução com autonomia.
+                </p>
+                <p className="learning-free-note">
+                  Este material é gratuito e não usa dicas nem altera sua
+                  recompensa.
+                </p>
+                <LearningResourceList
+                  heading="Entenda o conceito"
+                  resources={challenge.learningResources.filter(
+                    (resource) => resource.category === "concept",
+                  )}
+                />
+                <LearningResourceList
+                  heading={`Para resolver em ${LANGUAGES.find((item) => item.id === language)?.label ?? language}`}
+                  resources={challenge.learningResources.filter(
+                    (resource) =>
+                      resource.category === "language" &&
+                      resource.languageId === language,
+                  )}
+                />
+              </div>
             )}
             {activePanel === "hints" && (
               <div className="assistance-panel">

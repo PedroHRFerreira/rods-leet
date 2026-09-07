@@ -673,6 +673,74 @@
   gap: 6px;
   font-size: 12px;
 }
+.learning-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.learning-panel > h2,
+.learning-panel > p {
+  margin: 0;
+}
+.learning-panel > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--arena-muted);
+}
+.learning-free-note {
+  width: 100%;
+  border: 1px solid var(--arena-border);
+  background: var(--accent-soft);
+  color: var(--text) !important;
+  padding: 10px 12px;
+  border-radius: 7px;
+}
+.learning-resource-group {
+  width: 100%;
+}
+.learning-resource-group h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+.learning-resource-list {
+  display: grid;
+  gap: 8px;
+}
+.learning-resource {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--arena-border);
+  border-radius: 7px;
+  background: var(--panel-hover);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.learning-resource:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.learning-resource span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.learning-resource strong {
+  font-size: 12px;
+}
+.learning-resource small {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--arena-muted);
+}
+.learning-resource svg {
+  color: var(--accent);
+}
 .solution-file {
   width: 100%;
   min-width: 0;

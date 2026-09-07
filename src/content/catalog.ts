@@ -11,6 +11,7 @@ import {
   findMaxTemplates,
   shortestPathTemplates,
 } from "./templates.ts";
+import { learningResourcesFor } from "./learning-resources.ts";
 
 export type { PublicChallenge, Topic } from "./types.ts";
 
@@ -122,6 +123,7 @@ function challenge(
     availableModes: ["normal", "hard"],
     executionAvailable: false,
     limits: { ...betaExecutionLimits },
+    learningResources: [],
   };
 }
 const ex = (
@@ -1140,6 +1142,9 @@ export const challenges: PublicChallenge[] = [
   ...algorithms,
   ...structures,
   ...sqlChallenges,
-];
+].map((item) => ({
+  ...item,
+  learningResources: learningResourcesFor(item.topicId, item.languageIds),
+}));
 export const challengeById = new Map(challenges.map((item) => [item.id, item]));
 export const catalogVersion = "2026-09-beta-1";

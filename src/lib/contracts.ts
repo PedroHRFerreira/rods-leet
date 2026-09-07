@@ -36,6 +36,13 @@ export interface PublicExample {
   output: unknown;
   explanation?: string;
 }
+export interface LearningResource {
+  title: string;
+  description: string;
+  url: string;
+  category: "concept" | "language";
+  languageId?: LanguageId;
+}
 export interface ExecutionLimits {
   maxFiles: number;
   maxSourceBytes: number;
@@ -68,6 +75,8 @@ export interface PublicChallenge {
   estimatedMinutes?: number;
   limits?: ExecutionLimits;
   tags?: string[];
+  /** Public editorial material. It never changes assistance or progression. */
+  learningResources: LearningResource[];
   /** Only homologated execution profiles are enabled for remote judging. */
   executionAvailable?: boolean;
   prerequisites?: string[];
