@@ -3,13 +3,16 @@ import { getEvaluation } from "../../../judge/index.ts";
 import { Database, env, secretsMatch } from "../_shared/db.ts";
 import {
   E2BExecutionProvider,
+  LocalExecutionProvider,
+  type CodeExecutionProvider,
   type ExecutionResult,
 } from "../_shared/execution.ts";
 import type { Row } from "../_shared/presenters.ts";
 
 export async function processOne(): Promise<void> {
   const db = new Database();
-  if (!Deno.env.get("E2B_API_KEY")) return;
+  const providerName = Deno.env.get("EXECUTION_PROVIDER") ?? "disabled";
+  if (providerName === "disabled") return;
   const claimed = await db.rpc<Row | null>("claim_evaluation");
   if (!claimed) return;
   const { submission: s, leaseToken, runtime } = claimed;
@@ -24,7 +27,17 @@ export async function processOne(): Promise<void> {
     );
     if (!challenge) throw new Error("version_unavailable");
     const evaluation = getEvaluation(challenge.id, s.language_id, s.kind);
-    const provider = new E2BExecutionProvider(env("E2B_API_KEY"));
+    let provider: CodeExecutionProvider;
+    if (providerName === "local") {
+      provider = new LocalExecutionProvider(
+        env("LOCAL_EXECUTOR_URL"),
+        env("LOCAL_EXECUTOR_TOKEN"),
+      );
+    } else if (providerName === "e2b") {
+      provider = new E2BExecutionProvider(env("E2B_API_KEY"));
+    } else {
+      throw new Error("execution_provider_unavailable");
+    }
     const execution: ExecutionResult = await provider.execute({
       submissionId: s.id,
       templateId: runtime.template_id,

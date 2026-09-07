@@ -8,10 +8,12 @@ import psycopg
 
 def main():
     query=Path('/workspace/solution.sql').read_text()
+    control=json.load(sys.stdin)
+    allowed=set(control.get('allowedRelations',[]))
+    if not allowed:raise ValueError('relations_unavailable')
     # Peer mapping permits UID student to connect only as cg_student.
     with psycopg.connect('host=/run/postgresql dbname=codegamer user=cg_student',connect_timeout=2) as connection:
-        tables={row[0] for row in connection.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='challenge'")}
-        validate_query(query,tables)
+        validate_query(query,allowed)
         connection.execute('BEGIN READ ONLY')
         connection.execute("SET LOCAL search_path=challenge,pg_catalog")
         connection.execute("SET LOCAL statement_timeout='4000ms'")

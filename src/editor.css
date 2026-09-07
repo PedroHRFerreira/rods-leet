@@ -424,6 +424,14 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.editor-clipboard-note {
+  margin: 0;
+  padding: 7px 16px;
+  border-top: 1px solid var(--arena-border);
+  background: var(--bg);
+  color: var(--arena-muted);
+  font-size: 12px;
+}
 .editor-loading {
   height: 380px;
   display: grid;

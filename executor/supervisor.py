@@ -37,26 +37,29 @@ def restrict_postgres_socket(directory, is_sql, owner_uid):
         raise RuntimeError('unprotected_postgres_socket')
     os.chmod(directory,0o711 if is_sql else 0o700)
 
-def run_limited(command, stdin, wall, cpu, memory=1024**3, sql=False):
+def run_limited(command, stdin, wall, cpu, memory=1024**3, sql=False, file_size=resource.RLIM_INFINITY, open_files=128):
     """Bound total descendants via cgroup, not only the initial process PID."""
-    if os.geteuid() != 0 or not (CGROOT / 'cgroup.controllers').exists():
+    container_mode=os.environ.get('EXECUTION_CGROUP_MODE')=='container'
+    if os.geteuid() != 0 or (not container_mode and not (CGROOT / 'cgroup.controllers').exists()):
         raise RuntimeError('cgroup_v2_required')
-    group = CGROOT / uuid.uuid4().hex
-    group.mkdir()
-    (group / 'memory.max').write_text(str(memory))
-    (group / 'memory.swap.max').write_text('0')
-    (group / 'pids.max').write_text('64')
-    (group / 'cpu.max').write_text('200000 100000')
+    group = None if container_mode else CGROOT / uuid.uuid4().hex
+    if group:
+        group.mkdir()
+        (group / 'memory.max').write_text(str(memory))
+        (group / 'memory.swap.max').write_text('0')
+        (group / 'pids.max').write_text('64')
+        (group / 'cpu.max').write_text('200000 100000')
     student = pwd.getpwnam('student')
     def drop():
-        (group / 'cgroup.procs').write_text(str(os.getpid()))
+        if group:(group / 'cgroup.procs').write_text(str(os.getpid()))
         os.setsid()
         os.setgroups([])
         os.setgid(student.pw_gid)
         os.setuid(student.pw_uid)
-        resource.setrlimit(resource.RLIMIT_FSIZE, (16*1024**2,16*1024**2))
-        resource.setrlimit(resource.RLIMIT_NOFILE,(128,128))
+        resource.setrlimit(resource.RLIMIT_FSIZE, (file_size,file_size))
+        resource.setrlimit(resource.RLIMIT_NOFILE,(open_files,open_files))
         resource.setrlimit(resource.RLIMIT_CORE,(0,0))
+        resource.setrlimit(resource.RLIMIT_CPU,(max(1,cpu),max(2,cpu+1)))
         # Prevent regaining privilege through setuid binaries.
         import ctypes
         if ctypes.CDLL(None).prctl(38,1,0,0,0) != 0:
@@ -64,7 +67,7 @@ def run_limited(command, stdin, wall, cpu, memory=1024**3, sql=False):
     started = time.monotonic()
     pg_group=Path('/sys/fs/cgroup/codegamer-postgres')
     def pg_cpu():
-        return int(dict(line.split() for line in (pg_group/'cpu.stat').read_text().splitlines()).get('usage_usec',0)) if sql else 0
+        return int(dict(line.split() for line in (pg_group/'cpu.stat').read_text().splitlines()).get('usage_usec',0)) if sql and not container_mode else 0
     pg_initial=pg_cpu()
     process = None
     output = bytearray()
@@ -84,8 +87,11 @@ def run_limited(command, stdin, wall, cpu, memory=1024**3, sql=False):
         selector.register(process.stdin,selectors.EVENT_WRITE,'stdin')
         while True:
             elapsed=time.monotonic()-started
-            stats=dict(line.split() for line in (group/'cpu.stat').read_text().splitlines())
-            cpu_us=int(stats.get('usage_usec',0))+pg_cpu()-pg_initial
+            if group:
+                stats=dict(line.split() for line in (group/'cpu.stat').read_text().splitlines())
+                cpu_us=int(stats.get('usage_usec',0))+pg_cpu()-pg_initial
+            else:
+                cpu_us=int((time.monotonic()-started)*1_000_000)
             if elapsed>wall or cpu_us>cpu*1_000_000: termination='time_limit';break
             if len(output)+len(error_output)>OUTPUT_LIMIT: termination='output_limit';break
             for key,_ in selector.select(0.005):
@@ -101,26 +107,32 @@ def run_limited(command, stdin, wall, cpu, memory=1024**3, sql=False):
                     else:selector.unregister(key.fileobj)
             if len(output)+len(error_output)>OUTPUT_LIMIT:termination='output_limit';break
             if process.poll() is not None and not selector.get_map():break
-        events=dict(line.split() for line in (group/'memory.events').read_text().splitlines())
-        if sql:
+        events=dict(line.split() for line in (group/'memory.events').read_text().splitlines()) if group else {}
+        if sql and not container_mode:
             pg_events=dict(line.split() for line in (pg_group/'memory.events').read_text().splitlines())
             if int(pg_events.get('oom_kill',0))>0:termination='memory_limit'
         if int(events.get('oom_kill',0))>0:termination='memory_limit'
-        if termination=='ok' and process.poll()!=0:termination='runtime_error'
-        peak=int((group/'memory.peak').read_text())+(int((pg_group/'memory.peak').read_text()) if sql else 0)
+        if termination=='ok' and process.poll()!=0:
+            termination='runtime_error'
+            if not error_output:error_output.extend(f'process_exit_{process.poll()}'.encode())
+        peak=(int((group/'memory.peak').read_text()) if group else resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss*1024)+(int((pg_group/'memory.peak').read_text()) if sql and not container_mode else 0)
         return {'termination':termination,'stdout':output[:OUTPUT_LIMIT].decode('utf-8','replace'),
                 'stderr':error_output[:OUTPUT_LIMIT].decode('utf-8','replace'),
                 'metrics':{'cpuMs':cpu_us/1000,'wallMs':(time.monotonic()-started)*1000,'peakMemoryKiB':peak//1024}}
     finally:
         # This kills descendants even after setsid, daemonization or parent exit.
-        (group/'cgroup.kill').write_text('1')
+        if group:(group/'cgroup.kill').write_text('1')
+        elif process is not None:
+            try:os.killpg(process.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
         if process is not None:
             process.wait(timeout=2)
             for pipe in (process.stdin,process.stdout,process.stderr):
                 if pipe and not pipe.closed:pipe.close()
-        for _ in range(100):
-            try:group.rmdir();break
-            except OSError:time.sleep(0.01)
+        if group:
+            for _ in range(100):
+                try:group.rmdir();break
+                except OSError:time.sleep(0.01)
 
 def main():
     protected(ROOT/'manifest.json');protected(ROOT/'supervisor.py');protected(ROOT/'adapters.py')
@@ -138,18 +150,24 @@ def main():
     WORK.mkdir(mode=0o755,exist_ok=True);(WORK/'tmp').mkdir(exist_ok=True)
     student=pwd.getpwnam('student')
     os.chown(WORK,student.pw_uid,student.pw_gid);os.chown(WORK/'tmp',student.pw_uid,student.pw_gid)
-    command,compile_command=prepare(request,manifest)
+    # No student process exists while trusted adapters are generated.
+    os.chmod(WORK,0o777)
+    try:command,compile_command=prepare(request,manifest)
+    finally:os.chmod(WORK,0o755)
     if compile_command:
-        compilation=run_limited(compile_command,'',45,40)
+        compilation=run_limited(compile_command,'',45,40,file_size=resource.RLIM_INFINITY,open_files=1024)
         if compilation['termination']!='ok':
             verdict='compile_error' if compilation['termination']=='runtime_error' else compilation['termination']
             (CONTROL/'result.json').write_text(json.dumps({'termination':verdict,'cases':[],'compilation':compilation}))
             return
+    if command[0].startswith('./'):
+        os.chmod(WORK/command[0],0o555)
     cases=[];total=0;job_start=time.monotonic()
     for case in request['cases']:
         if time.monotonic()-job_start>35:
             (CONTROL/'result.json').write_text(json.dumps({'termination':'time_limit','cases':cases}))
             return
+        case_input=case['input']
         if request['languageId']=='sql':
             # Only trusted generated fixtures can reach this privileged connection.
             import psycopg
@@ -158,7 +176,9 @@ def main():
                 database.execute(case['input']['schema'],prepare=False)
                 database.execute(case['input']['seedSql'],prepare=False)
                 database.execute('GRANT USAGE ON SCHEMA challenge TO cg_student; GRANT SELECT ON ALL TABLES IN SCHEMA challenge TO cg_student',prepare=False)
-        result=run_limited(command,json.dumps(case['input'],separators=(',',':'))+'\n',5,2,sql=request['languageId']=='sql')
+                allowed=[row[0].decode() if isinstance(row[0],bytes) else row[0] for row in database.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='challenge'")]
+            case_input={'allowedRelations':allowed}
+        result=run_limited(command,json.dumps(case_input,separators=(',',':'))+'\n',5,2,sql=request['languageId']=='sql')
         total+=len(result['stdout'].encode())+len(result['stderr'].encode())
         if total>JOB_LIMIT:result['termination']='output_limit';result['stdout']='';result['stderr']=''
         cases.append(result)

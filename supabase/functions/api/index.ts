@@ -551,7 +551,12 @@ export async function handler(request: Request): Promise<Response> {
     const e =
       error instanceof ApiError ? error : new ApiError("internal_error", 500);
     if (e.status >= 500) {
-      console.error(JSON.stringify({ event: "api_error", code: e.code }));
+      console.error(
+        JSON.stringify({
+          event: "api_error",
+          code: e.code,
+        }),
+      );
     }
     if (e.status === 429) headers["Retry-After"] = "60";
     return json(

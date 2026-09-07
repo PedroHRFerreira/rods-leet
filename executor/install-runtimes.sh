@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
+curl() {
+ command curl --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 "$@"
+}
 # Snapshot fixes Debian package resolution. Template itself is pinned by digest.
 rm -f /etc/apt/sources.list.d/debian.sources
 printf '%s\n' 'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260901T000000Z bookworm main' > /etc/apt/sources.list
 apt-get update
-apt-get install -y --no-install-recommends ca-certificates curl xz-utils unzip bzip2 build-essential python3 python3-pip python3-venv openjdk-17-jdk-headless libcjson-dev nlohmann-json3-dev libicu72 libssl-dev zlib1g-dev libreadline-dev pkg-config
+apt-get install -y --no-install-recommends ca-certificates curl xz-utils unzip bzip2 build-essential bison flex python3 python3-pip python3-venv openjdk-17-jdk-headless libcjson-dev nlohmann-json3-dev libicu72 libssl-dev zlib1g-dev libreadline-dev pkg-config
 mkdir -p /opt/codegamer /opt/libs /opt/kotlin-libs /opt/dotnet /opt/cargo
 curl -fsSLo /tmp/rust.tar.xz https://static.rust-lang.org/dist/rust-1.85.0-x86_64-unknown-linux-gnu.tar.xz
 tar -xf /tmp/rust.tar.xz -C /tmp
@@ -30,7 +33,7 @@ for artifact in kotlinx-serialization-core-jvm kotlinx-serialization-json-jvm; d
  curl -fsSLo "/opt/kotlin-libs/$artifact.jar" "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/$artifact/1.8.0/$artifact-1.8.0.jar"
 done
 python3 -m venv /opt/python
-/opt/python/bin/pip install --no-cache-dir -r /tmp/requirements.txt
+/opt/python/bin/pip install --no-cache-dir -r /tmp/rods-requirements.txt
 ln -sf /opt/python/bin/python3 /usr/local/bin/python3
 # Resolve Rust dependencies once at build time and preserve Cargo.lock for audit.
 mkdir /tmp/rust-seed
@@ -54,10 +57,12 @@ printf '%s\n' 'local all root peer map=codegamer' 'local codegamer cg_student pe
 printf '%s\n' 'codegamer root root' 'codegamer student cg_student' > /var/lib/codegamer-pg/pg_ident.conf
 printf '%s\n' "listen_addresses=''" "unix_socket_directories='/run/postgresql'" "max_connections=8" "shared_buffers='64MB'" "work_mem='8MB'" "temp_file_limit='32MB'" >> /var/lib/codegamer-pg/postgresql.conf
 runuser -u postgres -- /opt/postgres/bin/pg_ctl -D /var/lib/codegamer-pg -w start
-runuser -u postgres -- /opt/postgres/bin/psql -v ON_ERROR_STOP=1 -c 'CREATE ROLE root LOGIN SUPERUSER; CREATE ROLE cg_student LOGIN;'
-runuser -u postgres -- /opt/postgres/bin/createdb -O root codegamer
-/opt/postgres/bin/psql -U root -d codegamer -v ON_ERROR_STOP=1 -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC; REVOKE TEMP ON DATABASE codegamer FROM PUBLIC; ALTER ROLE cg_student SET default_transaction_read_only=on; ALTER ROLE cg_student SET statement_timeout='4s';"
+trap 'runuser -u postgres -- /opt/postgres/bin/pg_ctl -D /var/lib/codegamer-pg -m fast stop >/dev/null 2>&1 || true' EXIT
+runuser -u postgres -- /opt/postgres/bin/psql -h /run/postgresql -v ON_ERROR_STOP=1 -c 'CREATE ROLE root LOGIN SUPERUSER; CREATE ROLE cg_student LOGIN;'
+runuser -u postgres -- /opt/postgres/bin/createdb -h /run/postgresql -O root codegamer
+/opt/postgres/bin/psql -h /run/postgresql -U root -d codegamer -v ON_ERROR_STOP=1 -c "REVOKE CREATE ON SCHEMA public FROM PUBLIC; REVOKE TEMP ON DATABASE codegamer FROM PUBLIC; ALTER ROLE cg_student SET default_transaction_read_only=on; ALTER ROLE cg_student SET statement_timeout='4s';"
 runuser -u postgres -- /opt/postgres/bin/pg_ctl -D /var/lib/codegamer-pg -w stop
+trap - EXIT
 chmod -R a+rX /opt/cargo
 find /opt/libs /opt/kotlin-libs /opt/dotnet /opt/go /opt/kotlin /opt/postgres -type f -exec sha256sum {} + > /opt/codegamer/artifact-sha256.txt
 rm -rf /tmp/node* /tmp/go.tar.gz /tmp/dotnet.tar.gz /tmp/kotlin.zip /tmp/postgresql-* /tmp/pg.tar.bz2 /var/lib/apt/lists/*

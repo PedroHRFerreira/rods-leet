@@ -19,6 +19,16 @@ export async function databaseResponse<T>(response: Response): Promise<T> {
     }
   }
   if (!response.ok) {
+    if (body && typeof body === "object") {
+      const failure = body as Record<string, unknown>;
+      console.error(
+        JSON.stringify({
+          event: "database_request_failed",
+          status: response.status,
+          code: failure.code,
+        }),
+      );
+    }
     const message =
       body && typeof body === "object" && "message" in body
         ? (body as { message?: unknown }).message

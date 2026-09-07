@@ -4,6 +4,10 @@ import * as monaco from "monaco-editor";
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import TypeScriptWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 import { LANGUAGES } from "../domain/rules";
+import {
+  hasUnsafeSourceCharacters,
+  isClipboardShortcut,
+} from "../domain/source-security";
 import type { LanguageId } from "../lib/contracts";
 
 // Workers and editor assets are served by this application, without a public CDN.
@@ -53,6 +57,7 @@ export default function CodeEditor({
   path,
   hard = false,
   readOnly = false,
+  onUnsafeInput,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -60,6 +65,7 @@ export default function CodeEditor({
   path: string;
   hard?: boolean;
   readOnly?: boolean;
+  onUnsafeInput?: () => void;
 }) {
   const [simple, setSimple] = useState(false);
   const [theme, setTheme] = useState(
@@ -81,25 +87,50 @@ export default function CodeEditor({
     });
     return () => observer.disconnect();
   }, []);
+  const acceptChange = (next: string) => {
+    if (hasUnsafeSourceCharacters(next)) {
+      onUnsafeInput?.();
+      return;
+    }
+    onChange(next);
+  };
+  const blockClipboard = (event: {
+    preventDefault(): void;
+    stopPropagation(): void;
+  }) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
   return (
     <div className="code-editor-wrap">
       <div className="editor-accessibility">
         <span>
           {hard
             ? "Autocomplete desativado · modo Hard"
-            : "Seu código, no seu ritmo"}
+            : "Digite sua solução diretamente no editor"}
         </span>
         <button type="button" onClick={() => setSimple(!simple)}>
           {simple ? "Editor avançado" : "Editor simples"}
         </button>
       </div>
+      <p className="editor-clipboard-note" role="status">
+        Copiar, recortar, colar e arrastar código estão desativados neste
+        desafio.
+      </p>
       {simple ? (
         <textarea
           className="simple-code-editor"
           aria-label={`Código de ${path}`}
           spellCheck={false}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => acceptChange(event.target.value)}
+          onCopy={blockClipboard}
+          onCut={blockClipboard}
+          onPaste={blockClipboard}
+          onDrop={blockClipboard}
+          onKeyDown={(event) => {
+            if (isClipboardShortcut(event)) blockClipboard(event);
+          }}
           readOnly={readOnly}
         />
       ) : (
@@ -112,7 +143,24 @@ export default function CodeEditor({
           }
           path={path}
           value={value}
-          onChange={(next) => onChange(next ?? "")}
+          onChange={(next) => acceptChange(next ?? "")}
+          onMount={(editor) => {
+            const root = editor.getDomNode();
+            if (!root) return;
+            const events = ["copy", "cut", "paste", "drop", "dragstart"];
+            const stop = (event: Event) => blockClipboard(event);
+            const stopShortcut = (event: KeyboardEvent) => {
+              if (isClipboardShortcut(event)) blockClipboard(event);
+            };
+            for (const event of events)
+              root.addEventListener(event, stop, true);
+            root.addEventListener("keydown", stopShortcut, true);
+            editor.onDidDispose(() => {
+              for (const event of events)
+                root.removeEventListener(event, stop, true);
+              root.removeEventListener("keydown", stopShortcut, true);
+            });
+          }}
           theme={theme}
           loading={
             <div className="editor-loading" role="status">

@@ -169,7 +169,7 @@ begin
  -- Reserve before enqueue, so pending jobs cannot oversubscribe tomorrow's budget.
  insert into private.daily_budget(day) values(day_utc) on conflict do nothing;
  update private.daily_budget set execution_usd=execution_usd+cfg.cost_per_job_usd where day=day_utc;
- update private.settings set credit_spent_usd=credit_spent_usd+cfg.cost_per_job_usd;
+ update private.settings set credit_spent_usd=credit_spent_usd+cfg.cost_per_job_usd where singleton;
  insert into private.daily_usage(user_id,day) values(p_user,day_utc) on conflict do nothing;
  update private.daily_usage set executions=executions+1 where user_id=p_user and day=day_utc and executions<10;
  if not found then raise exception 'daily_limit'; end if;
@@ -202,7 +202,7 @@ begin
   update public.submissions set status='finished',verdict='infrastructure_error',public_result='{"message":"Falha da infraestrutura. Sua tentativa foi preservada."}',finished_at=now() where id=sub.id;
   update private.daily_usage set executions=greatest(0,executions-1) where user_id=sub.user_id and day=(sub.created_at at time zone 'UTC')::date;
   if job.technical_attempts=0 then
-   update private.settings set credit_spent_usd=credit_spent_usd-job.reserved_usd;
+   update private.settings set credit_spent_usd=credit_spent_usd-job.reserved_usd where singleton;
    update private.daily_budget set execution_usd=execution_usd-job.reserved_usd where day=job.reserved_day;
   end if;
   delete from private.jobs where submission_id=sub.id;
@@ -216,9 +216,9 @@ begin
  update private.jobs set lease_token=token,lease_until=clock_timestamp()+interval '180 seconds',technical_attempts=technical_attempts+1,reserved_usd=cfg.cost_per_job_usd,reserved_day=day_utc where submission_id=sub.id;
  if job.technical_attempts>0 then
   update private.daily_budget set execution_usd=execution_usd+cfg.cost_per_job_usd where day=day_utc;
-  update private.settings set credit_spent_usd=credit_spent_usd+cfg.cost_per_job_usd;
+  update private.settings set credit_spent_usd=credit_spent_usd+cfg.cost_per_job_usd where singleton;
  end if;
- update private.settings set last_sandbox_at=clock_timestamp();
+ update private.settings set last_sandbox_at=clock_timestamp() where singleton;
  update public.submissions set status='running' where id=sub.id;
  return jsonb_build_object('submission',to_jsonb(sub),'leaseToken',token,'runtime',jsonb_build_object('language_id',sub.language_id,'runtime_version',sub.runtime_version,'template_id',sub.template_id,'manifest_sha256',sub.manifest_sha256));
 end $$;

@@ -37,4 +37,15 @@ it("copies snapshots and checks UTF-8 bytes, extra properties, and duplicate nam
   expect(() =>
     validateWorkspace([{ path: "src/other.ts", content: "" }], manifest),
   ).toThrow();
+  expect(() =>
+    validateWorkspace(
+      [
+        {
+          path: "solution.ts",
+          content: `const x = 1;${String.fromCodePoint(0x2060)}`,
+        },
+      ],
+      manifest,
+    ),
+  ).toThrow();
 });

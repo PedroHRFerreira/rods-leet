@@ -1,4 +1,4 @@
-import { Template, waitForFile } from "e2b";
+import { defaultBuildLogger, Template, waitForFile } from "e2b";
 // Explicit local command only: building a cloud template consumes confirmed credits.
 const key = Deno.env.get("E2B_API_KEY");
 const base = Deno.env.get("RUNTIME_BASE_IMAGE");
@@ -13,7 +13,7 @@ if (!base || !/^debian:bookworm-slim@sha256:[a-f0-9]{64}$/.test(base)) {
   );
 }
 const dockerfile = (await Deno.readTextFile("executor/Dockerfile")).replace(
-  "ARG BASE_IMAGE\nFROM ${BASE_IMAGE}",
+  /ARG BASE_IMAGE=.*\nFROM \$\{BASE_IMAGE\}/,
   `FROM ${base}`,
 );
 const template = Template({
@@ -38,6 +38,7 @@ const built = await Template.build(template, "codegamer-beta-v1", {
   apiKey: key,
   cpuCount: 2,
   memoryMB: 2048,
+  onBuildLogs: defaultBuildLogger({ minLevel: "info" }),
 });
 console.log(
   JSON.stringify({

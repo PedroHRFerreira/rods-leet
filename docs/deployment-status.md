@@ -1,10 +1,10 @@
 # Rods Leet — ambiente de testes
 
-Atualizado em 5 de setembro de 2026.
+Atualizado em 7 de setembro de 2026.
 
 - Frontend: https://rods-leet.pages.dev, Cloudflare Pages, repositório privado `PedroHRFerreira/rods-leet`, branch `main`.
 - Build: Node 22, `npm run build`, saída `dist`. Novos commits em `main` publicam automaticamente.
-- Supabase: projeto `bsjcuygtpiqyomnulpsw`, plano Free. Migrações `202609050001` e `202609050002` aplicadas; 50 desafios públicos publicados.
+- Supabase: projeto `bsjcuygtpiqyomnulpsw`, plano Free. Migrações até `202609070005` aplicadas; 50 desafios públicos publicados.
 - Funções `api` e `coordinator` publicadas. `APP_ORIGIN` corresponde ao domínio acima. Segredos administrativos ficam no Supabase, nunca em variáveis `VITE_`.
 - GitHub OAuth habilitado. Site URL: `https://rods-leet.pages.dev`; redirect permitido: `https://rods-leet.pages.dev/auth/callback`.
 - O callback do aplicativo OAuth do GitHub é `https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/callback`, sem curingas.
@@ -15,11 +15,13 @@ Atualizado em 5 de setembro de 2026.
 
 Nenhum domínio comprado, plano atualizado ou serviço pago contratado neste deploy. O endereço `pages.dev` atende aos testes iniciais.
 
-Execução remota e modo Hard permanecem desativados no banco. Crédito confirmado é zero; nenhuma execução E2B foi iniciada. Avaliação de código, aceite e XP exigem homologar o executor isolado e confirmar créditos disponíveis. O botão Executar deve responder com pausa sem consumir tentativa ou XP.
+A avaliação do modo Normal está ativa por um executor Docker local, exposto ao coordenador por Cloudflare Quick Tunnel. As dez linguagens algorítmicas e SQL foram homologadas na imagem `local-docker-v1`. O custo monetário dos jobs está configurado como zero, sem E2B, Oracle, Render, assinatura paga ou método de cobrança.
+
+O Quick Tunnel é temporário e depende deste computador, do Docker, do gateway e do processo do túnel permanecerem ativos. Reiniciar o túnel muda o endereço e exige atualizar `LOCAL_EXECUTOR_URL` no Supabase. Um túnel nomeado e estável exige um domínio administrado na Cloudflare; nenhuma compra foi feita. O modo Hard permanece para a fase 2.
 
 O tutor usa resposta editorial enquanto não houver credencial de Workers AI e validação de sua cota. Isso não representa inferência de IA ativa.
 
-Backups externos e ensaio de restauração ainda precisam ser configurados antes de ampliar os convites. Consulte [operação e homologação](deployment.md) para os critérios restantes. Este ambiente permite testar cadastro, navegação e persistência; não declara homologação completa do beta.
+Backups externos e ensaio de restauração ainda precisam ser configurados antes de ampliar os convites. Consulte [operação e homologação](deployment.md) para os critérios restantes.
 
 ## Verificações realizadas
 
@@ -32,6 +34,10 @@ Backups externos e ensaio de restauração ainda precisam ser configurados antes
 - Rascunho sincronizado e preservado após recarga. O comentário usado na verificação foi removido, preservando o template inicial.
 - Após tentar Executar com executor pausado: uma conta, um rascunho, zero submissões, zero execuções cobradas, zero rejeições e zero XP, confirmados no banco.
 - Botão de login GitHub e erro do modo local verificados em navegador em desktop e 390 × 844, sem cortes no card. Typecheck e build aprovados após o ajuste do provedor Google.
+- Gateway rejeita chamadas sem credencial; sandbox bloqueia rede, limita CPU, memória, processos, tempo e saída, e não monta diretórios do host.
+- Referências de Python, JavaScript, TypeScript, Java, C#, C++, C, Go, Rust, Kotlin e SQL passaram pela mesma imagem Docker homologada.
+- Em produção, **Executar** passou os três exemplos públicos. **Submeter** passou os testes oficiais, concedeu 100 XP uma única vez e atualizou o desafio como concluído.
+- O erro 500 em `POST /api/runs` foi corrigido com filtros explícitos nas atualizações do registro único de configuração, conforme exigido pelo papel da API do Supabase.
 
 ## Atualização BFF, lint e formatação
 
@@ -39,4 +45,4 @@ Migração `202609050003_security.sql` aplicada: armazenamento privado de sessõ
 
 Ao finalizar o rollout, `BFF_REQUIRED=true` deve estar ativo na API. O caminho assinado omite o prefixo `/functions/v1`, removido pelo gateway Supabase. API também valida JWT, convite e propriedade dos dados. O registro da publicação e dos workflows deve ser conferido no commit implantado; implementação local não substitui essa verificação.
 
-Validação local: 180 testes Vitest, 4 Deno, 8 Python, 40 execuções de referências SQL e invariantes PostgreSQL. Os fluxos do navegador foram exercitados em desktop/mobile; a fixture de corrida de rascunhos foi atualizada para o contrato BFF e o onboarding. ESLint e Prettier integram o workflow. Executor e tutor remoto continuam indisponíveis conforme a seção de custos, sem cobrança automática.
+ESLint e Prettier integram o workflow. O tutor remoto continua indisponível; o fallback editorial permanece ativo e não gera cobrança.

@@ -1,5 +1,6 @@
 import type { SourceFile } from "../lib/contracts";
 import { DEFAULT_EXECUTION_LIMITS } from "./rules";
+import { hasUnsafeSourceCharacters } from "./source-security";
 
 export interface WorkspaceManifest {
   editableFiles: readonly string[];
@@ -58,8 +59,13 @@ export function validateWorkspace(
         path.startsWith(`${normalizeSourcePath(directory)}/`),
       );
     if (!allowed) throw new Error("Arquivo fora das áreas editáveis");
-    if (typeof file.content !== "string" || file.content.includes("\0"))
-      throw new Error("O conteúdo deve ser texto sem bytes nulos");
+    if (
+      typeof file.content !== "string" ||
+      hasUnsafeSourceCharacters(file.content)
+    )
+      throw new Error(
+        "O conteúdo contém caracteres de controle não permitidos",
+      );
     bytes += encoder.encode(file.content).byteLength;
     if (
       bytes >

@@ -911,6 +911,16 @@ function SourceWorkspace({
     const next = files.map((file) =>
       file.path === activeFile ? { ...file, content } : file,
     );
+    const nextBytes = new TextEncoder().encode(
+      next.map((item) => item.content).join(""),
+    ).byteLength;
+    const sourceLimit = challenge.limits?.maxSourceBytes ?? 256 * 1024;
+    if (nextBytes > sourceLimit) {
+      setSaveState(
+        `Código não salvo: limite de ${(sourceLimit / 1024).toFixed(0)} KiB atingido`,
+      );
+      return;
+    }
     setFiles(next);
     revision.current++;
     const draft: EditorDraft = {
@@ -1063,6 +1073,11 @@ function SourceWorkspace({
             language={language}
             value={file.content}
             onChange={updateCode}
+            onUnsafeInput={() =>
+              setSaveState(
+                "Caracteres invisíveis ou de controle não são permitidos no código",
+              )
+            }
             hard={hard}
           />
         )}

@@ -19,7 +19,9 @@
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "npm run lint -- --fix",
     "format": "prettier . --write --ignore-unknown",
-    "format:check": "prettier . --check --ignore-unknown"
+    "format:check": "prettier . --check --ignore-unknown",
+    "executor:serve": "node executor/gateway.mjs",
+    "executor:homologate": "node executor/homologate-local.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

@@ -1,4 +1,18 @@
 import { ApiError } from "./db.ts";
+
+const FORMAT_OR_LINE_SEPARATOR = /[\p{Cf}\p{Zl}\p{Zp}]/u;
+const CONTROL = /\p{Cc}/u;
+
+function hasUnsafeSourceCharacters(content: string): boolean {
+  for (const character of content) {
+    if (
+      FORMAT_OR_LINE_SEPARATOR.test(character) ||
+      (CONTROL.test(character) && !["\n", "\r", "\t"].includes(character))
+    )
+      return true;
+  }
+  return false;
+}
 export interface SourceFile {
   path: string;
   content: string;
@@ -23,7 +37,7 @@ export function validateFiles(
       paths.has(path)
     )
       throw new ApiError("invalid_file_path");
-    if (typeof content !== "string" || content.includes("\0")) {
+    if (typeof content !== "string" || hasUnsafeSourceCharacters(content)) {
       throw new ApiError("invalid_file_content");
     }
     paths.add(path);

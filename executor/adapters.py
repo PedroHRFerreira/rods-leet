@@ -8,6 +8,7 @@ WORK=Path('/workspace')
 def write(path,content):
     target=WORK/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(content)
     os.chmod(target,0o444)
+    if target.parent!=WORK:os.chmod(target.parent,0o755)
 
 def prepare(request,manifest):
     language=request['languageId']; name=request['functionName']; maximum=name=='findMax'

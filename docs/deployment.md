@@ -41,6 +41,21 @@ Em `private.settings`, registre o **saldo efetivamente confirmado**, descontado 
 
 Preencha `coordinator_url`, `coordinator_secret` e `execution_enabled=true` somente ao concluir os passos anteriores. Uma nova submissão reserva orçamento, cota e mensagem na mesma transação. São permitidas quatro VMs ativas, uma execução pendente/ativa por pessoa, uma criação por segundo e dez execuções por dia UTC. Novas tentativas técnicas recebem reserva própria, no máximo duas, sem descontar outra tentativa do aluno. Reservas já potencialmente consumidas não são devolvidas com base em estimativas não verificadas.
 
+## Executor local do beta (custo de nuvem zero)
+
+O executor local mantém o BFF e a fila no Supabase. O navegador nunca acessa o computador executor e nunca recebe os testes ocultos. O coordenador chama um único endereço HTTPS do Cloudflare Tunnel, autenticado por um token exclusivo de no mínimo 32 caracteres.
+
+1. Construa `rods-leet-executor:local` com `executor/Dockerfile` e uma imagem Debian fixada por digest.
+2. Gere `LOCAL_EXECUTOR_TOKEN` aleatoriamente e salve o mesmo valor somente no serviço local e nos secrets da função `coordinator`.
+3. Inicie `npm run executor:serve`. O gateway escuta apenas em `127.0.0.1:8789`.
+4. Publique somente essa porta por um Cloudflare Tunnel nomeado. Não publique a porta do Docker nem habilite acesso direto por IP.
+5. Configure os secrets `EXECUTION_PROVIDER=local`, `LOCAL_EXECUTOR_URL=https://<host-do-tunnel>` e `LOCAL_EXECUTOR_TOKEN` no Supabase.
+6. Aplique a migração local, homologue cada runtime e só então altere `private.settings.execution_enabled` para `true`.
+
+Cada job usa um contêiner descartável, sem rede, sistema-base somente leitura, usuário do aluno sem privilégios e limites de CPU, memória, processos, duração e saída. O gateway aceita um job por vez, limita o corpo a 2 MiB, o código a 256 KiB e destrói os arquivos temporários ao terminar. Ele não deve rodar como root nem ter uma porta pública própria. O usuário que executa o gateway precisa apenas de permissão para iniciar contêineres Docker; essa permissão equivale a controle administrativo do host e deve ficar restrita à máquina dedicada ao beta.
+
+O custo cobrado por provedor é `0` nessa modalidade. Cloudflare Tunnel não acrescenta cobrança ao fluxo, mas a máquina, energia e conexão locais continuam sob responsabilidade do operador. Se a máquina estiver desligada, executar e submeter permanecem enfileirados ou retornam indisponibilidade sem consumir tentativa nem XP.
+
 ## Publicação, tutor e recuperação
 
 Publique a aplicação estática em Cloudflare Pages: build `npm run build`, saída `dist`. Configure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` e o retorno OAuth de produção. Publique funções com `supabase functions deploy api` e `supabase functions deploy coordinator`; segredos ficam no ambiente de funções. O primeiro deploy foi realizado em 5 de setembro de 2026; consulte [estado do ambiente](deployment-status.md) para o que está ativo e as verificações pendentes.

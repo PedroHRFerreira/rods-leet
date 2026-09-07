@@ -29,6 +29,59 @@ export interface CodeExecutionProvider {
   cancel(executionRef: string): Promise<void>;
 }
 
+function validateResult(value: unknown): ExecutionResult {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    typeof (value as ExecutionResult).termination !== "string" ||
+    !Array.isArray((value as ExecutionResult).cases)
+  ) {
+    throw new ApiError("invalid_executor_result", 503);
+  }
+  return value as ExecutionResult;
+}
+
+export class LocalExecutionProvider implements CodeExecutionProvider {
+  constructor(
+    private endpoint: string,
+    private token: string,
+  ) {}
+
+  async execute(request: ExecutionRequest): Promise<ExecutionResult> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 95_000);
+    try {
+      const response = await fetch(
+        `${this.endpoint.replace(/\/$/, "")}/v1/execute`,
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${this.token}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(request),
+          signal: controller.signal,
+        },
+      );
+      if (!response.ok) throw new ApiError("executor_unavailable", 503);
+      const text = await response.text();
+      if (new TextEncoder().encode(text).length > 2 * 1024 * 1024) {
+        throw new ApiError("invalid_executor_result", 503);
+      }
+      return validateResult(JSON.parse(text));
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError("executor_unavailable", 503);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async cancel(): Promise<void> {
+    // Jobs are synchronous and the gateway destroys the container on disconnect/TTL.
+  }
+}
+
 export class E2BExecutionProvider implements CodeExecutionProvider {
   constructor(private apiKey: string) {}
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
@@ -41,7 +94,7 @@ export class E2BExecutionProvider implements CodeExecutionProvider {
       requestTimeoutMs: 10000,
       secure: true,
       allowInternetAccess: false,
-      network: { allowPublicTraffic: false, denyOut: ["0.0.0.0/0", "::/0"] },
+      network: { allowPublicTraffic: false, denyOut: ["0.0.0.0/0"] },
       metadata: {
         submissionId: request.submissionId,
         runtimeVersion: request.runtimeVersion,
@@ -79,14 +132,10 @@ export class E2BExecutionProvider implements CodeExecutionProvider {
       if (new TextEncoder().encode(text).length > 2 * 1024 * 1024) {
         throw new ApiError("invalid_executor_result", 503);
       }
-      const result = JSON.parse(text);
-      if (
-        !result ||
-        typeof result.termination !== "string" ||
-        !Array.isArray(result.cases)
-      )
-        throw new ApiError("invalid_executor_result", 503);
-      return { ...result, executionRef: sandbox.sandboxId };
+      return {
+        ...validateResult(JSON.parse(text)),
+        executionRef: sandbox.sandboxId,
+      };
     } finally {
       try {
         await sandbox.kill();

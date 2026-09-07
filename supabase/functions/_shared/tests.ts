@@ -33,6 +33,28 @@ Deno.test(
     rejects(() =>
       validateFiles(
         [
+          {
+            path: "solution.ts",
+            content: `const x = true;${String.fromCodePoint(0x202e)}`,
+          },
+        ],
+        ["solution.ts"],
+      ),
+    );
+    rejects(() =>
+      validateFiles(
+        [
+          {
+            path: "solution.ts",
+            content: `const x = true;${String.fromCodePoint(0x61c)}`,
+          },
+        ],
+        ["solution.ts"],
+      ),
+    );
+    rejects(() =>
+      validateFiles(
+        [
           { path: "solution.ts", content: "a" },
           {
             path: "solution.ts",
