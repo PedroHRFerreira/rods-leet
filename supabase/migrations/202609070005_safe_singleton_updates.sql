@@ -13,10 +13,11 @@ begin
     'update private.settings set credit_spent_usd=credit_spent_usd+cfg.cost_per_job_usd;',
     'update private.settings set credit_spent_usd=credit_spent_usd+cfg.cost_per_job_usd where singleton;'
   );
-  if patched = definition then
-    raise exception 'enqueue_submission patch target not found';
+  -- Fresh databases already receive the safe definition from the base
+  -- migration. Existing beta databases need only this targeted rewrite.
+  if patched <> definition then
+    execute patched;
   end if;
-  execute patched;
 
   select pg_get_functiondef(
     'public.claim_evaluation()'::regprocedure
@@ -36,9 +37,8 @@ begin
     'update private.settings set last_sandbox_at=clock_timestamp();',
     'update private.settings set last_sandbox_at=clock_timestamp() where singleton;'
   );
-  if patched = definition then
-    raise exception 'claim_evaluation patch targets not found';
+  if patched <> definition then
+    execute patched;
   end if;
-  execute patched;
 end
 $$;

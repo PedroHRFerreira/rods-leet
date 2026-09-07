@@ -9,8 +9,8 @@ begin
  insert into private.invites(email) values('one@example.test'),('two@example.test');
  perform public.admit_user(u,'one@example.test','One');perform public.admit_user(b,'two@example.test','Two');
  insert into public.challenge_versions(id,challenge_id,difficulty,base_xp,definition,published) values('max:v1','max','easy',100,'{}',true);
- insert into private.runtimes(language_id,runtime_version,template_id,homologated,manifest_sha256) values('javascript','22.14.0','test-template',true,repeat('a',64));
- update private.settings set execution_enabled=true,hard_enabled=true,confirmed_credit_usd=100;
+ insert into private.runtimes(language_id,runtime_version,template_id,homologated,manifest_sha256) values('javascript','22.14.0','test-template',true,repeat('a',64)) on conflict(language_id) do update set runtime_version=excluded.runtime_version,template_id=excluded.template_id,homologated=excluded.homologated,manifest_sha256=excluded.manifest_sha256;
+ update private.settings set execution_enabled=true,hard_enabled=true,confirmed_credit_usd=100,cost_per_job_usd=0.02;
  select * into a from public.start_attempt(u,'max:v1','normal','attempt1');
  h:=public.consume_hint(u,a.id,'hint1');
  if h->>'hintsUsed'<>'1' then raise exception 'hint_not_counted';end if;
