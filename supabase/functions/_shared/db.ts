@@ -95,12 +95,34 @@ export async function authenticatedUser(request: Request) {
     !user.email_confirmed_at
   )
     throw new ApiError("verified_email_required", 403);
+  const githubIdentity = Array.isArray(user.identities)
+    ? user.identities.find(
+        (identity: unknown) =>
+          Boolean(identity) &&
+          typeof identity === "object" &&
+          (identity as { provider?: unknown }).provider === "github",
+      )
+    : undefined;
+  const identityData =
+    githubIdentity && typeof githubIdentity === "object"
+      ? (githubIdentity as { identity_data?: unknown }).identity_data
+      : undefined;
+  const githubLogin =
+    identityData && typeof identityData === "object"
+      ? ((identityData as { user_name?: unknown; login?: unknown }).user_name ??
+        (identityData as { login?: unknown }).login)
+      : undefined;
   return {
     id: user.id as string,
     email: user.email as string,
     name: String(
       user.user_metadata?.full_name ?? user.user_metadata?.name ?? "Jogador",
     ).slice(0, 80),
+    githubLogin:
+      typeof githubLogin === "string" &&
+      /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(githubLogin)
+        ? githubLogin.toLowerCase()
+        : null,
   };
 }
 

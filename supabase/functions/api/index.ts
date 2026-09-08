@@ -97,6 +97,7 @@ export async function handler(request: Request): Promise<Response> {
       p_user: user.id,
       p_email: user.email,
       p_name: user.name,
+      p_github_login: user.githubLogin,
     });
     const context = await db.rpc<Row>("user_context", { p_user: user.id });
     const published = await db.rows<Row>(

@@ -1,13 +1,15 @@
 \set ON_ERROR_STOP on
 begin;
 do $$
-declare u uuid:='00000000-0000-4000-8000-000000000001'; b uuid:='00000000-0000-4000-8000-000000000002';
+declare u uuid:='00000000-0000-4000-8000-000000000001'; b uuid:='00000000-0000-4000-8000-000000000002'; g uuid:='00000000-0000-4000-8000-000000000003';
  a public.attempts; s public.submissions; claim jsonb; before integer; h jsonb; i integer; prior_cost numeric; d date:=(now() at time zone 'UTC')::date;
 begin
- insert into auth.users(id) values(u),(b);
+ insert into auth.users(id) values(u),(b),(g);
  begin perform public.admit_user(u,'one@example.test','One');raise exception 'missing_invite_accepted'; exception when others then if sqlerrm<>'invite_required' then raise;end if;end;
  insert into private.invites(email) values('one@example.test'),('two@example.test');
  perform public.admit_user(u,'one@example.test','One');perform public.admit_user(b,'two@example.test','Two');
+ perform public.admit_user(g,'not-invited@example.test','GitHub invite','idimetrix');
+ if not exists(select 1 from public.profiles where id=g) then raise exception 'github_invite_not_admitted'; end if;
  insert into public.challenge_versions(id,challenge_id,difficulty,base_xp,definition,published) values('max:v1','max','easy',100,'{}',true);
  insert into private.runtimes(language_id,runtime_version,template_id,homologated,manifest_sha256) values('javascript','22.14.0','test-template',true,repeat('a',64)) on conflict(language_id) do update set runtime_version=excluded.runtime_version,template_id=excluded.template_id,homologated=excluded.homologated,manifest_sha256=excluded.manifest_sha256;
  update private.settings set execution_enabled=true,hard_enabled=true,confirmed_credit_usd=100,cost_per_job_usd=0.02;
