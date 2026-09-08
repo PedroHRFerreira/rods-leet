@@ -53,7 +53,10 @@ export class LocalExecutionProvider implements CodeExecutionProvider {
     try {
       const response = await fetch(
         `${this.endpoint.replace(/\/$/, "")}/health`,
-        { signal: controller.signal },
+        {
+          headers: { authorization: `Bearer ${this.token}` },
+          signal: controller.signal,
+        },
       );
       if (!response.ok) return false;
       const body = await response.json();
