@@ -161,8 +161,8 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               <li>
                 <strong>Escreva e execute</strong>
                 <p>
-                  “Executar” testa os exemplos. Não concede XP nem significa
-                  aprovação oficial.
+                  “Executar exemplos” testa os exemplos. Não concede XP nem
+                  significa aprovação oficial.
                 </p>
               </li>
               <li>

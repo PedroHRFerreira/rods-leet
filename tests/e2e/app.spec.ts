@@ -120,7 +120,9 @@ test("Monaco loads and drafts survive refresh without grading locally", async ({
   await expect(page.getByRole("textbox", { name: /Código de/ })).toHaveValue(
     source,
   );
-  await page.getByRole("button", { name: "Executar", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Executar exemplos", exact: true })
+    .click();
   await expect(page.locator('.arena-alert[role="alert"]')).toContainText(
     "Entre com uma conta convidada",
   );
