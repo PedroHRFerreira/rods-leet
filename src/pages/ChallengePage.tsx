@@ -754,8 +754,8 @@ function ChallengeWorkspace({
                 </span>
                 <strong>Seu próximo aprendizado começa no código.</strong>
                 <p>
-                  Execute os exemplos para experimentar. Submeta quando sua
-                  solução estiver pronta.
+                  Execute os exemplos públicos para conferir sua solução.
+                  Submeta quando estiver pronta para a avaliação oficial.
                 </p>
               </div>
             )}
@@ -763,7 +763,7 @@ function ChallengeWorkspace({
               <ShieldCheck size={13} />
               <span>
                 {dashboard.executionStatus === "available"
-                  ? "Executar e submeter usam a cota diária. Falhas da plataforma não retiram XP nem tentativas."
+                  ? "Executar exemplos e submeter usam a cota diária. Executar exemplos não concede XP nem consome tentativas oficiais."
                   : "A avaliação remota ainda não está disponível. Seu rascunho continua salvo neste dispositivo."}
               </span>
             </div>
@@ -1137,7 +1137,7 @@ function SourceWorkspace({
           onClick={() => void onExecute(files, "run")}
         >
           <Play size={15} />
-          {busy ? "Aguarde…" : "Executar"}
+          {busy ? "Aguarde…" : "Executar exemplos"}
         </button>
         <button
           type="button"
@@ -1201,8 +1201,9 @@ function SubmissionResult({
       </h3>
       {kind === "run" && (
         <p>
-          Este resultado testa os exemplos públicos. Use Submeter para a
-          avaliação oficial. Executar não concede XP.
+          Este resultado testa somente os exemplos públicos. Console e print
+          ainda não são um programa livre: use Submeter para a avaliação
+          oficial. Executar exemplos não concede XP nem consome tentativas.
         </p>
       )}
       {submission.message && <p>{submission.message}</p>}
