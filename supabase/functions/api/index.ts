@@ -206,6 +206,17 @@ export async function handler(request: Request): Promise<Response> {
       request.method === "POST" &&
       (path === "/runs" || path === "/submissions")
     ) {
+      const readiness = await fetch(
+        `${env("SUPABASE_URL")}/functions/v1/coordinator?check=ready`,
+        {
+          method: "POST",
+          headers: { "x-coordinator-secret": env("COORDINATOR_SECRET") },
+          signal: AbortSignal.timeout(3_000),
+        },
+      ).catch(() => null);
+      if (!readiness?.ok) {
+        throw new ApiError("executor_unavailable", 409);
+      }
       const body = await readJson(request);
       const c = challenge(body.challengeVersionId);
       const language = stringValue(body.languageId, "language");

@@ -47,6 +47,28 @@ export class LocalExecutionProvider implements CodeExecutionProvider {
     private token: string,
   ) {}
 
+  async isReady(): Promise<boolean> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2_000);
+    try {
+      const response = await fetch(
+        `${this.endpoint.replace(/\/$/, "")}/health`,
+        { signal: controller.signal },
+      );
+      if (!response.ok) return false;
+      const body = await response.json();
+      return Boolean(
+        body &&
+        typeof body === "object" &&
+        (body as { status?: unknown }).status === "ok",
+      );
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 95_000);

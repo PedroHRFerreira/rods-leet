@@ -9,6 +9,17 @@ import {
 } from "../_shared/execution.ts";
 import type { Row } from "../_shared/presenters.ts";
 
+export async function executorReady(): Promise<boolean> {
+  const providerName = Deno.env.get("EXECUTION_PROVIDER") ?? "disabled";
+  if (providerName === "local") {
+    return new LocalExecutionProvider(
+      env("LOCAL_EXECUTOR_URL"),
+      env("LOCAL_EXECUTOR_TOKEN"),
+    ).isReady();
+  }
+  return providerName === "e2b" && Boolean(Deno.env.get("E2B_API_KEY"));
+}
+
 export async function processOne(): Promise<void> {
   const db = new Database();
   const providerName = Deno.env.get("EXECUTION_PROVIDER") ?? "disabled";
@@ -163,6 +174,10 @@ export async function handler(request: Request): Promise<Response> {
     ))
   )
     return new Response(null, { status: 401 });
+  if (new URL(request.url).searchParams.get("check") === "ready") {
+    const ready = await executorReady();
+    return Response.json({ ready }, { status: ready ? 200 : 503 });
+  }
   EdgeRuntime.waitUntil(
     processOne().catch(() => console.error('{"event":"coordinator_failed"}')),
   );
