@@ -242,8 +242,13 @@
   color: var(--arena-muted);
   font-size: 0.875rem;
 }
-.learning-path-note strong { color: var(--text); }
-.learning-path-note a { color: var(--accent); text-decoration: underline; }
+.learning-path-note strong {
+  color: var(--text);
+}
+.learning-path-note a {
+  color: var(--accent);
+  text-decoration: underline;
+}
 .public-example {
   border: 1px solid var(--arena-border);
   border-radius: 8px;

@@ -384,7 +384,8 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
         key,
       ),
     askTutor: (input, key) => request("/tutor/messages", "POST", input, key),
-    getExecutionStatus: () => request<ExecutionStatusResult>("/execution-status"),
+    getExecutionStatus: () =>
+      request<ExecutionStatusResult>("/execution-status"),
     getTutorConversation: (challengeId, languageId) => {
       const params = new URLSearchParams();
       if (challengeId) params.set("challengeId", challengeId);
@@ -394,7 +395,12 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
       );
     },
     async clearTutorConversation(challengeId, languageId, key) {
-      await request("/tutor/conversations/clear", "POST", { challengeId, languageId }, key);
+      await request(
+        "/tutor/conversations/clear",
+        "POST",
+        { challengeId, languageId },
+        key,
+      );
     },
     async getDraft(challengeId, languageId) {
       const current = await session();

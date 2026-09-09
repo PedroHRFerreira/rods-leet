@@ -70,7 +70,10 @@ export default function TracksPage() {
           Começar por lógica <ArrowRight size={17} />
         </Link>
       </section>
-      <section className="fundamentals-panel panel" aria-labelledby="fundamentals-title">
+      <section
+        className="fundamentals-panel panel"
+        aria-labelledby="fundamentals-title"
+      >
         <div>
           <span className="eyebrow">ANTES DO PRIMEIRO DESAFIO</span>
           <h2 id="fundamentals-title">Fundamentos para consultar na trilha</h2>
@@ -88,7 +91,10 @@ export default function TracksPage() {
           ].map(([title, description]) => (
             <article key={title}>
               <Braces size={17} aria-hidden="true" />
-              <div><strong>{title}</strong><span>{description}</span></div>
+              <div>
+                <strong>{title}</strong>
+                <span>{description}</span>
+              </div>
             </article>
           ))}
         </div>

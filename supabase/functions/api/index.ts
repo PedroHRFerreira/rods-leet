@@ -104,7 +104,10 @@ export async function handler(request: Request): Promise<Response> {
     });
     const context = await db.rpc<Row>("user_context", { p_user: user.id });
     if (request.method === "GET" && path === "/execution-status") {
-      return json({ status: await executorStatus(), checkedAt: new Date().toISOString() });
+      return json({
+        status: await executorStatus(),
+        checkedAt: new Date().toISOString(),
+      });
     }
     const published = await db.rows<Row>(
       "challenge_versions",
@@ -124,8 +127,10 @@ export async function handler(request: Request): Promise<Response> {
       languageId: languageId ?? "general",
     });
     if (request.method === "GET" && path === "/tutor/conversations") {
-      const selectedChallengeId = url.searchParams.get("challengeId") ?? undefined;
-      const selectedLanguageId = url.searchParams.get("languageId") ?? undefined;
+      const selectedChallengeId =
+        url.searchParams.get("challengeId") ?? undefined;
+      const selectedLanguageId =
+        url.searchParams.get("languageId") ?? undefined;
       if (selectedChallengeId) {
         const selected = challenge(selectedChallengeId);
         if (
@@ -136,10 +141,7 @@ export async function handler(request: Request): Promise<Response> {
       } else if (selectedLanguageId) {
         throw new ApiError("invalid_language");
       }
-      const scope = tutorScope(
-        selectedChallengeId,
-        selectedLanguageId,
-      );
+      const scope = tutorScope(selectedChallengeId, selectedLanguageId);
       return json({
         ...scope,
         messages: await db.rpc<unknown[]>("read_tutor_conversation", {
@@ -165,10 +167,7 @@ export async function handler(request: Request): Promise<Response> {
       } else if (selectedLanguageId) {
         throw new ApiError("invalid_language");
       }
-      const scope = tutorScope(
-        selectedChallengeId,
-        selectedLanguageId,
-      );
+      const scope = tutorScope(selectedChallengeId, selectedLanguageId);
       await db.rpc("clear_tutor_conversation", {
         p_user: user.id,
         p_challenge: scope.challengeId,
@@ -443,7 +442,7 @@ export async function handler(request: Request): Promise<Response> {
           : undefined;
       const lastRun =
         body.lastRun && typeof body.lastRun === "object"
-          ? body.lastRun as Record<string, unknown>
+          ? (body.lastRun as Record<string, unknown>)
           : undefined;
       let hint: string | undefined;
       if (a) {
@@ -508,9 +507,18 @@ export async function handler(request: Request): Promise<Response> {
               code,
               lastRun: lastRun
                 ? {
-                    status: typeof lastRun.status === "string" ? lastRun.status : "never_run",
-                    output: typeof lastRun.output === "string" ? lastRun.output : undefined,
-                    diagnostic: typeof lastRun.diagnostic === "string" ? lastRun.diagnostic : undefined,
+                    status:
+                      typeof lastRun.status === "string"
+                        ? lastRun.status
+                        : "never_run",
+                    output:
+                      typeof lastRun.output === "string"
+                        ? lastRun.output
+                        : undefined,
+                    diagnostic:
+                      typeof lastRun.diagnostic === "string"
+                        ? lastRun.diagnostic
+                        : undefined,
                   }
                 : undefined,
             }),
@@ -535,7 +543,11 @@ export async function handler(request: Request): Promise<Response> {
         p_user: user.id,
         p_challenge: scope.challengeId,
         p_language: scope.languageId,
-        p_messages: [...history, { role: "user", text: message }, { role: "tutor", text: response.message }].slice(-12),
+        p_messages: [
+          ...history,
+          { role: "user", text: message },
+          { role: "tutor", text: response.message },
+        ].slice(-12),
       });
       return json(response);
     }

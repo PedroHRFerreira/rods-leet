@@ -488,7 +488,8 @@ function ChallengeWorkspace({
                         Antes deste, vale revisar{" "}
                         <Link to={`/desafios/${prerequisite.slug}`}>
                           {prerequisite.title}
-                        </Link>.
+                        </Link>
+                        .
                       </span>
                     )}
                     {nextChallenge && (
@@ -496,7 +497,8 @@ function ChallengeWorkspace({
                         Após aprovar, siga para{" "}
                         <Link to={`/desafios/${nextChallenge.slug}`}>
                           {nextChallenge.title}
-                        </Link>.
+                        </Link>
+                        .
                       </span>
                     )}
                   </aside>
@@ -534,9 +536,9 @@ function ChallengeWorkspace({
                   <div className="published-limits">
                     <h3>Limites de execução</h3>
                     <p className="published-limits-explanation">
-                      Cada caso tem seu próprio limite. A compilação acontece uma
-                      vez; o prazo total de segurança inclui compilação e todos os
-                      casos executados no trabalho.
+                      Cada caso tem seu próprio limite. A compilação acontece
+                      uma vez; o prazo total de segurança inclui compilação e
+                      todos os casos executados no trabalho.
                     </p>
                     <dl>
                       <div>
@@ -621,7 +623,8 @@ function ChallengeWorkspace({
                   resources={challenge.learningResources.filter(
                     (resource) =>
                       resource.category === "concept" &&
-                      (!resource.languageId || resource.languageId === language),
+                      (!resource.languageId ||
+                        resource.languageId === language),
                   )}
                 />
                 <LearningResourceList
@@ -820,9 +823,7 @@ function ChallengeWorkspace({
             )}
             <div className="results-note">
               <ShieldCheck size={13} />
-              <span>
-                {executionMessage}
-              </span>
+              <span>{executionMessage}</span>
             </div>
           </section>
         </div>
@@ -1199,7 +1200,13 @@ function SourceWorkspace({
           onClick={() => void onExecute(files, "run")}
         >
           <Play size={15} />
-          {busy ? "Aguarde…" : executionStatus === "busy" ? "Executor ocupado" : executionStatus === "offline" ? "Executor indisponível" : "Executar exemplos"}
+          {busy
+            ? "Aguarde…"
+            : executionStatus === "busy"
+              ? "Executor ocupado"
+              : executionStatus === "offline"
+                ? "Executor indisponível"
+                : "Executar exemplos"}
         </button>
         <button
           type="button"

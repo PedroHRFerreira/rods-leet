@@ -93,7 +93,10 @@ describe("BFF security boundary", () => {
     ["GET", "/api/submissions/00000000-0000-0000-0000-000000000001"],
     ["GET", "/api/drafts?challengeId=find-max&languageId=typescript"],
     ["GET", "/api/execution-status"],
-    ["GET", "/api/tutor/conversations?challengeId=find-max&languageId=typescript"],
+    [
+      "GET",
+      "/api/tutor/conversations?challengeId=find-max&languageId=typescript",
+    ],
     ["POST", "/api/attempts"],
     ["POST", "/api/runs"],
     ["POST", "/api/submissions"],

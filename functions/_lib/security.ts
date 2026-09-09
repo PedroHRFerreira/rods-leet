@@ -221,7 +221,7 @@ export function allowedApi(request: Request): URL {
         ? ["challengeId", "languageId"]
         : path === "/tutor/conversations" && request.method === "GET"
           ? ["challengeId", "languageId"]
-        : [];
+          : [];
   const seen = new Set<string>();
   url.searchParams.forEach((value, key) => {
     if (

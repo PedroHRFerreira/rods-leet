@@ -38,9 +38,10 @@ export default function TutorPage() {
   const attemptId = params.get("attempt") ?? undefined;
   const challengeVersionId = params.get("challenge") ?? undefined;
   const languageParam = params.get("language");
-  const language = languageParam && /^[a-z]+$/.test(languageParam)
-    ? languageParam as LanguageId
-    : undefined;
+  const language =
+    languageParam && /^[a-z]+$/.test(languageParam)
+      ? (languageParam as LanguageId)
+      : undefined;
   const dashboard = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => gateway.getDashboard(),
@@ -69,21 +70,35 @@ export default function TutorPage() {
       challengeVersionId && language
         ? gateway.getDraft(challengeVersionId, language)
         : Promise.resolve(null),
-    ]).then(([conversation, draft]) => {
-      if (!active) return;
-      setMessages(conversation.messages.map((item, index) => ({
-        id: `stored:${index}:${item.role}`,
-        role: item.role,
-        text: item.text,
-      })));
-      setCode(draft?.files.map((file) => file.content).join("\n\n"));
-    }).catch(() => {
-      if (active) setError("Não foi possível recuperar a conversa anterior.");
-    }).finally(() => {
-      if (active) setLoadingConversation(false);
-    });
-    return () => { active = false; };
-  }, [owner, attemptId, challengeVersionId, language, gateway, dashboard.data?.profile.invited]);
+    ])
+      .then(([conversation, draft]) => {
+        if (!active) return;
+        setMessages(
+          conversation.messages.map((item, index) => ({
+            id: `stored:${index}:${item.role}`,
+            role: item.role,
+            text: item.text,
+          })),
+        );
+        setCode(draft?.files.map((file) => file.content).join("\n\n"));
+      })
+      .catch(() => {
+        if (active) setError("Não foi possível recuperar a conversa anterior.");
+      })
+      .finally(() => {
+        if (active) setLoadingConversation(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    owner,
+    attemptId,
+    challengeVersionId,
+    language,
+    gateway,
+    dashboard.data?.profile.invited,
+  ]);
   async function ask(event: FormEvent) {
     event.preventDefault();
     const text = message.trim();
@@ -102,7 +117,10 @@ export default function TutorPage() {
           attemptId,
           challengeVersionId,
           languageId: language,
-          conversation: messages.map(({ role, text: previous }) => ({ role, text: previous })),
+          conversation: messages.map(({ role, text: previous }) => ({
+            role,
+            text: previous,
+          })),
           code,
         },
         key,
@@ -142,7 +160,11 @@ export default function TutorPage() {
       );
       setMessages([]);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Não foi possível limpar a conversa.");
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Não foi possível limpar a conversa.",
+      );
     } finally {
       setBusy(false);
     }
@@ -185,7 +207,12 @@ export default function TutorPage() {
             </span>
           </div>
           {messages.length > 0 && (
-            <button type="button" className="text-link tutor-clear" disabled={busy} onClick={() => void clearConversation()}>
+            <button
+              type="button"
+              className="text-link tutor-clear"
+              disabled={busy}
+              onClick={() => void clearConversation()}
+            >
               Limpar conversa
             </button>
           )}
@@ -201,7 +228,10 @@ export default function TutorPage() {
           )}
           <div className="tutor-message-list" aria-live="polite">
             {loadingConversation ? (
-              <p className="tutor-thinking" role="status"><Sparkles size={15} />Recuperando sua conversa…</p>
+              <p className="tutor-thinking" role="status">
+                <Sparkles size={15} />
+                Recuperando sua conversa…
+              </p>
             ) : messages.length === 0 ? (
               <div className="tutor-welcome">
                 <div className="tutor-welcome-art" aria-hidden="true">

@@ -141,7 +141,10 @@ describe("public exploration and server authority", () => {
   test("reads executor state and synchronizes a scoped tutor conversation", async () => {
     const { gateway, fetchMock } = setup((url, init) => {
       if (url.includes("execution-status"))
-        return respond({ status: "busy", checkedAt: "2026-09-09T00:00:00.000Z" });
+        return respond({
+          status: "busy",
+          checkedAt: "2026-09-09T00:00:00.000Z",
+        });
       if (init?.method === "GET")
         return respond({
           challengeId: "find-max",
@@ -153,7 +156,9 @@ describe("public exploration and server authority", () => {
     await expect(gateway.getExecutionStatus()).resolves.toMatchObject({
       status: "busy",
     });
-    await expect(gateway.getTutorConversation("find-max", "python")).resolves.toMatchObject({
+    await expect(
+      gateway.getTutorConversation("find-max", "python"),
+    ).resolves.toMatchObject({
       messages: [{ role: "tutor" }],
     });
     await expect(

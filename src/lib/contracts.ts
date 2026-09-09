@@ -189,11 +189,7 @@ export interface TutorInput {
   code?: string;
   lastRun?: {
     status:
-      | "ok"
-      | "compile_error"
-      | "runtime_error"
-      | "time_limit"
-      | "never_run";
+      "ok" | "compile_error" | "runtime_error" | "time_limit" | "never_run";
     output?: string;
     diagnostic?: string;
   };
