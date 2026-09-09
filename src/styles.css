@@ -901,6 +901,22 @@ textarea::placeholder {
 .tracks-intro > .button {
   flex-shrink: 0;
 }
+.fundamentals-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 24px;
+  align-items: center;
+  margin-top: -20px;
+  margin-bottom: 40px;
+  padding: 24px 28px;
+}
+.fundamentals-panel h2 { margin: 8px 0; font-size: 20px; }
+.fundamentals-panel p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.fundamentals-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.fundamentals-list article { display: flex; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+.fundamentals-list svg { flex: 0 0 auto; color: var(--accent); margin-top: 2px; }
+.fundamentals-list strong, .fundamentals-list span { display: block; }
+.fundamentals-list span { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.4; }
 .tracks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
@@ -1134,7 +1150,7 @@ textarea::placeholder {
   }
   .app-main {
     margin-left: 0;
-    padding-bottom: 66px;
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
   }
   .topbar {
     padding: 0 20px;
@@ -1170,6 +1186,8 @@ textarea::placeholder {
     gap: 3px;
     color: var(--subtle);
     font-size: 10px;
+    min-height: 44px;
+    justify-content: center;
   }
   .mobile-bottom-nav a.active {
     color: var(--accent);
@@ -1315,6 +1333,8 @@ textarea::placeholder {
   .tracks-intro h2 {
     font-size: 21px;
   }
+  .fundamentals-panel { grid-template-columns: 1fr; margin-top: -20px; padding: 20px 22px; }
+  .fundamentals-list { grid-template-columns: 1fr; }
   .tracks-grid,
   .upcoming-tracks-grid {
     grid-template-columns: 1fr;

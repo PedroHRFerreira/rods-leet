@@ -19,12 +19,15 @@ import {
 } from "../_shared/presenters.ts";
 import { WorkersAiTutor } from "../_shared/tutor.ts";
 import { recommend } from "../_shared/recommendations.ts";
+import { executorStatus } from "../coordinator/index.ts";
 
 const errorMessages: Record<string, string> = {
   invite_required:
     "Este beta é fechado. Sua conta ainda não está na lista de convidados.",
   beta_full: "As 100 vagas do beta estão preenchidas.",
   executor_unavailable: "A execução está pausada. Seu código continua salvo.",
+  executor_busy:
+    "A execução está ocupada no momento. Aguarde alguns instantes e tente novamente.",
   runtime_unavailable: "Esta linguagem ainda aguarda homologação.",
   budget_exhausted:
     "Os créditos disponíveis para execução chegaram ao limite. Nenhuma tentativa foi consumida.",
@@ -100,6 +103,9 @@ export async function handler(request: Request): Promise<Response> {
       p_github_login: user.githubLogin,
     });
     const context = await db.rpc<Row>("user_context", { p_user: user.id });
+    if (request.method === "GET" && path === "/execution-status") {
+      return json({ status: await executorStatus(), checkedAt: new Date().toISOString() });
+    }
     const published = await db.rows<Row>(
       "challenge_versions",
       "select=id,challenge_id&published=eq.true",
@@ -113,6 +119,63 @@ export async function handler(request: Request): Promise<Response> {
       if (!result) throw new ApiError("challenge_not_found", 404);
       return result;
     };
+    const tutorScope = (challengeId?: string, languageId?: string) => ({
+      challengeId: challengeId ?? "general",
+      languageId: languageId ?? "general",
+    });
+    if (request.method === "GET" && path === "/tutor/conversations") {
+      const selectedChallengeId = url.searchParams.get("challengeId") ?? undefined;
+      const selectedLanguageId = url.searchParams.get("languageId") ?? undefined;
+      if (selectedChallengeId) {
+        const selected = challenge(selectedChallengeId);
+        if (
+          selectedLanguageId &&
+          !selected.languageIds.includes(selectedLanguageId as never)
+        )
+          throw new ApiError("language_unavailable");
+      } else if (selectedLanguageId) {
+        throw new ApiError("invalid_language");
+      }
+      const scope = tutorScope(
+        selectedChallengeId,
+        selectedLanguageId,
+      );
+      return json({
+        ...scope,
+        messages: await db.rpc<unknown[]>("read_tutor_conversation", {
+          p_user: user.id,
+          p_challenge: scope.challengeId,
+          p_language: scope.languageId,
+        }),
+      });
+    }
+    if (request.method === "POST" && path === "/tutor/conversations/clear") {
+      const body = await readJson(request, 1000);
+      const selectedChallengeId =
+        typeof body.challengeId === "string" ? body.challengeId : undefined;
+      const selectedLanguageId =
+        typeof body.languageId === "string" ? body.languageId : undefined;
+      if (selectedChallengeId) {
+        const selected = challenge(selectedChallengeId);
+        if (
+          selectedLanguageId &&
+          !selected.languageIds.includes(selectedLanguageId as never)
+        )
+          throw new ApiError("language_unavailable");
+      } else if (selectedLanguageId) {
+        throw new ApiError("invalid_language");
+      }
+      const scope = tutorScope(
+        selectedChallengeId,
+        selectedLanguageId,
+      );
+      await db.rpc("clear_tutor_conversation", {
+        p_user: user.id,
+        p_challenge: scope.challengeId,
+        p_language: scope.languageId,
+      });
+      return json({ cleared: true });
+    }
     const publicChallenge = (c: (typeof challenges)[number]) => ({
       ...c,
       availableModes: context.hardEnabled ? c.availableModes : ["normal"],
@@ -215,7 +278,10 @@ export async function handler(request: Request): Promise<Response> {
         },
       ).catch(() => null);
       if (!readiness?.ok) {
-        throw new ApiError("executor_unavailable", 409);
+        throw new ApiError(
+          readiness?.status === 429 ? "executor_busy" : "executor_unavailable",
+          409,
+        );
       }
       const body = await readJson(request);
       const c = challenge(body.challengeVersionId);
@@ -347,6 +413,38 @@ export async function handler(request: Request): Promise<Response> {
           : null;
       // Challenge context must be attached to an owned active attempt to avoid free challenge assistance.
       if (c && !a) throw new ApiError("attempt_required");
+      const language = body.languageId
+        ? stringValue(body.languageId, "language")
+        : undefined;
+      if (language && c && !c.languageIds.includes(language as never)) {
+        throw new ApiError("language_unavailable");
+      }
+      const scope = tutorScope(c?.id, language);
+      const prior = await db.rpc<unknown[]>("read_tutor_conversation", {
+        p_user: user.id,
+        p_challenge: scope.challengeId,
+        p_language: scope.languageId,
+      });
+      const history = Array.isArray(prior)
+        ? prior
+            .filter(
+              (item): item is { role: "user" | "tutor"; text: string } =>
+                Boolean(item) &&
+                typeof item === "object" &&
+                ((item as { role?: unknown }).role === "user" ||
+                  (item as { role?: unknown }).role === "tutor") &&
+                typeof (item as { text?: unknown }).text === "string",
+            )
+            .slice(-10)
+        : [];
+      const code =
+        typeof body.code === "string" && body.code.length <= 6000
+          ? body.code
+          : undefined;
+      const lastRun =
+        body.lastRun && typeof body.lastRun === "object"
+          ? body.lastRun as Record<string, unknown>
+          : undefined;
       let hint: string | undefined;
       if (a) {
         const solved = await db.rows<Row>(
@@ -375,6 +473,12 @@ export async function handler(request: Request): Promise<Response> {
       const fallback =
         hint ??
         "Revise os exemplos do enunciado, escreva casos de borda e explique sua estratégia antes de programar. Depois pratique um desafio recomendado no seu painel.";
+      const reservation = await db.rpc<Row>("reserve_tutor", {
+        p_user: user.id,
+        p_challenge: c?.id ?? null,
+        p_key: key,
+      });
+      if (reservation.replayed) throw new ApiError("tutor_pending", 409);
       let response = {
         message: fallback,
         source: "editorial",
@@ -384,12 +488,6 @@ export async function handler(request: Request): Promise<Response> {
         token = Deno.env.get("CLOUDFLARE_AI_TOKEN");
       if (account && token) {
         try {
-          const reservation = await db.rpc<Row>("reserve_tutor", {
-            p_user: user.id,
-            p_challenge: c?.id ?? null,
-            p_key: key,
-          });
-          if (reservation.replayed) throw new ApiError("tutor_pending", 409);
           const tutor = new WorkersAiTutor(account, token);
           const history = await db.rows<Row>(
             "submissions",
@@ -405,6 +503,16 @@ export async function handler(request: Request): Promise<Response> {
               description: c?.description,
               hint,
               studySummary,
+              language,
+              history,
+              code,
+              lastRun: lastRun
+                ? {
+                    status: typeof lastRun.status === "string" ? lastRun.status : "never_run",
+                    output: typeof lastRun.output === "string" ? lastRun.output : undefined,
+                    diagnostic: typeof lastRun.diagnostic === "string" ? lastRun.diagnostic : undefined,
+                  }
+                : undefined,
             }),
             source: "ai",
             remainingToday: Math.max(0, response.remainingToday - 1),
@@ -417,12 +525,18 @@ export async function handler(request: Request): Promise<Response> {
             console.error('{"event":"tutor_failed"}');
           }
         }
-        await db.rpc("finish_tutor", {
-          p_user: user.id,
-          p_key: key,
-          p_response: response,
-        });
       }
+      await db.rpc("finish_tutor", {
+        p_user: user.id,
+        p_key: key,
+        p_response: response,
+      });
+      await db.rpc("write_tutor_conversation", {
+        p_user: user.id,
+        p_challenge: scope.challengeId,
+        p_language: scope.languageId,
+        p_messages: [...history, { role: "user", text: message }, { role: "tutor", text: response.message }].slice(-12),
+      });
       return json(response);
     }
     if (request.method === "GET" && path === "/dashboard") {

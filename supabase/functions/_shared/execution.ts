@@ -28,6 +28,7 @@ export interface CodeExecutionProvider {
   execute(request: ExecutionRequest): Promise<ExecutionResult>;
   cancel(executionRef: string): Promise<void>;
 }
+export type ExecutorStatus = "ready" | "busy" | "offline";
 
 function validateResult(value: unknown): ExecutionResult {
   if (
@@ -47,7 +48,7 @@ export class LocalExecutionProvider implements CodeExecutionProvider {
     private token: string,
   ) {}
 
-  async isReady(): Promise<boolean> {
+  async status(): Promise<ExecutorStatus> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2_000);
     try {
@@ -58,18 +59,24 @@ export class LocalExecutionProvider implements CodeExecutionProvider {
           signal: controller.signal,
         },
       );
-      if (!response.ok) return false;
+      if (!response.ok) return "offline";
       const body = await response.json();
-      return Boolean(
-        body &&
-        typeof body === "object" &&
-        (body as { status?: unknown }).status === "ok",
-      );
+      if (!body || typeof body !== "object") return "offline";
+      const status = (body as { status?: unknown }).status;
+      if (status === "ready" || status === "busy") return status;
+      // Compatibility with the initial local gateway during a rolling update.
+      if (status === "ok")
+        return (body as { busy?: unknown }).busy ? "busy" : "ready";
+      return "offline";
     } catch {
-      return false;
+      return "offline";
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  async isReady(): Promise<boolean> {
+    return (await this.status()) === "ready";
   }
 
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {

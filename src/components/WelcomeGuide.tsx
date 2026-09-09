@@ -120,9 +120,9 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <p className="welcome-note">
-              Estamos preparando um beta gratuito para até 100 convidados. No
-              modo exploração, você já pode conhecer o catálogo e salvar
-              rascunhos; avaliação remota e tutor dependem da liberação do beta.
+              O beta gratuito está ativo para até 100 convidados autorizados.
+              Você pode explorar o catálogo e salvar rascunhos antes de entrar;
+              avaliação remota e tutor dependem da disponibilidade do serviço.
             </p>
           </>
         )}

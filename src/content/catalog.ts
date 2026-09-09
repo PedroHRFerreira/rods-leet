@@ -112,7 +112,7 @@ function challenge(
     examples,
     constraints: [
       ...constraints,
-      "Limites iniciais sujeitos à homologação: até 35 s para o conjunto de casos após compilação.",
+      "O perfil de execução publicado abaixo informa CPU por caso, compilação e prazo total de segurança.",
     ],
     complexityGoal: { time, space },
     kind: "function",
@@ -263,6 +263,19 @@ const logic: PublicChallenge[] = [
     "O(n)",
   ),
 ];
+
+// The sequence guides newcomers without blocking free navigation in the
+// catalog. Prerequisites remain informational during the beta.
+for (let index = 0; index < logic.length; index++) {
+  const previous = logic[index - 1];
+  const next = logic[index + 1];
+  logic[index].prerequisites = previous ? [previous.id] : [];
+  logic[index].learningPath = {
+    position: index + 1,
+    total: logic.length,
+    ...(next ? { nextChallengeId: next.id } : {}),
+  };
+}
 
 const algorithms: PublicChallenge[] = [
   challenge(

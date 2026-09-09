@@ -13,6 +13,12 @@ describe("materiais públicos de aprendizado", () => {
       expect(
         concepts.every((resource) => resource.url.startsWith("https://")),
       ).toBe(true);
+      for (const languageId of challenge.languageIds) {
+        expect(
+          concepts.some((resource) => resource.languageId === languageId),
+          `${challenge.id}:concept:${languageId}`,
+        ).toBe(true);
+      }
     }
   });
 

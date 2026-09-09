@@ -138,6 +138,33 @@ describe("public exploration and server authority", () => {
       status: 503,
     });
   });
+  test("reads executor state and synchronizes a scoped tutor conversation", async () => {
+    const { gateway, fetchMock } = setup((url, init) => {
+      if (url.includes("execution-status"))
+        return respond({ status: "busy", checkedAt: "2026-09-09T00:00:00.000Z" });
+      if (init?.method === "GET")
+        return respond({
+          challengeId: "find-max",
+          languageId: "python",
+          messages: [{ role: "tutor", text: "Comece pelos casos pequenos." }],
+        });
+      return respond({ cleared: true });
+    });
+    await expect(gateway.getExecutionStatus()).resolves.toMatchObject({
+      status: "busy",
+    });
+    await expect(gateway.getTutorConversation("find-max", "python")).resolves.toMatchObject({
+      messages: [{ role: "tutor" }],
+    });
+    await expect(
+      gateway.clearTutorConversation("find-max", "python", "clear-key"),
+    ).resolves.toBeUndefined();
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/execution-status",
+      "/api/tutor/conversations?challengeId=find-max&languageId=python",
+      "/api/tutor/conversations/clear",
+    ]);
+  });
 });
 
 describe("draft persistence and concurrent edits", () => {

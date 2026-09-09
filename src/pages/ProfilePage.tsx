@@ -37,7 +37,7 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState(() =>
     searchParams.has("authError")
-      ? "Não foi possível concluir seu login. Tente entrar novamente com a conta associada ao seu convite."
+      ? "Não foi possível concluir seu login. Entre com a conta GitHub autorizada para o beta; se o acesso não for reconhecido, confira a conta usada."
       : "",
   );
   useEffect(() => {
@@ -75,8 +75,8 @@ export default function ProfilePage() {
         />
         <div className="profile-error-actions">
           <p>
-            Se esta conta ainda não foi convidada, entre com a conta associada
-            ao seu convite.
+            Entre com a conta GitHub autorizada para o beta. Se o acesso não for
+            reconhecido, confira a conta usada ou solicite um convite.
           </p>
           {error && (
             <p className="arena-alert" role="alert">
@@ -242,8 +242,8 @@ export default function ProfilePage() {
                 </div>
                 <p className="account-note">
                   <LogIn size={14} />
-                  Use a conta associada ao seu convite. Você pode explorar o
-                  catálogo e escrever seu código antes de entrar.
+                  Use a conta GitHub autorizada para o beta. Você pode explorar
+                  o catálogo e escrever seu código antes de entrar.
                 </p>
               </>
             )}

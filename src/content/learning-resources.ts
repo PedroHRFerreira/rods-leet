@@ -149,7 +149,13 @@ export function learningResourcesFor(
 ): LearningResource[] {
   const concept = conceptResources[topicId];
   return [
-    { ...concept, category: "concept" },
+    ...languageIds.map((languageId) => ({
+      title: `${concept.title} em ${languageResources[languageId].title.replace(/^(Tutorial oficial de |Guia de |Handbook oficial do |Documentação do |Referência de |Tour do |The )/, "")}`,
+      description: concept.description,
+      url: languageResources[languageId].url,
+      category: "concept" as const,
+      languageId,
+    })),
     ...languageIds.map((languageId) => ({
       ...languageResources[languageId],
       category: "language" as const,

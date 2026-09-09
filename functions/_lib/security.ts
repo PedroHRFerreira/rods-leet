@@ -200,12 +200,13 @@ export function allowedApi(request: Request): URL {
   const id = "[a-zA-Z0-9_-]{1,128}";
   const routes: Record<string, RegExp[]> = {
     GET: [
-      /^\/(dashboard|ranking|challenges|drafts)$/,
+      /^\/(dashboard|ranking|challenges|drafts|execution-status|tutor\/conversations)$/,
       new RegExp(`^/(challenges|attempts|submissions)/${id}$`),
     ],
     POST: [
       /^\/(attempts|runs|submissions)$/,
       /^\/tutor\/messages$/,
+      /^\/tutor\/conversations\/clear$/,
       new RegExp(`^/attempts/${id}/hints$`),
       new RegExp(`^/challenges/${id}/solution-access$`),
     ],
@@ -218,6 +219,8 @@ export function allowedApi(request: Request): URL {
       ? ["topicId", "difficulty", "languageId", "mode", "search"]
       : path === "/drafts" && request.method === "GET"
         ? ["challengeId", "languageId"]
+        : path === "/tutor/conversations" && request.method === "GET"
+          ? ["challengeId", "languageId"]
         : [];
   const seen = new Set<string>();
   url.searchParams.forEach((value, key) => {

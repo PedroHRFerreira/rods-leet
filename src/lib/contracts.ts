@@ -80,6 +80,12 @@ export interface PublicChallenge {
   /** Only homologated execution profiles are enabled for remote judging. */
   executionAvailable?: boolean;
   prerequisites?: string[];
+  /** Stable editorial order displayed in the learning path. */
+  learningPath?: {
+    position: number;
+    total: number;
+    nextChallengeId?: string;
+  };
 }
 export interface Topic {
   id: TopicId;
@@ -178,11 +184,29 @@ export interface TutorInput {
   message: string;
   attemptId?: string;
   challengeVersionId?: string;
+  languageId?: LanguageId;
+  conversation?: Array<{ role: "user" | "tutor"; text: string }>;
+  code?: string;
+  lastRun?: {
+    status:
+      | "ok"
+      | "compile_error"
+      | "runtime_error"
+      | "time_limit"
+      | "never_run";
+    output?: string;
+    diagnostic?: string;
+  };
 }
 export interface TutorResult {
   message: string;
   source: "ai" | "editorial";
   remainingToday: number;
+}
+export interface TutorConversation {
+  challengeId?: string;
+  languageId?: LanguageId;
+  messages: Array<{ role: "user" | "tutor"; text: string }>;
 }
 export interface UserProfile {
   id: string;
@@ -207,6 +231,11 @@ export interface Dashboard {
   remoteRunsRemaining: number;
   tutorMessagesRemaining: number;
   executionStatus: "available" | "unconfigured" | "quota_exhausted" | "paused";
+}
+export type ExecutionStatus = "ready" | "busy" | "offline";
+export interface ExecutionStatusResult {
+  status: ExecutionStatus;
+  checkedAt: string;
 }
 export interface RankingEntry {
   userId: string;
@@ -247,6 +276,16 @@ export interface AppGateway {
     idempotencyKey: string,
   ): Promise<SolutionResult>;
   askTutor(input: TutorInput, idempotencyKey: string): Promise<TutorResult>;
+  getExecutionStatus(): Promise<ExecutionStatusResult>;
+  getTutorConversation(
+    challengeId?: string,
+    languageId?: LanguageId,
+  ): Promise<TutorConversation>;
+  clearTutorConversation(
+    challengeId?: string,
+    languageId?: LanguageId,
+    idempotencyKey?: string,
+  ): Promise<void>;
   getDraft(
     challengeId: string,
     languageId: LanguageId,

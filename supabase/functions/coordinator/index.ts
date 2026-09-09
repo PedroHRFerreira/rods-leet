@@ -20,6 +20,19 @@ export async function executorReady(): Promise<boolean> {
   return providerName === "e2b" && Boolean(Deno.env.get("E2B_API_KEY"));
 }
 
+export async function executorStatus(): Promise<"ready" | "busy" | "offline"> {
+  const providerName = Deno.env.get("EXECUTION_PROVIDER") ?? "disabled";
+  if (providerName === "local") {
+    return new LocalExecutionProvider(
+      env("LOCAL_EXECUTOR_URL"),
+      env("LOCAL_EXECUTOR_TOKEN"),
+    ).status();
+  }
+  return providerName === "e2b" && Boolean(Deno.env.get("E2B_API_KEY"))
+    ? "ready"
+    : "offline";
+}
+
 export async function processOne(): Promise<void> {
   const db = new Database();
   const providerName = Deno.env.get("EXECUTION_PROVIDER") ?? "disabled";
@@ -175,8 +188,11 @@ export async function handler(request: Request): Promise<Response> {
   )
     return new Response(null, { status: 401 });
   if (new URL(request.url).searchParams.get("check") === "ready") {
-    const ready = await executorReady();
-    return Response.json({ ready }, { status: ready ? 200 : 503 });
+    const status = await executorStatus();
+    return Response.json(
+      { status },
+      { status: status === "ready" ? 200 : status === "busy" ? 429 : 503 },
+    );
   }
   EdgeRuntime.waitUntil(
     processOne().catch(() => console.error('{"event":"coordinator_failed"}')),

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
+  Braces,
   Check,
   ChevronRight,
   LockKeyhole,
@@ -68,6 +69,29 @@ export default function TracksPage() {
         <Link to="/desafios?topic=logic" className="button button-secondary">
           Começar por lógica <ArrowRight size={17} />
         </Link>
+      </section>
+      <section className="fundamentals-panel panel" aria-labelledby="fundamentals-title">
+        <div>
+          <span className="eyebrow">ANTES DO PRIMEIRO DESAFIO</span>
+          <h2 id="fundamentals-title">Fundamentos para consultar na trilha</h2>
+          <p>
+            Use estes conceitos como referência enquanto pratica. Eles não são
+            desafios, não consomem tentativas e não alteram seu XP.
+          </p>
+        </div>
+        <div className="fundamentals-list">
+          {[
+            ["Variáveis", "Guardar valores para usar depois."],
+            ["Tipos", "Entender números, textos e valores lógicos."],
+            ["Operadores", "Comparar, calcular e combinar condições."],
+            ["Arrays", "Percorrer e organizar uma sequência de valores."],
+          ].map(([title, description]) => (
+            <article key={title}>
+              <Braces size={17} aria-hidden="true" />
+              <div><strong>{title}</strong><span>{description}</span></div>
+            </article>
+          ))}
+        </div>
       </section>
       <div className="section-heading tracks-section-heading">
         <h2>

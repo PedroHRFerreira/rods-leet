@@ -242,7 +242,7 @@ createServer(async (request, response) => {
   if (request.method === "GET" && request.url === "/health") {
     if (!authorized(request.headers.authorization))
       return send(response, 401, { error: "unauthorized" });
-    return send(response, 200, { status: "ok", busy: active });
+    return send(response, 200, { status: active ? "busy" : "ready" });
   }
   if (request.method !== "POST" || request.url !== "/v1/execute")
     return send(response, 404, { error: "not_found" });

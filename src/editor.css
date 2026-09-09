@@ -231,6 +231,19 @@
   color: var(--arena-muted);
   margin: 0;
 }
+.learning-path-note {
+  display: grid;
+  gap: 0.35rem;
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--arena-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0.65rem;
+  color: var(--arena-muted);
+  font-size: 0.875rem;
+}
+.learning-path-note strong { color: var(--text); }
+.learning-path-note a { color: var(--accent); text-decoration: underline; }
 .public-example {
   border: 1px solid var(--arena-border);
   border-radius: 8px;

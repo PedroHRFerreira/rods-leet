@@ -36,7 +36,7 @@ import {
   LoadingState,
   TopicIcon,
 } from "../components/ui";
-import { topics } from "../content/catalog";
+import { challengeById, topics } from "../content/catalog";
 import { LearningResourceList } from "../components/LearningResourceList";
 import { LANGUAGES, rewardPercent } from "../domain/rules";
 import type {
@@ -174,9 +174,31 @@ function ChallengeWorkspace({
   >("description");
   const gateway = useGateway();
   const queryClient = useQueryClient();
+  const execution = useQuery({
+    queryKey: ["execution-status"],
+    queryFn: () => gateway.getExecutionStatus(),
+    enabled: dashboard.profile.invited,
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  const executionStatus = dashboard.profile.invited
+    ? (execution.data?.status ?? "offline")
+    : "offline";
+  const executionMessage =
+    executionStatus === "ready"
+      ? "Execução isolada pronta. Executar exemplos não concede XP nem consome tentativas."
+      : executionStatus === "busy"
+        ? "O executor está atendendo outra solução. Tente novamente em instantes; seu rascunho está salvo."
+        : "A execução remota está indisponível agora. Seu rascunho continua salvo e nenhuma tentativa será consumida.";
   const actionKeys = useRef(new Map<string, string>());
   const openingKey = useRef(crypto.randomUUID());
   const topic = topics.find((item) => item.id === challenge.topicId);
+  const prerequisite = challenge.prerequisites?.[0]
+    ? challengeById.get(challenge.prerequisites[0])
+    : undefined;
+  const nextChallenge = challenge.learningPath?.nextChallengeId
+    ? challengeById.get(challenge.learningPath.nextChallengeId)
+    : undefined;
   const completed = dashboard.completedChallengeIds.includes(challenge.id);
   const currentPercent = rewardPercent(attempt?.hintsUsed ?? 0);
   useEffect(() => {
@@ -265,6 +287,10 @@ function ChallengeWorkspace({
     return next;
   }
   async function execute(files: SourceFile[], kind: "run" | "submit") {
+    if (executionStatus !== "ready") {
+      setError(executionMessage);
+      return;
+    }
     setBusy(kind);
     setError("");
     try {
@@ -451,6 +477,30 @@ function ChallengeWorkspace({
               <>
                 <h2>Sua missão</h2>
                 <p className="problem-description">{challenge.description}</p>
+                {challenge.learningPath && (
+                  <aside className="learning-path-note">
+                    <strong>
+                      Lógica · passo {challenge.learningPath.position} de{" "}
+                      {challenge.learningPath.total}
+                    </strong>
+                    {prerequisite && (
+                      <span>
+                        Antes deste, vale revisar{" "}
+                        <Link to={`/desafios/${prerequisite.slug}`}>
+                          {prerequisite.title}
+                        </Link>.
+                      </span>
+                    )}
+                    {nextChallenge && (
+                      <span>
+                        Após aprovar, siga para{" "}
+                        <Link to={`/desafios/${nextChallenge.slug}`}>
+                          {nextChallenge.title}
+                        </Link>.
+                      </span>
+                    )}
+                  </aside>
+                )}
                 {challenge.sqlSchema && (
                   <>
                     <h3>Estrutura dos dados</h3>
@@ -483,6 +533,11 @@ function ChallengeWorkspace({
                 {challenge.limits && (
                   <div className="published-limits">
                     <h3>Limites de execução</h3>
+                    <p className="published-limits-explanation">
+                      Cada caso tem seu próprio limite. A compilação acontece uma
+                      vez; o prazo total de segurança inclui compilação e todos os
+                      casos executados no trabalho.
+                    </p>
                     <dl>
                       <div>
                         <dt>CPU por caso</dt>
@@ -564,7 +619,9 @@ function ChallengeWorkspace({
                 <LearningResourceList
                   heading="Entenda o conceito"
                   resources={challenge.learningResources.filter(
-                    (resource) => resource.category === "concept",
+                    (resource) =>
+                      resource.category === "concept" &&
+                      (!resource.languageId || resource.languageId === language),
                   )}
                 />
                 <LearningResourceList
@@ -625,7 +682,7 @@ function ChallengeWorkspace({
                 {attempt && (
                   <Link
                     className="text-link"
-                    to={`/tutor?attempt=${encodeURIComponent(attempt.id)}&challenge=${encodeURIComponent(challenge.versionId)}`}
+                    to={`/tutor?attempt=${encodeURIComponent(attempt.id)}&challenge=${encodeURIComponent(challenge.id)}&language=${encodeURIComponent(language)}`}
                   >
                     <Sparkles size={14} />
                     Pedir ajuda ao tutor · conta como dica
@@ -713,6 +770,8 @@ function ChallengeWorkspace({
             }}
             hard={attempt?.mode === "hard"}
             busy={Boolean(busy) || inFlight}
+            executionStatus={executionStatus}
+            executionMessage={executionMessage}
             onExecute={execute}
           />
           <section
@@ -762,9 +821,7 @@ function ChallengeWorkspace({
             <div className="results-note">
               <ShieldCheck size={13} />
               <span>
-                {dashboard.executionStatus === "available"
-                  ? "Executar exemplos e submeter usam a cota diária. Executar exemplos não concede XP nem consome tentativas oficiais."
-                  : "A avaliação remota ainda não está disponível. Seu rascunho continua salvo neste dispositivo."}
+                {executionMessage}
               </span>
             </div>
           </section>
@@ -784,6 +841,8 @@ function SourceWorkspace({
   onLanguage,
   onExecute,
   busy,
+  executionStatus,
+  executionMessage,
   hard,
 }: {
   challenge: PublicChallenge;
@@ -792,6 +851,8 @@ function SourceWorkspace({
   onLanguage: (value: LanguageId) => void;
   onExecute: (files: SourceFile[], kind: "run" | "submit") => Promise<void>;
   busy: boolean;
+  executionStatus: "ready" | "busy" | "offline";
+  executionMessage: string;
   hard?: boolean;
 }) {
   const gateway = useGateway();
@@ -1133,16 +1194,18 @@ function SourceWorkspace({
         <button
           type="button"
           className="button button-secondary"
-          disabled={busy || !file}
+          disabled={busy || !file || executionStatus !== "ready"}
+          title={executionStatus === "ready" ? undefined : executionMessage}
           onClick={() => void onExecute(files, "run")}
         >
           <Play size={15} />
-          {busy ? "Aguarde…" : "Executar exemplos"}
+          {busy ? "Aguarde…" : executionStatus === "busy" ? "Executor ocupado" : executionStatus === "offline" ? "Executor indisponível" : "Executar exemplos"}
         </button>
         <button
           type="button"
           className="button button-primary"
-          disabled={busy || !file}
+          disabled={busy || !file || executionStatus !== "ready"}
+          title={executionStatus === "ready" ? undefined : executionMessage}
           onClick={() => void onExecute(files, "submit")}
         >
           <Send size={15} />
