@@ -488,11 +488,15 @@ export async function handler(request: Request): Promise<Response> {
       if (account && token) {
         try {
           const tutor = new WorkersAiTutor(account, token);
-          const history = await db.rows<Row>(
+          const submissionHistory = await db.rows<Row>(
             "submissions",
             `user_id=eq.${user.id}&kind=eq.submission&status=eq.finished&select=challenge_version_id,verdict&order=created_at.desc&limit=20`,
           );
-          const studySummary = recommend(catalog, [], history as never)
+          const studySummary = recommend(
+            catalog,
+            [],
+            submissionHistory as never,
+          )
             .map((r) => r.reason)
             .join(" ");
           response = {
