@@ -12,7 +12,7 @@ test("callback failure shows a generic accessible message and cleans the marker"
   await page.goto("/perfil?authError=1&from=welcome");
   const alert = page.getByRole("alert");
   await expect(alert).toHaveText(
-    "Não foi possível concluir seu login. Tente entrar novamente com a conta associada ao seu convite.",
+    "Não foi possível concluir seu login. Entre com a conta GitHub autorizada para o beta; se o acesso não for reconhecido, confira a conta usada.",
   );
   await expect(page).toHaveURL(/\/perfil\?from=welcome$/);
   await expect(

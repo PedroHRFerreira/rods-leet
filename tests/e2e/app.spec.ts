@@ -120,12 +120,16 @@ test("Monaco loads and drafts survive refresh without grading locally", async ({
   await expect(page.getByRole("textbox", { name: /Código de/ })).toHaveValue(
     source,
   );
-  await page
-    .getByRole("button", { name: "Executar exemplos", exact: true })
-    .click();
-  await expect(page.locator('.arena-alert[role="alert"]')).toContainText(
-    "Entre com uma conta convidada",
-  );
+  const executeButton = page.getByRole("button", {
+    name: "Executor indisponível",
+    exact: true,
+  });
+  await expect(executeButton).toBeDisabled();
+  await expect(
+    page.getByText(
+      "A execução remota está indisponível agora. Seu rascunho continua salvo e nenhuma tentativa será consumida.",
+    ),
+  ).toBeVisible();
   await expect(page.getByText("Solução aceita", { exact: true })).toHaveCount(
     0,
   );
