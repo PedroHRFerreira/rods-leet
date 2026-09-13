@@ -78,6 +78,18 @@ test("catalog filters all 53 challenges and ten learning tracks", async ({
   await expect(
     page.locator(".constellation-flow .react-flow__node"),
   ).toHaveCount(13);
+  await expect(
+    page.locator(".constellation-flow .skill-node.cluster-core"),
+  ).toHaveCount(3);
+  await expect(
+    page.locator(".constellation-flow .skill-node.cluster-patterns"),
+  ).toHaveCount(4);
+  await expect(
+    page.locator(".constellation-flow .skill-node.cluster-reasoning"),
+  ).toHaveCount(4);
+  await expect(
+    page.locator(".constellation-flow .skill-node.cluster-mastery"),
+  ).toHaveCount(2);
   await expect(page.locator(".track-card")).toHaveCount(3);
   await expect(page.locator(".upcoming-track")).toHaveCount(6);
 });

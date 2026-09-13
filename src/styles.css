@@ -1205,19 +1205,24 @@ textarea::placeholder {
   border-radius: 14px;
   background:
     radial-gradient(
-      circle at 48% 47%,
-      rgba(124, 92, 255, 0.13),
-      transparent 31%
+      circle at 13% 48%,
+      rgba(25, 196, 148, 0.15),
+      transparent 22%
     ),
     radial-gradient(
-      circle at 14% 26%,
-      rgba(25, 196, 148, 0.1),
+      circle at 40% 42%,
+      rgba(124, 92, 255, 0.16),
       transparent 27%
     ),
     radial-gradient(
-      circle at 88% 74%,
-      rgba(255, 98, 111, 0.08),
+      circle at 68% 44%,
+      rgba(255, 165, 23, 0.13),
       transparent 24%
+    ),
+    radial-gradient(
+      circle at 91% 66%,
+      rgba(255, 98, 111, 0.16),
+      transparent 21%
     ),
     color-mix(in srgb, var(--surface) 90%, #05060a);
 }
@@ -1253,16 +1258,27 @@ textarea::placeholder {
   stroke: #4d5161;
   stroke-width: 2;
 }
-.constellation-flow .constellation-edge.current .react-flow__edge-path,
-.constellation-flow .constellation-edge.available .react-flow__edge-path {
+.constellation-flow .constellation-edge.cluster-core .react-flow__edge-path {
+  stroke: var(--success);
+  filter: drop-shadow(
+    0 0 4px color-mix(in srgb, var(--success) 68%, transparent)
+  );
+}
+.constellation-flow
+  .constellation-edge.cluster-patterns
+  .react-flow__edge-path {
   stroke: #a78bfa;
   filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.7));
 }
-.constellation-flow .constellation-edge.completed .react-flow__edge-path {
-  stroke: var(--success);
-  filter: drop-shadow(
-    0 0 4px color-mix(in srgb, var(--success) 72%, transparent)
-  );
+.constellation-flow
+  .constellation-edge.cluster-reasoning
+  .react-flow__edge-path {
+  stroke: #f7b52c;
+  filter: drop-shadow(0 0 4px rgba(247, 181, 44, 0.58));
+}
+.constellation-flow .constellation-edge.cluster-mastery .react-flow__edge-path {
+  stroke: #ff626f;
+  filter: drop-shadow(0 0 4px rgba(255, 98, 111, 0.55));
 }
 .skill-node {
   width: 94px;
@@ -1309,6 +1325,16 @@ textarea::placeholder {
     11px ui-monospace,
     monospace;
 }
+.skill-node-cluster {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #707481;
+  box-shadow: 0 0 8px currentColor;
+}
 .skill-node strong {
   display: -webkit-box;
   overflow: hidden;
@@ -1328,6 +1354,22 @@ textarea::placeholder {
 .skill-node.completed {
   border-color: color-mix(in srgb, var(--success) 70%, var(--border));
   color: var(--success);
+}
+.skill-node.cluster-core .skill-node-cluster {
+  background: var(--success);
+  color: var(--success);
+}
+.skill-node.cluster-patterns .skill-node-cluster {
+  background: #a78bfa;
+  color: #a78bfa;
+}
+.skill-node.cluster-reasoning .skill-node-cluster {
+  background: #f7b52c;
+  color: #f7b52c;
+}
+.skill-node.cluster-mastery .skill-node-cluster {
+  background: #ff626f;
+  color: #ff626f;
 }
 .skill-node.current,
 .skill-node.selected {

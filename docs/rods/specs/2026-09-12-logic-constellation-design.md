@@ -10,8 +10,8 @@ guiada e um painel inferior de detalhes.
 ## Experiência desktop
 
 - Usar React Flow para posicionar e conectar os nós sem assumir uma grade fixa.
-- Organizar os 13 desafios em grupos pedagógicos, conectados pela ordem de
-  `learningPath` já publicada.
+- Organizar os 13 desafios em quatro clusters visuais — Fundamentos, Padrões,
+  Raciocínio e Domínio — conectados pela ordem de `learningPath` já publicada.
 - Destacar o desafio atual em âmbar; concluídos em verde; próximos em violeta;
   bloqueados em grafite.
 - Exibir o detalhe do nó selecionado em um painel lateral, com tempo, XP,

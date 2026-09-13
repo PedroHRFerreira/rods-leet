@@ -38,11 +38,14 @@ import {
 } from "../components/ui";
 import type { PublicChallenge } from "../lib/contracts";
 
+type ConstellationCluster = "core" | "patterns" | "reasoning" | "mastery";
+
 type ConstellationNodeData = {
   id: string;
   title: string;
   index: number;
   state: LearningPathNodeState;
+  cluster: ConstellationCluster;
   difficulty: PublicChallenge["difficulty"];
   interactive: boolean;
   onSelect: (id: string) => void;
@@ -52,7 +55,9 @@ type ConstellationNode = Node<ConstellationNodeData, "skill">;
 
 function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
   return (
-    <div className={`skill-node ${data.state} ${selected ? "selected" : ""}`}>
+    <div
+      className={`skill-node cluster-${data.cluster} ${data.state} ${selected ? "selected" : ""}`}
+    >
       <Handle type="target" position={Position.Left} className="skill-handle" />
       <button
         type="button"
@@ -67,6 +72,7 @@ function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
         <span className="skill-node-number">
           {data.state === "completed" ? <Check size={16} /> : data.index}
         </span>
+        <span className="skill-node-cluster" aria-hidden="true" />
         <strong>{data.title}</strong>
         <small>{data.difficulty}</small>
       </button>
@@ -81,20 +87,27 @@ function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
 
 const constellationNodeTypes = { skill: SkillNode };
 const constellationPositions = [
-  [72, 236],
-  [188, 94],
-  [322, 244],
-  [464, 94],
-  [602, 248],
-  [736, 102],
-  [878, 256],
-  [734, 402],
-  [586, 514],
-  [444, 404],
-  [302, 540],
-  [168, 410],
-  [58, 560],
+  [120, 310],
+  [28, 146],
+  [42, 462],
+  [322, 106],
+  [360, 390],
+  [510, 150],
+  [510, 436],
+  [738, 276],
+  [874, 112],
+  [900, 420],
+  [1048, 212],
+  [1052, 494],
+  [1208, 342],
 ] as const;
+
+function clusterFor(position: number): ConstellationCluster {
+  if (position < 3) return "core";
+  if (position < 7) return "patterns";
+  if (position < 11) return "reasoning";
+  return "mastery";
+}
 
 function stateLabel(state: LearningPathNodeState) {
   if (state === "completed") return "Concluído";
@@ -137,6 +150,7 @@ function LogicLearningMap({
       title: challenge.title,
       index: index + 1,
       state: states.get(challenge.id) ?? "locked",
+      cluster: clusterFor(index),
       difficulty: challenge.difficulty,
       interactive: true,
       onSelect: setSelectedId,
@@ -148,7 +162,7 @@ function LogicLearningMap({
     target: challenge.id,
     type: "smoothstep",
     animated: states.get(challenge.id) !== "locked",
-    className: `constellation-edge ${states.get(challenge.id) ?? "locked"}`,
+    className: `constellation-edge cluster-${clusterFor(index + 1)} ${states.get(challenge.id) ?? "locked"}`,
   }));
   const miniNodes = nodes.slice(0, 6).map((node, index) => ({
     ...node,
