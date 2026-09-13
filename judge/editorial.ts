@@ -59,6 +59,21 @@ const maxSolutions: Record<string, { path: string; content: string }> = {
 };
 
 const hints: Record<string, string[]> = {
+  "sum-two-integers": [
+    "Um inteiro não tem parte decimal.",
+    "Os valores a e b estão dentro do objeto de entrada.",
+    "Some os dois valores e retorne o resultado.",
+  ],
+  "variable-bonus": [
+    "A entrada é o número points, não um objeto.",
+    "Crie uma variável para guardar points + 10.",
+    "Retorne a variável total depois da atribuição.",
+  ],
+  "is-even-integer": [
+    "O operador de resto encontra o que sobra de uma divisão.",
+    "Um número par deixa resto zero ao dividir por 2.",
+    "Compare n % 2 com zero e retorne o resultado booleano.",
+  ],
   "find-max": [
     "A maior pontuação pode ser negativa.",
     "Guarde o maior valor encontrado enquanto percorre a lista.",

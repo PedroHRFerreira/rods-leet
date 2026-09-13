@@ -60,6 +60,8 @@ export interface PublicChallenge {
   versionId: string;
   title: string;
   description: string;
+  /** Optional language-specific wording shown after the learner selects a language. */
+  descriptionsByLanguage?: Partial<Record<LanguageId, string>>;
   topicId: TopicId;
   difficulty: Difficulty;
   kind: ChallengeKind;

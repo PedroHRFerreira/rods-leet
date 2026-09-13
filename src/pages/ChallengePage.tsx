@@ -476,7 +476,10 @@ function ChallengeWorkspace({
             {activePanel === "description" && (
               <>
                 <h2>Sua missão</h2>
-                <p className="problem-description">{challenge.description}</p>
+                <p className="problem-description">
+                  {challenge.descriptionsByLanguage?.[language] ??
+                    challenge.description}
+                </p>
                 {challenge.learningPath && (
                   <aside className="learning-path-note">
                     <strong>

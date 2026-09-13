@@ -48,11 +48,11 @@ test("dashboard, navigation, theme and not-found page", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("catalog filters all 50 challenges and ten learning tracks", async ({
+test("catalog filters all 53 challenges and ten learning tracks", async ({
   page,
 }) => {
   await page.goto("/desafios");
-  await expect(page.locator(".catalog-challenge-card")).toHaveCount(50);
+  await expect(page.locator(".catalog-challenge-card")).toHaveCount(53);
   await page
     .getByRole("group", { name: "Filtrar por trilha" })
     .getByRole("button", { name: /^SQL/ })
@@ -67,13 +67,32 @@ test("catalog filters all 50 challenges and ten learning tracks", async ({
     page.getByRole("heading", { name: "Ainda não encontramos esse desafio" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Ver todos os desafios" }).click();
-  await expect(page.locator(".catalog-challenge-card")).toHaveCount(50);
+  await expect(page.locator(".catalog-challenge-card")).toHaveCount(53);
   await page.goto("/trilhas");
   await expect(
     page.getByRole("heading", { name: "Trilhas de aprendizado" }),
   ).toBeVisible();
   await expect(page.locator(".track-card")).toHaveCount(4);
   await expect(page.locator(".upcoming-track")).toHaveCount(6);
+});
+
+test("fundamentals challenge adapts its wording and starter code to the selected language", async ({
+  page,
+}) => {
+  await page.goto("/desafios/sum-two-integers?language=python");
+  await expect(page.locator(".problem-description")).toContainText(
+    "Em Python, inteiros usam o tipo int",
+  );
+  await expect(page.locator(".monaco-editor").first()).toContainText(
+    "Python: total: int = 0",
+  );
+  await page.getByLabel("Linguagem").selectOption("rust");
+  await expect(page.locator(".problem-description")).toContainText(
+    "Em Rust, use i32",
+  );
+  await expect(page.locator(".monaco-editor").first()).toContainText(
+    "Rust: let total: i32 = 0",
+  );
 });
 
 test("Monaco loads and drafts survive refresh without grading locally", async ({

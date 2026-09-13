@@ -4,7 +4,7 @@ Atualizado em 7 de setembro de 2026.
 
 - Frontend: https://rods-leet.pages.dev, Cloudflare Pages, repositório privado `PedroHRFerreira/rods-leet`, branch `main`.
 - Build: Node 22, `npm run build`, saída `dist`. Novos commits em `main` publicam automaticamente.
-- Supabase: projeto `bsjcuygtpiqyomnulpsw`, plano Free. Migrações até `202609070005` aplicadas; 50 desafios públicos publicados.
+- Supabase: projeto `bsjcuygtpiqyomnulpsw`, plano Free. Migrações até `202609070005` aplicadas; 53 desafios públicos publicados.
 - Funções `api` e `coordinator` publicadas. `APP_ORIGIN` corresponde ao domínio acima. Segredos administrativos ficam no Supabase, nunca em variáveis `VITE_`.
 - GitHub OAuth habilitado. Site URL: `https://rods-leet.pages.dev`; redirect permitido: `https://rods-leet.pages.dev/auth/callback`.
 - O callback do aplicativo OAuth do GitHub é `https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/callback`, sem curingas.
@@ -26,7 +26,7 @@ Backups externos e ensaio de restauração ainda precisam ser configurados antes
 ## Verificações realizadas
 
 - Build de produção e 147 testes locais aprovados antes da primeira publicação.
-- Interface publicada, catálogo com 50 desafios, rota direta de desafio e editor carregando no navegador.
+- Interface publicada, catálogo com 53 desafios, rota direta de desafio e editor carregando no navegador.
 - Migrações aplicadas com PGMQ, Cron e pg_net reais.
 - API sem sessão retorna 401 e permite CORS somente para a origem configurada.
 - OAuth GitHub retorna ao aplicativo e apresenta perfil real com convite confirmado.

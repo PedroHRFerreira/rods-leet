@@ -1,5 +1,12 @@
 /** Private adversarial fixtures. This module must never enter the frontend bundle. */
 export const hiddenInputs: Record<string, unknown[]> = {
+  "sum-two-integers": [
+    { a: 0, b: 0 },
+    { a: -1, b: -1 },
+    { a: 1_000_000, b: -1_000_000 },
+  ],
+  "variable-bonus": [0, 1_000_000, -1_000_000],
+  "is-even-integer": [1, -2, -999_999_999, 1_000_000_000],
   "find-max": [
     [7],
     [0, 0, 0],

@@ -1,6 +1,6 @@
 # Rods Leet
 
-Implementação do beta gratuito de desafios de programação. A aplicação contém painel de progresso, catálogo de 50 desafios, dez trilhas, editor com rascunhos por linguagem, SQL, ranking, perfil e tutor. Sem credenciais, abre em modo exploração: conteúdo e edição funcionam; avaliações, XP e respostas do tutor não são simulados.
+Implementação do beta gratuito de desafios de programação. A aplicação contém painel de progresso, catálogo de 53 desafios, dez trilhas, editor com rascunhos por linguagem, SQL, ranking, perfil e tutor. Sem credenciais, abre em modo exploração: conteúdo e edição funcionam; avaliações, XP e respostas do tutor não são simulados.
 
 ## Executar localmente
 

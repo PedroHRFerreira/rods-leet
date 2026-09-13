@@ -3,7 +3,7 @@ import { challenges } from "./catalog";
 
 describe("materiais públicos de aprendizado", () => {
   test("cada desafio tem uma referência conceitual oficial", () => {
-    expect(challenges).toHaveLength(50);
+    expect(challenges).toHaveLength(53);
 
     for (const challenge of challenges) {
       const concepts = challenge.learningResources.filter(
