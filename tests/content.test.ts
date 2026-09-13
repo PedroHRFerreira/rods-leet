@@ -68,6 +68,24 @@ describe("published beta catalog", () => {
     }
   });
 
+  test("logic learning path starts with the fundamentals and has map metadata", () => {
+    const logic = challenges
+      .filter((challenge) => challenge.topicId === "logic")
+      .sort(
+        (a, b) =>
+          (a.learningPath?.position ?? 0) - (b.learningPath?.position ?? 0),
+      );
+    expect(logic.slice(0, 3).map((challenge) => challenge.id)).toEqual([
+      "sum-two-integers",
+      "variable-bonus",
+      "is-even-integer",
+    ]);
+    for (const challenge of logic) {
+      expect(challenge.estimatedMinutes).toBeGreaterThan(0);
+      expect(challenge.tags?.length).toBeGreaterThan(0);
+    }
+  });
+
   test.each(challenges.filter((c) => c.kind !== "sql"))(
     "$id reference satisfies every public example and preserves input",
     (challenge) => {

@@ -353,6 +353,53 @@ for (let index = 0; index < logic.length; index++) {
   };
 }
 
+const logicPathMetadata: Record<
+  string,
+  Pick<PublicChallenge, "estimatedMinutes" | "tags">
+> = {
+  "sum-two-integers": {
+    estimatedMinutes: 5,
+    tags: ["inteiros", "parâmetros", "return"],
+  },
+  "variable-bonus": {
+    estimatedMinutes: 6,
+    tags: ["variáveis", "atribuição", "const / let"],
+  },
+  "is-even-integer": {
+    estimatedMinutes: 7,
+    tags: ["módulo", "booleanos", "condição"],
+  },
+  "find-max": { estimatedMinutes: 10, tags: ["arrays", "laços", "null"] },
+  "sum-even": { estimatedMinutes: 10, tags: ["arrays", "módulo", "soma"] },
+  "count-vowels": {
+    estimatedMinutes: 10,
+    tags: ["strings", "laços", "contador"],
+  },
+  "is-palindrome": {
+    estimatedMinutes: 12,
+    tags: ["strings", "índices", "comparação"],
+  },
+  fizzbuzz: { estimatedMinutes: 10, tags: ["condições", "módulo", "strings"] },
+  "leap-year": {
+    estimatedMinutes: 10,
+    tags: ["condições", "booleanos", "módulo"],
+  },
+  "digit-sum": { estimatedMinutes: 15, tags: ["strings", "números", "laços"] },
+  "interval-overlap": {
+    estimatedMinutes: 15,
+    tags: ["comparação", "arrays", "máximo / mínimo"],
+  },
+  "roman-numeral": {
+    estimatedMinutes: 18,
+    tags: ["mapas", "strings", "precedência"],
+  },
+  "expression-eval": {
+    estimatedMinutes: 30,
+    tags: ["pilhas", "parser", "precedência"],
+  },
+};
+for (const item of logic) Object.assign(item, logicPathMetadata[item.id]);
+
 const algorithms: PublicChallenge[] = [
   challenge(
     "binary-search",

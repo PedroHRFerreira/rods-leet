@@ -47,8 +47,8 @@ export function guestDashboard(): Dashboard {
     recentSubmissions: [],
     recommendations: [
       {
-        challengeId: "find-max",
-        reason: "Comece com arrays e construa sua primeira solução.",
+        challengeId: "sum-two-integers",
+        reason: "Comece pelos inteiros e escreva sua primeira função.",
       },
       {
         challengeId: "balanced-brackets",

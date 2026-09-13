@@ -34,10 +34,10 @@ test("dashboard, navigation, theme and not-found page", async ({ page }) => {
     "rgb(0, 0, 0)",
   );
   await page.getByRole("link", { name: "Abrir desafio", exact: true }).click();
-  await expect(page).toHaveURL(/\/desafios\/find-max/);
+  await expect(page).toHaveURL(/\/desafios\/sum-two-integers/);
   await expect(
     page.getByRole("heading", {
-      name: "Maior pontuação da equipe",
+      name: "Primeira soma",
       exact: true,
     }),
   ).toBeVisible();
@@ -72,8 +72,54 @@ test("catalog filters all 53 challenges and ten learning tracks", async ({
   await expect(
     page.getByRole("heading", { name: "Trilhas de aprendizado" }),
   ).toBeVisible();
-  await expect(page.locator(".track-card")).toHaveCount(4);
+  await expect(
+    page.getByRole("heading", { name: "Mapa de fundamentos" }),
+  ).toBeVisible();
+  await expect(page.locator(".logic-map-node")).toHaveCount(13);
+  await expect(page.locator(".track-card")).toHaveCount(3);
   await expect(page.locator(".upcoming-track")).toHaveCount(6);
+});
+
+test("logic map opens node details and uses an accessible mobile list", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/trilhas");
+  const map = page.getByRole("region", { name: /Mapa de fundamentos/ });
+  await expect(map).toBeVisible();
+  const node =
+    testInfo.project.name === "mobile"
+      ? page
+          .locator(".logic-map-list button")
+          .filter({ hasText: "Bônus na variável" })
+      : page
+          .locator(".logic-map-node")
+          .filter({ hasText: "Bônus na variável" });
+  await node.click();
+  await expect(map).toContainText("Bônus na variável");
+  await expect(map.getByRole("link", { name: "Abrir desafio" })).toBeVisible();
+  if (testInfo.project.name === "mobile") {
+    await expect(page.locator(".logic-map-list")).toBeVisible();
+    await expect(page.locator(".logic-map-canvas")).toBeHidden();
+  } else {
+    await expect(page.locator(".logic-map-canvas")).toBeVisible();
+  }
+});
+
+test("logic map remains within the tablet viewport", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name === "mobile",
+    "Pixel coverage uses the linear list",
+  );
+  await page.setViewportSize({ width: 700, height: 900 });
+  await page.goto("/trilhas");
+  await expect(page.locator(".logic-map-canvas")).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("fundamentals challenge adapts its wording and starter code to the selected language", async ({

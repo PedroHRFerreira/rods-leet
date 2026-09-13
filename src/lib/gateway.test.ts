@@ -71,6 +71,9 @@ describe("public exploration and server authority", () => {
       completedCount: 0,
       profile: { invited: false },
     });
+    expect((await gateway.getDashboard()).recommendations[0]?.challengeId).toBe(
+      "sum-two-integers",
+    );
     expect(await gateway.getRanking()).toEqual([]);
     await expect(
       gateway.submit(
