@@ -73,39 +73,44 @@ test("catalog filters all 53 challenges and ten learning tracks", async ({
     page.getByRole("heading", { name: "Trilhas de aprendizado" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Mapa de fundamentos" }),
+    page.getByRole("heading", { name: "Constelação de fundamentos" }),
   ).toBeVisible();
-  await expect(page.locator(".logic-map-node")).toHaveCount(13);
+  await expect(
+    page.locator(".constellation-flow .react-flow__node"),
+  ).toHaveCount(13);
   await expect(page.locator(".track-card")).toHaveCount(3);
   await expect(page.locator(".upcoming-track")).toHaveCount(6);
 });
 
-test("logic map opens node details and uses an accessible mobile list", async ({
+test("logic constellation opens node details and uses a guided mobile route", async ({
   page,
 }, testInfo) => {
   await page.goto("/trilhas");
-  const map = page.getByRole("region", { name: /Mapa de fundamentos/ });
+  const map = page.getByRole("region", {
+    name: /Constelação de fundamentos/,
+  });
   await expect(map).toBeVisible();
   const node =
     testInfo.project.name === "mobile"
       ? page
-          .locator(".logic-map-list button")
+          .locator(".constellation-stage-list button")
           .filter({ hasText: "Bônus na variável" })
-      : page
-          .locator(".logic-map-node")
-          .filter({ hasText: "Bônus na variável" });
-  await node.click();
+      : page.getByRole("button", {
+          name: /Nó 2: Bônus na variável/,
+        });
+  await node.focus();
+  await page.keyboard.press("Enter");
   await expect(map).toContainText("Bônus na variável");
   await expect(map.getByRole("link", { name: "Abrir desafio" })).toBeVisible();
   if (testInfo.project.name === "mobile") {
-    await expect(page.locator(".logic-map-list")).toBeVisible();
-    await expect(page.locator(".logic-map-canvas")).toBeHidden();
+    await expect(page.locator(".constellation-stage-list")).toBeVisible();
+    await expect(page.locator(".constellation-workspace")).toBeHidden();
   } else {
-    await expect(page.locator(".logic-map-canvas")).toBeVisible();
+    await expect(page.locator(".constellation-workspace")).toBeVisible();
   }
 });
 
-test("logic map remains within the tablet viewport", async ({
+test("logic constellation remains within the tablet viewport", async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -114,7 +119,7 @@ test("logic map remains within the tablet viewport", async ({
   );
   await page.setViewportSize({ width: 700, height: 900 });
   await page.goto("/trilhas");
-  await expect(page.locator(".logic-map-canvas")).toBeVisible();
+  await expect(page.locator(".constellation-workspace")).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
