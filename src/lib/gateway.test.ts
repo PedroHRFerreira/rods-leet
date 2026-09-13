@@ -61,9 +61,9 @@ function setup(
 }
 
 describe("public exploration and server authority", () => {
-  test("real 50-challenge catalog, empty ranking and zero progress do not require a server", async () => {
+  test("real 53-challenge catalog, empty ranking and zero progress do not require a server", async () => {
     const gateway = createGateway();
-    expect(await gateway.listChallenges()).toHaveLength(50);
+    expect(await gateway.listChallenges()).toHaveLength(53);
     expect(await gateway.listChallenges({ topicId: "sql" })).toHaveLength(10);
     expect(await gateway.listChallenges({ mode: "hard" })).toHaveLength(0);
     expect(await gateway.getDashboard()).toMatchObject({
@@ -71,6 +71,9 @@ describe("public exploration and server authority", () => {
       completedCount: 0,
       profile: { invited: false },
     });
+    expect((await gateway.getDashboard()).recommendations[0]?.challengeId).toBe(
+      "sum-two-integers",
+    );
     expect(await gateway.getRanking()).toEqual([]);
     await expect(
       gateway.submit(
@@ -94,7 +97,7 @@ describe("public exploration and server authority", () => {
         403,
       ),
     );
-    expect(await gateway.listChallenges()).toHaveLength(50);
+    expect(await gateway.listChallenges()).toHaveLength(53);
     expect((await gateway.getChallenge("find-max")).executionAvailable).toBe(
       false,
     );

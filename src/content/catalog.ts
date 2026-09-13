@@ -8,6 +8,7 @@ import {
   algorithmLanguages,
   algorithmTemplates,
   allProgrammingLanguages,
+  beginnerTemplates,
   findMaxTemplates,
   shortestPathTemplates,
 } from "./templates.ts";
@@ -132,7 +133,82 @@ const ex = (
   explanation?: string,
 ): Example => ({ input, output, ...(explanation ? { explanation } : {}) });
 
+const beginnerDescriptions = (
+  goal: string,
+): Partial<Record<(typeof allProgrammingLanguages)[number], string>> => ({
+  python: `Em Python, inteiros usam o tipo int. ${goal} Declare valores com = e devolva o resultado com return.`,
+  javascript: `Em JavaScript, números inteiros usam o tipo number. ${goal} Use const para valores que não serão reatribuídos e return para devolver o resultado.`,
+  typescript: `Em TypeScript, inteiros usam o tipo number. ${goal} Use const/let e, se quiser, uma anotação como : number antes de retornar.`,
+  java: `Em Java, use o tipo primitivo int. ${goal} Declare com int nome = valor; e retorne a resposta do método.`,
+  csharp: `Em C#, use o tipo int. ${goal} Declare com int nome = valor; e retorne a resposta do método.`,
+  cpp: `Em C++, use o tipo int. ${goal} Declare com int nome = valor; e retorne a resposta da função.`,
+  c: `Em C, use o tipo int. ${goal} Declare com int nome = valor; e retorne a resposta da função.`,
+  go: `Em Go, inteiros simples usam int. ${goal} Declare com := ou var e devolva o resultado com return.`,
+  rust: `Em Rust, use i32 para estes inteiros. ${goal} Declare com let e devolva a expressão final ou use return.`,
+  kotlin: `Em Kotlin, use Int. ${goal} Declare com val ou var e devolva o resultado da função.`,
+});
+
 const logic: PublicChallenge[] = [
+  {
+    ...challenge(
+      "sum-two-integers",
+      "Primeira soma",
+      "logic",
+      "easy",
+      "Comece pelos inteiros: números sem parte decimal, como −3, 0 e 42. Receba {a, b}, dois inteiros, e retorne sua soma. Este desafio apresenta parâmetros, retorno e o tipo inteiro sem exigir laços ou coleções.",
+      [ex({ a: 2, b: 3 }, 5), ex({ a: -8, b: 8 }, 0)],
+      [
+        "−1.000.000 ≤ a, b ≤ 1.000.000",
+        "A entrada sempre contém dois inteiros.",
+      ],
+      "O(1)",
+      "O(1)",
+    ),
+    descriptionsByLanguage: beginnerDescriptions(
+      "Receba a e b e retorne a soma deles.",
+    ),
+    languageIds: [...allProgrammingLanguages],
+    starterFilesByLanguage: beginnerTemplates(),
+  },
+  {
+    ...challenge(
+      "variable-bonus",
+      "Bônus na variável",
+      "logic",
+      "easy",
+      "Uma variável guarda um valor que pode ser reutilizado no programa. Receba um inteiro points, guarde points + 10 em uma variável chamada total e retorne total. O juiz verifica o valor devolvido; o nome sugerido ajuda a praticar declaração, atribuição e retorno.",
+      [ex(5, 15), ex(-10, 0)],
+      [
+        "−1.000.000 ≤ points ≤ 1.000.000",
+        "Some exatamente 10 ao valor recebido.",
+      ],
+      "O(1)",
+      "O(1)",
+    ),
+    descriptionsByLanguage: beginnerDescriptions(
+      "Receba points, calcule points + 10 em uma variável total e retorne total.",
+    ),
+    languageIds: [...allProgrammingLanguages],
+    starterFilesByLanguage: beginnerTemplates(),
+  },
+  {
+    ...challenge(
+      "is-even-integer",
+      "Par ou ímpar",
+      "logic",
+      "easy",
+      "Um inteiro é par quando sua divisão por 2 deixa resto zero. Receba um inteiro n e retorne true quando ele for par, ou false quando for ímpar. Pratique uma variável, o operador de resto e uma expressão condicional simples.",
+      [ex(4, true), ex(-3, false), ex(0, true)],
+      ["−1.000.000.000 ≤ n ≤ 1.000.000.000", "Zero é um inteiro par."],
+      "O(1)",
+      "O(1)",
+    ),
+    descriptionsByLanguage: beginnerDescriptions(
+      "Receba n e use o resto da divisão por 2 para retornar se ele é par.",
+    ),
+    languageIds: [...allProgrammingLanguages],
+    starterFilesByLanguage: beginnerTemplates(),
+  },
   {
     ...challenge(
       "find-max",
@@ -276,6 +352,53 @@ for (let index = 0; index < logic.length; index++) {
     ...(next ? { nextChallengeId: next.id } : {}),
   };
 }
+
+const logicPathMetadata: Record<
+  string,
+  Pick<PublicChallenge, "estimatedMinutes" | "tags">
+> = {
+  "sum-two-integers": {
+    estimatedMinutes: 5,
+    tags: ["inteiros", "parâmetros", "return"],
+  },
+  "variable-bonus": {
+    estimatedMinutes: 6,
+    tags: ["variáveis", "atribuição", "const / let"],
+  },
+  "is-even-integer": {
+    estimatedMinutes: 7,
+    tags: ["módulo", "booleanos", "condição"],
+  },
+  "find-max": { estimatedMinutes: 10, tags: ["arrays", "laços", "null"] },
+  "sum-even": { estimatedMinutes: 10, tags: ["arrays", "módulo", "soma"] },
+  "count-vowels": {
+    estimatedMinutes: 10,
+    tags: ["strings", "laços", "contador"],
+  },
+  "is-palindrome": {
+    estimatedMinutes: 12,
+    tags: ["strings", "índices", "comparação"],
+  },
+  fizzbuzz: { estimatedMinutes: 10, tags: ["condições", "módulo", "strings"] },
+  "leap-year": {
+    estimatedMinutes: 10,
+    tags: ["condições", "booleanos", "módulo"],
+  },
+  "digit-sum": { estimatedMinutes: 15, tags: ["strings", "números", "laços"] },
+  "interval-overlap": {
+    estimatedMinutes: 15,
+    tags: ["comparação", "arrays", "máximo / mínimo"],
+  },
+  "roman-numeral": {
+    estimatedMinutes: 18,
+    tags: ["mapas", "strings", "precedência"],
+  },
+  "expression-eval": {
+    estimatedMinutes: 30,
+    tags: ["pilhas", "parser", "precedência"],
+  },
+};
+for (const item of logic) Object.assign(item, logicPathMetadata[item.id]);
 
 const algorithms: PublicChallenge[] = [
   challenge(

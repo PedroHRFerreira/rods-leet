@@ -19,13 +19,13 @@ import {
 import { sqlFixtures } from "../judge/sql.ts";
 
 describe("published beta catalog", () => {
-  test("50 distinct complete challenges, 10 topics, difficulty coverage and language templates", () => {
-    expect(challenges).toHaveLength(50);
-    expect(new Set(challenges.map((c) => c.id)).size).toBe(50);
-    expect(new Set(challenges.map((c) => c.versionId)).size).toBe(50);
+  test("53 distinct complete challenges, 10 topics, difficulty coverage and language templates", () => {
+    expect(challenges).toHaveLength(53);
+    expect(new Set(challenges.map((c) => c.id)).size).toBe(53);
+    expect(new Set(challenges.map((c) => c.versionId)).size).toBe(53);
     expect(topics).toHaveLength(10);
     for (const [topic, count] of [
-      ["logic", 10],
+      ["logic", 13],
       ["algorithms", 15],
       ["data-structures", 15],
       ["sql", 10],
@@ -48,10 +48,41 @@ describe("published beta catalog", () => {
         expect(
           challenge.starterFilesByLanguage[language]?.length,
         ).toBeGreaterThan(0);
+      if (
+        challenge.id === "sum-two-integers" ||
+        challenge.id === "variable-bonus" ||
+        challenge.id === "is-even-integer"
+      ) {
+        expect(
+          Object.keys(challenge.descriptionsByLanguage ?? {}),
+        ).toHaveLength(10);
+        for (const language of challenge.languageIds)
+          expect(challenge.descriptionsByLanguage?.[language]).toMatch(
+            /int|number|i32|Int/,
+          );
+      }
       const serialized = JSON.stringify(challenge);
       expect(serialized).not.toContain("isCorrect");
       expect(serialized).not.toContain("hiddenInputs");
       expect(serialized).not.toContain("canonicalSources");
+    }
+  });
+
+  test("logic learning path starts with the fundamentals and has map metadata", () => {
+    const logic = challenges
+      .filter((challenge) => challenge.topicId === "logic")
+      .sort(
+        (a, b) =>
+          (a.learningPath?.position ?? 0) - (b.learningPath?.position ?? 0),
+      );
+    expect(logic.slice(0, 3).map((challenge) => challenge.id)).toEqual([
+      "sum-two-integers",
+      "variable-bonus",
+      "is-even-integer",
+    ]);
+    for (const challenge of logic) {
+      expect(challenge.estimatedMinutes).toBeGreaterThan(0);
+      expect(challenge.tags?.length).toBeGreaterThan(0);
     }
   });
 

@@ -91,6 +91,87 @@ export function algorithmTemplates(): Partial<
   };
 }
 
+/**
+ * Intentionally small starting points for the first lessons.  They expose the
+ * declaration syntax of the selected language before the learner writes code.
+ */
+export function beginnerTemplates(): Partial<
+  Record<ContentLanguageId, StarterFile[]>
+> {
+  return {
+    typescript: [
+      {
+        path: "solution.ts",
+        content:
+          'export function solve(input: any): any {\n  // TypeScript: const total: number = 0;\n  throw new Error("Não implementado");\n}\n',
+      },
+    ],
+    javascript: [
+      {
+        path: "solution.js",
+        content:
+          'export function solve(input) {\n  // JavaScript: const total = 0;\n  throw new Error("Não implementado");\n}\n',
+      },
+    ],
+    python: [
+      {
+        path: "solution.py",
+        content:
+          'def solve(input):\n    # Python: total: int = 0\n    raise NotImplementedError("Não implementado")\n',
+      },
+    ],
+    java: [
+      {
+        path: "Solution.java",
+        content:
+          'import com.fasterxml.jackson.databind.JsonNode;\n\npublic final class Solution {\n    public static JsonNode solve(JsonNode input) {\n        // Java: int total = 0;\n        throw new UnsupportedOperationException("Não implementado");\n    }\n}\n',
+      },
+    ],
+    csharp: [
+      {
+        path: "Solution.cs",
+        content:
+          "using System.Text.Json.Nodes;\n\npublic static class Solution {\n    public static JsonNode? Solve(JsonNode? input) {\n        // C#: int total = 0;\n        throw new System.NotImplementedException();\n    }\n}\n",
+      },
+    ],
+    cpp: [
+      {
+        path: "solution.cpp",
+        content:
+          '#include <nlohmann/json.hpp>\n#include <stdexcept>\n\nnlohmann::json solve(const nlohmann::json& input) {\n    // C++: int total = 0;\n    throw std::logic_error("Não implementado");\n}\n',
+      },
+    ],
+    c: [
+      {
+        path: "solution.c",
+        content:
+          "#include <cjson/cJSON.h>\n\ncJSON *solve(const cJSON *input) {\n    // C: int total = 0;\n    (void)input;\n    return cJSON_CreateNull();\n}\n",
+      },
+    ],
+    go: [
+      {
+        path: "solution.go",
+        content:
+          'package solution\n\nfunc Solve(input any) any {\n\t// Go: total := 0\n\tpanic("Não implementado")\n}\n',
+      },
+    ],
+    rust: [
+      {
+        path: "solution.rs",
+        content:
+          'use serde_json::Value;\n\npub fn solve(input: Value) -> Value {\n    // Rust: let total: i32 = 0;\n    todo!("Não implementado")\n}\n',
+      },
+    ],
+    kotlin: [
+      {
+        path: "Solution.kt",
+        content:
+          'import kotlinx.serialization.json.JsonElement\n\nfun solve(input: JsonElement): JsonElement {\n    // Kotlin: val total: Int = 0\n    TODO("Não implementado")\n}\n',
+      },
+    ],
+  };
+}
+
 export const findMaxTemplates: Partial<
   Record<ContentLanguageId, StarterFile[]>
 > = {

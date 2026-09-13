@@ -12,6 +12,9 @@ export function findMax(values: readonly number[]): number | null {
 // Reference functions only consume private validated fixtures, never arbitrary student code.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Heterogeneous private fixture dispatcher; each reference declares its own input contract.
 export const referenceSolutions: Record<string, (input: any) => any> = {
+  "sum-two-integers": ({ a, b }: { a: number; b: number }) => a + b,
+  "variable-bonus": (points: number) => points + 10,
+  "is-even-integer": (n: number) => n % 2 === 0,
   "find-max": findMax,
   "sum-even": (a: number[]) =>
     a.reduce((sum, n) => sum + (n % 2 === 0 ? n : 0), 0),
