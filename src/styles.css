@@ -122,6 +122,9 @@ textarea::placeholder {
   background: var(--sidebar);
   border-right: 1px solid var(--border);
   padding: 24px 16px;
+  transition:
+    width 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .sidebar-brand-row {
   display: flex;
@@ -161,6 +164,12 @@ textarea::placeholder {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 1px;
+  overflow: hidden;
+  max-height: 24px;
+  transition:
+    max-height 180ms ease,
+    margin 180ms ease,
+    opacity 140ms ease;
 }
 .sidebar-nav {
   display: grid;
@@ -176,6 +185,19 @@ textarea::placeholder {
   color: var(--muted);
   font-size: 13px;
   font-weight: 500;
+}
+.sidebar .brand > span:last-child,
+.sidebar .nav-item > span,
+.sidebar-bottom > .beta-indicator,
+.sidebar-profile > span:nth-child(2),
+.sidebar-profile > svg {
+  overflow: hidden;
+  max-width: 160px;
+  opacity: 1;
+  transition:
+    max-width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 130ms ease;
+  white-space: nowrap;
 }
 .nav-item:hover,
 .icon-button:hover {
@@ -300,6 +322,70 @@ textarea::placeholder {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: margin-left 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (min-width: 801px) {
+  .sidebar.tracks-compact {
+    width: 76px;
+    align-items: center;
+    padding: 20px 10px;
+  }
+  .sidebar.tracks-compact .sidebar-brand-row,
+  .sidebar.tracks-compact .brand {
+    justify-content: center;
+  }
+  .sidebar.tracks-compact .brand > span:last-child,
+  .sidebar.tracks-compact .sidebar-section-label,
+  .sidebar.tracks-compact .nav-item > span,
+  .sidebar.tracks-compact .sidebar-bottom > .beta-indicator,
+  .sidebar.tracks-compact .sidebar-profile > span:nth-child(2),
+  .sidebar.tracks-compact .sidebar-profile > svg {
+    max-width: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sidebar.tracks-compact .sidebar-section-label {
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  .sidebar.tracks-compact .nav-new {
+    display: none;
+  }
+  .sidebar.tracks-compact .sidebar-nav {
+    width: 100%;
+    margin-top: 32px;
+  }
+  .sidebar.tracks-compact .nav-item,
+  .sidebar.tracks-compact .welcome-reopen {
+    justify-content: center;
+    width: 48px;
+    min-height: 48px;
+    margin-inline: auto;
+    gap: 0;
+    padding: 10px;
+  }
+  .sidebar.tracks-compact .sidebar-bottom {
+    padding-top: 0;
+  }
+  .sidebar.tracks-compact .sidebar-profile {
+    justify-content: center;
+  }
+  .app-main.tracks-compact {
+    margin-left: 76px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .app-main,
+  .sidebar-section-label,
+  .sidebar .brand > span:last-child,
+  .sidebar .nav-item > span,
+  .sidebar-bottom > .beta-indicator,
+  .sidebar-profile > span:nth-child(2),
+  .sidebar-profile > svg {
+    transition: none;
+  }
 }
 .topbar {
   height: 64px;
@@ -391,6 +477,9 @@ textarea::placeholder {
 }
 .page-content-arena {
   max-width: 1600px;
+}
+.page-content-tracks {
+  max-width: 1740px;
 }
 .exploration-banner {
   display: flex;
@@ -1135,10 +1224,10 @@ textarea::placeholder {
   color: var(--subtle) !important;
 }
 
-/* Learning constellation: the canvas is intentionally a separate responsive
-   experience from the guided, touch-first mobile route. */
+/* Learning constellation: a compact spatial network with its detail panel in
+   the same surface, following the approved reference composition. */
 .constellation {
-  margin-bottom: 40px;
+  margin-bottom: 24px;
   padding: 28px;
   overflow: hidden;
 }
@@ -1190,53 +1279,101 @@ textarea::placeholder {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
   color: var(--accent);
 }
+.constellation-route-context {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-left: auto;
+}
+.constellation-route-context > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.constellation-map-toggle {
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.constellation-map-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
 .constellation-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(250px, 0.34fr);
-  min-height: 614px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 288px;
+  min-height: 500px;
+  gap: 0;
   margin-top: 26px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, #59647f);
+  border-radius: 15px;
+  background: #090d13;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
 }
 .constellation-flow,
 .constellation-mini-flow {
   position: relative;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 88%, #7263a8);
-  border-radius: 14px;
   background:
+    linear-gradient(rgba(119, 135, 164, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(119, 135, 164, 0.07) 1px, transparent 1px),
     radial-gradient(
-      circle at 13% 48%,
-      rgba(25, 196, 148, 0.15),
+      circle at 19% 30%,
+      rgba(12, 211, 161, 0.09),
       transparent 22%
     ),
+    radial-gradient(circle at 68% 25%, rgba(255, 178, 0, 0.1), transparent 24%),
     radial-gradient(
-      circle at 40% 42%,
-      rgba(124, 92, 255, 0.16),
-      transparent 27%
-    ),
-    radial-gradient(
-      circle at 68% 44%,
-      rgba(255, 165, 23, 0.13),
+      circle at 71% 78%,
+      rgba(255, 91, 99, 0.11),
       transparent 24%
     ),
-    radial-gradient(
-      circle at 91% 66%,
-      rgba(255, 98, 111, 0.16),
-      transparent 21%
-    ),
-    color-mix(in srgb, var(--surface) 90%, #05060a);
+    #090d13;
+  background-size:
+    24px 24px,
+    24px 24px,
+    auto,
+    auto,
+    auto,
+    auto;
 }
 .constellation-flow::before,
 .constellation-mini-flow::before {
   position: absolute;
   z-index: 1;
-  inset: 14% 13%;
-  border: 1px solid rgba(167, 139, 250, 0.14);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 78px rgba(124, 92, 255, 0.025),
-    0 0 0 156px rgba(124, 92, 255, 0.018);
+  inset: 22px;
+  border: 1px solid rgba(128, 148, 182, 0.1);
+  border-radius: 10px;
   content: "";
+  pointer-events: none;
+}
+.constellation-click-hint {
+  position: absolute;
+  z-index: 4;
+  top: 14px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 179, 0, 0.36);
+  border-radius: 999px;
+  background: rgba(9, 13, 19, 0.86);
+  color: #ffc44e;
+  font:
+    10px ui-monospace,
+    monospace;
+  letter-spacing: 0.02em;
   pointer-events: none;
 }
 .constellation-flow .react-flow,
@@ -1255,8 +1392,13 @@ textarea::placeholder {
   fill: var(--text);
 }
 .constellation-flow .react-flow__edge-path {
-  stroke: #4d5161;
-  stroke-width: 2;
+  stroke: #536078;
+  stroke-width: 1.8;
+}
+.constellation-flow
+  .constellation-edge.is-cross-cluster
+  .react-flow__edge-path {
+  stroke-dasharray: 4 5;
 }
 .constellation-flow .constellation-edge.cluster-core .react-flow__edge-path {
   stroke: var(--success);
@@ -1281,24 +1423,25 @@ textarea::placeholder {
   filter: drop-shadow(0 0 4px rgba(255, 98, 111, 0.55));
 }
 .skill-node {
-  width: 94px;
-  min-height: 94px;
-  border: 1px solid #555966;
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--surface) 93%, black);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.28);
+  --node-color: #a78bfa;
+  width: 54px;
+  height: 54px;
+  border: 1px solid color-mix(in srgb, var(--node-color) 78%, #1b2430);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--node-color) 10%, #0b1018);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--node-color) 34%, transparent);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
     transform 180ms ease;
 }
 .skill-node-button {
-  display: grid;
+  display: flex;
   width: 100%;
-  min-height: 92px;
-  place-items: center;
-  gap: 3px;
-  padding: 8px 5px;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: 0;
   border-radius: inherit;
   background: transparent;
@@ -1310,78 +1453,86 @@ textarea::placeholder {
   outline: 2px solid var(--text);
   outline-offset: 4px;
 }
-.skill-node:hover,
-.skill-node.selected {
-  transform: translateY(-3px) scale(1.04);
-}
 .skill-node-number {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 1px solid currentColor;
-  border-radius: 10px;
+  display: none;
+}
+.skill-node-glyph {
+  position: relative;
+  z-index: 1;
+  color: var(--node-color);
   font:
-    11px ui-monospace,
+    600 17px ui-monospace,
     monospace;
+  letter-spacing: -1px;
 }
-.skill-node-cluster {
+.skill-node-label {
   position: absolute;
-  top: 11px;
-  right: 11px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #707481;
-  box-shadow: 0 0 8px currentColor;
-}
-.skill-node strong {
-  display: -webkit-box;
-  overflow: hidden;
-  max-width: 80px;
-  color: var(--text);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.2;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-.skill-node small {
-  color: var(--subtle);
+  top: calc(100% + 7px);
+  left: 50%;
+  display: grid;
+  width: 88px;
+  transform: translateX(-50%);
+  color: #8b96aa;
   font-size: 9px;
+  line-height: 1.2;
+  pointer-events: none;
+  text-align: center;
+}
+.skill-node-label strong {
+  display: none;
+}
+.skill-node-label small {
+  display: block;
+  color: color-mix(in srgb, var(--node-color) 76%, #a7afbf);
+  font:
+    9px ui-monospace,
+    monospace;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .skill-node.completed {
-  border-color: color-mix(in srgb, var(--success) 70%, var(--border));
-  color: var(--success);
+  --node-color: var(--success);
 }
-.skill-node.cluster-core .skill-node-cluster {
-  background: var(--success);
-  color: var(--success);
+.skill-node.cluster-core {
+  --node-color: #12d6a2;
 }
-.skill-node.cluster-patterns .skill-node-cluster {
-  background: #a78bfa;
-  color: #a78bfa;
+.skill-node.cluster-patterns {
+  --node-color: #a56aff;
 }
-.skill-node.cluster-reasoning .skill-node-cluster {
-  background: #f7b52c;
-  color: #f7b52c;
+.skill-node.cluster-reasoning {
+  --node-color: #ffb300;
 }
-.skill-node.cluster-mastery .skill-node-cluster {
-  background: #ff626f;
-  color: #ff626f;
+.skill-node.cluster-mastery {
+  --node-color: #ff626b;
 }
 .skill-node.current,
 .skill-node.selected {
+  --node-color: var(--accent);
   border-color: var(--accent);
-  color: var(--accent);
   box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--accent) 11%, transparent),
-    0 0 26px color-mix(in srgb, var(--accent) 36%, transparent);
+    0 0 0 5px color-mix(in srgb, var(--accent) 13%, transparent),
+    0 0 0 11px color-mix(in srgb, var(--accent) 6%, transparent),
+    0 0 28px color-mix(in srgb, var(--accent) 60%, transparent);
 }
-.skill-node.available {
-  border-color: #a78bfa;
-  color: #c4b5fd;
+.skill-node:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--node-color) 66%, transparent);
+}
+.skill-node:hover .skill-node-label strong,
+.skill-node.selected .skill-node-label strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 600;
+}
+.skill-node.locked {
+  opacity: 0.42;
+  filter: saturate(0.35);
+}
+.skill-node.out-of-focus:not(.selected) {
+  opacity: 0.3;
+  filter: saturate(0.28);
 }
 .skill-node .skill-handle {
   width: 5px;
@@ -1393,11 +1544,12 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
-  padding: 22px;
-  border: 1px solid var(--border);
+  gap: 14px;
+  padding: 24px 20px;
+  border: 0;
+  border-left: 1px solid rgba(128, 148, 182, 0.15);
   border-top: 3px solid var(--accent);
-  border-radius: 14px;
+  border-radius: 0;
   background:
     linear-gradient(
       180deg,
@@ -1418,7 +1570,7 @@ textarea::placeholder {
 .constellation-detail h3,
 .constellation-drawer h3 {
   margin: 0;
-  font-size: 19px;
+  font-size: 20px;
 }
 .constellation-detail > p,
 .constellation-drawer p {
@@ -1430,6 +1582,30 @@ textarea::placeholder {
 .constellation-detail > .button {
   width: 100%;
   margin-top: auto;
+}
+.constellation-detail-path {
+  display: grid;
+  width: 100%;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+}
+.constellation-detail-path span,
+.constellation-detail-path strong {
+  display: block;
+}
+.constellation-detail-path span {
+  color: var(--subtle);
+  font-size: 10px;
+  line-height: 1.45;
+}
+.constellation-detail-path strong {
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
 }
 .constellation-mobile {
   display: none;
@@ -1690,16 +1866,16 @@ textarea::placeholder {
     min-height: 0;
   }
   .constellation-flow {
-    height: 490px;
+    height: 460px;
   }
   .skill-node {
-    width: 78px;
-    min-height: 78px;
-    border-radius: 18px;
+    width: 44px;
+    height: 44px;
   }
-  .skill-node strong {
-    max-width: 66px;
-    font-size: 9px;
+  .constellation-detail {
+    min-height: 0;
+    border-top: 1px solid rgba(128, 148, 182, 0.15);
+    border-left: 0;
   }
   .logic-map {
     padding: 22px;
@@ -1805,6 +1981,13 @@ textarea::placeholder {
   .constellation-heading {
     flex-direction: column;
   }
+  .constellation-route-context {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .constellation-map-toggle {
+    display: none;
+  }
   .constellation-legend {
     justify-content: flex-start;
   }
@@ -1826,11 +2009,11 @@ textarea::placeholder {
   }
   .constellation-mini-flow .skill-node {
     width: 38px;
-    min-height: 38px;
+    height: 38px;
     border-radius: 50%;
   }
   .constellation-mini-flow .skill-node-button {
-    min-height: 36px;
+    height: 36px;
     padding: 0;
   }
   .constellation-mini-flow .skill-node-number {
@@ -1840,7 +2023,8 @@ textarea::placeholder {
     font-size: 9px;
   }
   .constellation-mini-flow .skill-node strong,
-  .constellation-mini-flow .skill-node small {
+  .constellation-mini-flow .skill-node small,
+  .constellation-mini-flow .constellation-click-hint {
     display: none;
   }
   .constellation-stage-list {

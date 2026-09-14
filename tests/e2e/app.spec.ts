@@ -50,7 +50,7 @@ test("dashboard, navigation, theme and not-found page", async ({ page }) => {
 
 test("catalog filters all 53 challenges and ten learning tracks", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("/desafios");
   await expect(page.locator(".catalog-challenge-card")).toHaveCount(53);
   await page
@@ -90,6 +90,16 @@ test("catalog filters all 53 challenges and ten learning tracks", async ({
   await expect(
     page.locator(".constellation-flow .skill-node.cluster-mastery"),
   ).toHaveCount(2);
+  await expect(page.getByText("Progresso: 0 de 13")).toBeVisible();
+  if (testInfo.project.name !== "mobile") {
+    await expect(
+      page.locator(".constellation-flow .react-flow__edge"),
+    ).toHaveCount(2);
+    await page.getByRole("button", { name: "Ver mapa completo" }).click();
+    await expect(
+      page.locator(".constellation-flow .react-flow__edge"),
+    ).toHaveCount(12);
+  }
   await expect(page.locator(".track-card")).toHaveCount(3);
   await expect(page.locator(".upcoming-track")).toHaveCount(6);
 });
@@ -113,6 +123,8 @@ test("logic constellation opens node details and uses a guided mobile route", as
   await node.focus();
   await page.keyboard.press("Enter");
   await expect(map).toContainText("Bônus na variável");
+  await expect(map).toContainText("Pré-requisito");
+  await expect(map).toContainText("Primeira soma");
   await expect(map.getByRole("link", { name: "Abrir desafio" })).toBeVisible();
   if (testInfo.project.name === "mobile") {
     await expect(page.locator(".constellation-stage-list")).toBeVisible();
