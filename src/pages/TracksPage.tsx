@@ -3,6 +3,7 @@ import {
   Background,
   Controls,
   Handle,
+  MarkerType,
   Position,
   ReactFlow,
   type Edge,
@@ -38,27 +39,67 @@ import {
 } from "../components/ui";
 import type { PublicChallenge } from "../lib/contracts";
 
+type ConstellationCluster = "core" | "patterns" | "reasoning" | "mastery";
+
 type ConstellationNodeData = {
   id: string;
   title: string;
   index: number;
   state: LearningPathNodeState;
+  cluster: ConstellationCluster;
   difficulty: PublicChallenge["difficulty"];
   interactive: boolean;
+  inFocus: boolean;
   onSelect: (id: string) => void;
 };
 
 type ConstellationNode = Node<ConstellationNodeData, "skill">;
+type NodeSide = "top" | "right" | "bottom" | "left";
+
+const nodeSides: Record<NodeSide, Position> = {
+  top: Position.Top,
+  right: Position.Right,
+  bottom: Position.Bottom,
+  left: Position.Left,
+};
+
+function oppositeSide(side: NodeSide): NodeSide {
+  return { top: "bottom", right: "left", bottom: "top", left: "right" }[
+    side
+  ] as NodeSide;
+}
+
+function edgeSide(
+  source: readonly [number, number],
+  target: readonly [number, number],
+): NodeSide {
+  const [sourceX, sourceY] = source;
+  const [targetX, targetY] = target;
+  if (Math.abs(targetX - sourceX) >= Math.abs(targetY - sourceY))
+    return targetX >= sourceX ? "right" : "left";
+  return targetY >= sourceY ? "bottom" : "top";
+}
 
 function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
   return (
-    <div className={`skill-node ${data.state} ${selected ? "selected" : ""}`}>
-      <Handle type="target" position={Position.Left} className="skill-handle" />
+    <div
+      className={`skill-node cluster-${data.cluster} ${data.state} ${data.inFocus ? "in-focus" : "out-of-focus"} ${selected ? "selected" : ""}`}
+    >
+      {(Object.keys(nodeSides) as NodeSide[]).map((side) => (
+        <Handle
+          key={`target-${side}`}
+          id={`target-${side}`}
+          type="target"
+          position={nodeSides[side]}
+          className="skill-handle"
+        />
+      ))}
       <button
         type="button"
         className="skill-node-button"
         aria-pressed={selected}
         aria-label={`Nó ${data.index}: ${data.title}. ${stateLabel(data.state)}`}
+        title={`Desafio ${data.index}: ${data.title}. Clique para ver os detalhes.`}
         tabIndex={data.interactive ? 0 : -1}
         onClick={() => {
           if (data.interactive) data.onSelect(data.id);
@@ -67,34 +108,81 @@ function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
         <span className="skill-node-number">
           {data.state === "completed" ? <Check size={16} /> : data.index}
         </span>
-        <strong>{data.title}</strong>
-        <small>{data.difficulty}</small>
+        <span className="skill-node-glyph" aria-hidden="true">
+          {data.index === 1
+            ? "+"
+            : data.index === 2
+              ? "="
+              : data.index === 3
+                ? "%"
+                : data.index === 4
+                  ? "⌁"
+                  : data.index === 5
+                    ? "Σ"
+                    : data.index === 6
+                      ? "Aa"
+                      : data.index === 7
+                        ? "↔"
+                        : data.index === 8
+                          ? "ƒ"
+                          : data.index === 9
+                            ? "◌"
+                            : data.index === 10
+                              ? "∑"
+                              : data.index === 11
+                                ? "∩"
+                                : data.index === 12
+                                  ? "Ⅻ"
+                                  : "()"}
+        </span>
+        <span className="skill-node-label">
+          <strong>{data.title}</strong>
+          <small>Desafio {String(data.index).padStart(2, "0")}</small>
+        </span>
       </button>
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="skill-handle"
-      />
+      {(Object.keys(nodeSides) as NodeSide[]).map((side) => (
+        <Handle
+          key={`source-${side}`}
+          id={`source-${side}`}
+          type="source"
+          position={nodeSides[side]}
+          className="skill-handle"
+        />
+      ))}
     </div>
   );
 }
 
 const constellationNodeTypes = { skill: SkillNode };
 const constellationPositions = [
-  [72, 236],
-  [188, 94],
-  [322, 244],
-  [464, 94],
-  [602, 248],
-  [736, 102],
-  [878, 256],
-  [734, 402],
-  [586, 514],
-  [444, 404],
-  [302, 540],
-  [168, 410],
-  [58, 560],
+  [430, 180],
+  [100, 130],
+  [110, 285],
+  [260, 60],
+  [290, 210],
+  [620, 70],
+  [760, 140],
+  [790, 265],
+  [850, 375],
+  [640, 425],
+  [470, 345],
+  [660, 330],
+  [860, 440],
 ] as const;
+
+function clusterFor(position: number): ConstellationCluster {
+  if (position < 3) return "core";
+  if (position < 7) return "patterns";
+  if (position < 11) return "reasoning";
+  return "mastery";
+}
+
+function clusterColor(cluster: ConstellationCluster) {
+  if (cluster === "core") return "#12d6a2";
+  if (cluster === "patterns") return "#a56aff";
+  if (cluster === "reasoning") return "#ffb300";
+  return "#ff626b";
+}
 
 function stateLabel(state: LearningPathNodeState) {
   if (state === "completed") return "Concluído";
@@ -117,6 +205,7 @@ function LogicLearningMap({
   const [selectedId, setSelectedId] = useState(
     initial?.id ?? challenges[0]?.id ?? "",
   );
+  const [showFullMap, setShowFullMap] = useState(false);
   const selected =
     challenges.find((challenge) => challenge.id === selectedId) ??
     challenges[0];
@@ -125,6 +214,11 @@ function LogicLearningMap({
   const selectedState =
     states.get(selected.id) ?? ("locked" as LearningPathNodeState);
   const canOpen = selectedState !== "locked";
+  const completedCount = challenges.filter((challenge) =>
+    completed.has(challenge.id),
+  ).length;
+  const prerequisite = challenges[selectedIndex - 1];
+  const nextChallenge = challenges[selectedIndex + 1];
   const nodes: ConstellationNode[] = challenges.map((challenge, index) => ({
     id: challenge.id,
     type: "skill",
@@ -137,19 +231,38 @@ function LogicLearningMap({
       title: challenge.title,
       index: index + 1,
       state: states.get(challenge.id) ?? "locked",
+      cluster: clusterFor(index),
       difficulty: challenge.difficulty,
       interactive: true,
+      inFocus: showFullMap || Math.abs(index - selectedIndex) <= 1,
       onSelect: setSelectedId,
     },
   }));
-  const edges: Edge[] = challenges.slice(1).map((challenge, index) => ({
-    id: `${challenges[index]?.id}-${challenge.id}`,
-    source: challenges[index]?.id ?? "",
-    target: challenge.id,
-    type: "smoothstep",
-    animated: states.get(challenge.id) !== "locked",
-    className: `constellation-edge ${states.get(challenge.id) ?? "locked"}`,
-  }));
+  const edges: Edge[] = challenges.slice(1).map((challenge, index) => {
+    const sourcePosition = constellationPositions[index] ?? [0, 0];
+    const targetPosition = constellationPositions[index + 1] ?? [0, 0];
+    const sourceSide = edgeSide(sourcePosition, targetPosition);
+    const targetCluster = clusterFor(index + 1);
+    const crossesCluster = clusterFor(index) !== targetCluster;
+    return {
+      id: `${challenges[index]?.id}-${challenge.id}`,
+      source: challenges[index]?.id ?? "",
+      sourceHandle: `source-${sourceSide}`,
+      target: challenge.id,
+      targetHandle: `target-${oppositeSide(sourceSide)}`,
+      type: "bezier",
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: clusterColor(targetCluster),
+        width: 14,
+        height: 14,
+      },
+      className: `constellation-edge cluster-${targetCluster} ${crossesCluster ? "is-cross-cluster" : ""} ${states.get(challenge.id) ?? "locked"}`,
+    };
+  });
+  const focusEdges = edges.filter((_, index) =>
+    showFullMap ? true : Math.abs(index - selectedIndex) <= 1,
+  );
   const miniNodes = nodes.slice(0, 6).map((node, index) => ({
     ...node,
     position: {
@@ -181,15 +294,34 @@ function LogicLearningMap({
             <LockKeyhole size={13} /> Bloqueado
           </span>
         </div>
+        <div className="constellation-route-context">
+          <span
+            aria-label={`Progresso da rota: ${completedCount} de ${challenges.length} desafios concluídos`}
+          >
+            <Route size={14} /> Progresso: {completedCount} de{" "}
+            {challenges.length}
+          </span>
+          <button
+            type="button"
+            className="constellation-map-toggle"
+            aria-pressed={showFullMap}
+            onClick={() => setShowFullMap((value) => !value)}
+          >
+            {showFullMap ? "Focar na minha rota" : "Ver mapa completo"}
+          </button>
+        </div>
       </header>
       <div className="constellation-workspace">
         <div
           className="constellation-flow"
           aria-label="Constelação da trilha de lógica"
         >
+          <span className="constellation-click-hint">
+            <CircleDot size={13} /> Clique em um desafio para ver os detalhes
+          </span>
           <ReactFlow
             nodes={nodes}
-            edges={edges}
+            edges={focusEdges}
             nodeTypes={constellationNodeTypes}
             fitView
             fitViewOptions={{ padding: 0.16 }}
@@ -222,6 +354,20 @@ function LogicLearningMap({
           </span>
           <h3>{selected.title}</h3>
           <p>{selected.description}</p>
+          <div className="constellation-detail-path">
+            <span>
+              {prerequisite ? "Pré-requisito" : "Ponto de partida"}
+              <strong>
+                {prerequisite ? prerequisite.title : "Você começa por aqui"}
+              </strong>
+            </span>
+            {nextChallenge && (
+              <span>
+                Próximo na rota
+                <strong>{nextChallenge.title}</strong>
+              </span>
+            )}
+          </div>
           <div className="logic-detail-stats">
             <span>
               <Clock3 size={14} /> {selected.estimatedMinutes ?? 15} min
@@ -326,6 +472,20 @@ function LogicLearningMap({
             </span>
             <h3>{selected.title}</h3>
             <p>{selected.description}</p>
+            <div className="constellation-detail-path">
+              <span>
+                {prerequisite ? "Pré-requisito" : "Ponto de partida"}
+                <strong>
+                  {prerequisite ? prerequisite.title : "Você começa por aqui"}
+                </strong>
+              </span>
+              {nextChallenge && (
+                <span>
+                  Próximo na rota
+                  <strong>{nextChallenge.title}</strong>
+                </span>
+              )}
+            </div>
           </div>
           {canOpen ? (
             <Link
@@ -389,6 +549,7 @@ export default function TracksPage() {
           <strong>{topics.length}</strong> trilhas
         </span>
       </PageHeading>
+      <LogicLearningMap challenges={logicChallenges} completed={completed} />
       <section className="tracks-intro panel">
         <span className="tracks-intro-index">01 →</span>
         <div>
@@ -406,7 +567,6 @@ export default function TracksPage() {
           Começar pelos inteiros <ArrowRight size={17} />
         </Link>
       </section>
-      <LogicLearningMap challenges={logicChallenges} completed={completed} />
       <div className="section-heading tracks-section-heading">
         <h2>
           Outras trilhas para explorar{" "}

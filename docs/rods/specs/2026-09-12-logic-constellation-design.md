@@ -2,20 +2,28 @@
 
 ## Decisão aprovada
 
-Substituir o mapa de Lógica por uma constelação de habilidades. No desktop, os
-desafios serão nós conectados em um canvas interativo; no mobile, a mesma rota
+Substituir o mapa de Lógica por uma constelação de habilidades compacta, com a
+composição da referência aprovada: rede espacial de nós luminosos dentro de um
+único painel escuro e um detalhe lateral integrado. No mobile, a mesma rota
 será apresentada como uma mini constelação de contexto seguida de uma lista
 guiada e um painel inferior de detalhes.
 
 ## Experiência desktop
 
 - Usar React Flow para posicionar e conectar os nós sem assumir uma grade fixa.
-- Organizar os 13 desafios em grupos pedagógicos, conectados pela ordem de
-  `learningPath` já publicada.
-- Destacar o desafio atual em âmbar; concluídos em verde; próximos em violeta;
-  bloqueados em grafite.
-- Exibir o detalhe do nó selecionado em um painel lateral, com tempo, XP,
+- Organizar os 13 desafios em quatro grupos espaciais compactos, usando verde,
+  violeta, âmbar e coral. A rota pedagógica continua sendo derivada de
+  `learningPath`; as cores são uma organização visual, não novos níveis.
+- Mostrar cada desafio como um disco com ícone/símbolo; nome, dificuldade e
+  estado permanecem acessíveis e são expostos no painel de detalhe.
+- Destacar o desafio atual em âmbar com halo; concluídos em verde; bloqueados
+  ficam dessaturados.
+- Integrar o detalhe do nó em um painel lateral escuro, com estado, tempo, XP,
   dificuldade, tags e ação contextual.
+- Exibir por padrão somente o contexto imediato do desafio selecionado (etapa
+  anterior e próxima), com opção explícita para ver todas as conexões.
+- Mostrar progresso da rota e o contexto de pré-requisito e próximo desafio no
+  detalhe, sempre derivados da ordem de `learningPath`.
 - Manter controles de teclado, foco visível, rótulos acessíveis e uma lista
   equivalente fora do canvas para leitores de tela.
 

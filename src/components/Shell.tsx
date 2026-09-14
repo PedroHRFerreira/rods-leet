@@ -69,6 +69,7 @@ export default function Shell({ children }: { children?: ReactNode }) {
   });
   const navigate = useNavigate();
   const location = useLocation();
+  const compactTracksNavigation = location.pathname === "/trilhas";
   const searchRef = useRef<HTMLInputElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -150,7 +151,7 @@ export default function Shell({ children }: { children?: ReactNode }) {
       )}
       <aside
         id="main-navigation"
-        className={`sidebar ${mobileOpen ? "is-open" : ""}`}
+        className={`sidebar ${compactTracksNavigation ? "tracks-compact" : ""} ${mobileOpen ? "is-open" : ""}`}
         ref={sidebarRef}
         aria-label="Navegação principal"
         onKeyDown={(event) => {
@@ -200,6 +201,8 @@ export default function Shell({ children }: { children?: ReactNode }) {
               key={to}
               to={to}
               end={to === "/"}
+              aria-label={compactTracksNavigation ? label : undefined}
+              title={compactTracksNavigation ? label : undefined}
               className={({ isActive }) =>
                 `nav-item ${isActive ? "active" : ""}`
               }
@@ -213,13 +216,15 @@ export default function Shell({ children }: { children?: ReactNode }) {
         <button
           type="button"
           className="nav-item welcome-reopen"
+          aria-label={compactTracksNavigation ? "Como funciona" : undefined}
+          title={compactTracksNavigation ? "Como funciona" : undefined}
           onClick={() => {
             setMobileOpen(false);
             setGuideOpen(true);
           }}
         >
           <Compass size={18} />
-          Como funciona
+          <span>Como funciona</span>
         </button>
         <div className="sidebar-bottom">
           <div className="beta-indicator">
@@ -238,7 +243,9 @@ export default function Shell({ children }: { children?: ReactNode }) {
           </NavLink>
         </div>
       </aside>
-      <div className="app-main">
+      <div
+        className={`app-main ${compactTracksNavigation ? "tracks-compact" : ""}`}
+      >
         <header className="topbar">
           <div className="topbar-breadcrumb">
             <button
@@ -303,7 +310,7 @@ export default function Shell({ children }: { children?: ReactNode }) {
         </header>
         <main
           id="main-content"
-          className={`page-content ${location.pathname.startsWith("/desafios/") ? "page-content-arena" : ""}`}
+          className={`page-content ${location.pathname.startsWith("/desafios/") ? "page-content-arena" : ""} ${compactTracksNavigation ? "page-content-tracks" : ""}`}
           tabIndex={-1}
         >
           {gateway.mode === "demo" && (
