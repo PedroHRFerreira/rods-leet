@@ -8,6 +8,7 @@ import type {
   PublicChallenge,
   ExecutionStatusResult,
   TutorConversation,
+  UserProfile,
 } from "./contracts";
 import { GatewayError } from "./contracts";
 
@@ -30,7 +31,25 @@ interface LocalDraft {
   draft: DraftInput;
   dirty: boolean;
 }
+type DashboardResponse = Omit<Dashboard, "profile"> & {
+  profile: Omit<UserProfile, "authenticated"> & {
+    authenticated?: boolean;
+    /** Compatibility with API deployments before open GitHub access. */
+    invited?: boolean;
+  };
+};
 const clone = <T>(value: T): T => structuredClone(value);
+
+function normalizeDashboard(value: DashboardResponse): Dashboard {
+  const { invited, ...profile } = value.profile;
+  return {
+    ...value,
+    profile: {
+      ...profile,
+      authenticated: profile.authenticated ?? invited ?? false,
+    },
+  };
+}
 
 export function guestDashboard(): Dashboard {
   return {
@@ -346,9 +365,16 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
     },
     async getDashboard() {
       const current = await session();
-      return current
-        ? request("/dashboard", "GET", undefined, undefined, current)
-        : guestDashboard();
+      if (!current) return guestDashboard();
+      return normalizeDashboard(
+        await request<DashboardResponse>(
+          "/dashboard",
+          "GET",
+          undefined,
+          undefined,
+          current,
+        ),
+      );
     },
     async getRanking() {
       const current = await session();

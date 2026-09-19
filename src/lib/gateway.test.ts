@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import {
   createGateway,
+  guestDashboard,
   type GatewayAuth,
   type GatewaySession,
 } from "./gateway";
@@ -105,6 +106,22 @@ describe("public exploration and server authority", () => {
     await expect(gateway.getDashboard()).rejects.toMatchObject({
       code: "github_account_required",
       status: 403,
+    });
+  });
+  test("recognizes a valid session during the API field transition", async () => {
+    const legacy = guestDashboard();
+    const { gateway } = setup(() =>
+      respond({
+        ...legacy,
+        profile: {
+          id: "alice",
+          displayName: "Alice",
+          invited: true,
+        },
+      }),
+    );
+    await expect(gateway.getDashboard()).resolves.toMatchObject({
+      profile: { id: "alice", authenticated: true },
     });
   });
   test("official mutations forward auth, snapshot and original idempotency key", async () => {

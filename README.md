@@ -34,7 +34,7 @@ O padrão do editor está em `.vscode/settings.json`, com Prettier e formataçã
 
 O login de produção usa o BFF no mesmo domínio do site. Configure `SUPABASE_ANON_KEY`, `BFF_SHARED_SECRET` e `BFF_ENCRYPTION_KEY` como variáveis de servidor no Cloudflare Pages; nunca use prefixo `VITE_` para segredos. `.dev.vars.example` documenta os nomes. A assinatura é compartilhada com as funções Supabase; a chave de criptografia fica somente no BFF. A chave administrativa do Supabase permanece somente nas funções Supabase.
 
-OAuth usa GitHub e callback `/auth/callback`, processado pelo servidor. A API valida o convite e a identidade; autenticar sozinho não concede acesso ao beta. Os rascunhos locais são preservados, mas sessões do login antigo exigem nova entrada. `VITE_BFF_ENABLED=false` permite uma compilação de demonstração sem acesso remoto; o servidor continua exigindo autenticação e assinatura.
+OAuth usa GitHub e callback `/auth/callback`, processado pelo servidor. A API valida a identidade GitHub e cria o perfil no primeiro login. Os rascunhos locais são preservados, mas sessões do login antigo exigem nova entrada. `VITE_BFF_ENABLED=false` ativa uma demonstração local sem acesso remoto; nesse modo, botões de login, execução, tutor e submissão mostram que precisam do BFF configurado.
 
 O procedimento de migrations, catálogo, ambientes, segredos, templates, orçamento e publicação está em [docs/deployment.md](docs/deployment.md). Os controles de confiança e os limites que precisam ser homologados estão em [docs/security.md](docs/security.md). As regras do produto estão em [docs/product-rules.md](docs/product-rules.md).
 

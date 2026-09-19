@@ -42,7 +42,6 @@ export const HARD_MINUTES: Readonly<Record<Difficulty, number>> = {
   hard: 90,
 };
 export const BETA_LIMITS = Object.freeze({
-  invitedUsers: 100,
   globalConcurrency: 4,
   userConcurrency: 1,
   creationIntervalMs: 1_000,
