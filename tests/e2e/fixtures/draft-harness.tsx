@@ -32,7 +32,7 @@ const gateway = createGateway({
     if (path === "/dashboard")
       return json({
         ...guestDashboard(),
-        profile: { id: "test-user", displayName: "Teste", invited: true },
+        profile: { id: "test-user", displayName: "Teste", authenticated: true },
       });
     if (path === "/attempts")
       return json({

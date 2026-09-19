@@ -82,7 +82,7 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
   return {
     getSession,
     async signIn(provider) {
-      if (provider !== "github" && provider !== "google")
+      if (provider !== "github")
         throw new GatewayError(
           "invalid_provider",
           "Escolha uma forma de acesso disponível.",

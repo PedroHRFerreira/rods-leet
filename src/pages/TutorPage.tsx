@@ -62,7 +62,7 @@ export default function TutorPage() {
     setRemaining(null);
     setError("");
     pendingKey.current = null;
-    if (!owner || !dashboard.data?.profile.invited) return;
+    if (!owner || !dashboard.data?.profile.authenticated) return;
     let active = true;
     setLoadingConversation(true);
     void Promise.all([
@@ -97,7 +97,7 @@ export default function TutorPage() {
     challengeVersionId,
     language,
     gateway,
-    dashboard.data?.profile.invited,
+    dashboard.data?.profile.authenticated,
   ]);
   async function ask(event: FormEvent) {
     event.preventDefault();

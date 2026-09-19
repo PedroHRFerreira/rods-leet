@@ -1,6 +1,6 @@
 # Regras vigentes do CodeGamer
 
-Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre documentos anteriores. O produto inicia como beta fechado gratuito para até 100 convidados. Hard é uma capacidade da segunda fase e só pode ser habilitado após homologação.
+Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre documentos anteriores. O produto é gratuito e aberto para contas GitHub com e-mail verificado. Hard é uma capacidade da segunda fase e só pode ser habilitado após homologação.
 
 ## Avaliação e progresso
 
@@ -37,7 +37,7 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 
 - Duas interações/dia por usuário, entrada até 2.048 tokens, saída até 1.024 e reserva global 8.000 neurons/dia. Cota esgotada fornece conteúdo editorial.
 - Ajuda sobre desafio ativo conta como dica; revisão após aprovação e estudo geral não reduzem XP conquistado. O tutor nunca decide veredito nem recebe segredos ou testes ocultos.
-- Manter rascunhos e soluções aceitas; rejeitadas por 30 dias e logs por sete. Backup diário criptografado fora do projeto Supabase e ensaio de restauração antes dos convites.
+- Manter rascunhos e soluções aceitas; rejeitadas por 30 dias e logs por sete. Backup diário criptografado fora do projeto Supabase e ensaio de restauração contínuo.
 - Nunca apresentar runtimes, isolamento ou serviços externos como homologados antes de executar suas verificações reais. Catálogo público pode existir antes da habilitação do executor.
 
 ## Identidade e temas

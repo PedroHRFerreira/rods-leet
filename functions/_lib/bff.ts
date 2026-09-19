@@ -273,7 +273,7 @@ export async function handleBff(
         auth_code: code,
         code_verifier: verifier,
       });
-      // Admission remains authoritative in the API. Non-invited accounts never get an application session.
+      // The API confirms the GitHub identity before an application session is created.
       const admission = await upstream(
         env,
         "/functions/v1/api/dashboard",
@@ -282,7 +282,7 @@ export async function handleBff(
         `Bearer ${tokens.access_token}`,
       );
       await readBounded(admission.body, 2 * 1024 * 1024);
-      if (!admission.ok) throw new HttpError(403, "invite_required");
+      if (!admission.ok) throw new HttpError(403, "authentication_failed");
       const next = randomToken();
       const id = await digest(next);
       await service(env, {

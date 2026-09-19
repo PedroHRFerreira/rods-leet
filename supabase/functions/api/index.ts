@@ -22,9 +22,7 @@ import { recommend } from "../_shared/recommendations.ts";
 import { executorStatus } from "../coordinator/index.ts";
 
 const errorMessages: Record<string, string> = {
-  invite_required:
-    "Este beta é fechado. Sua conta ainda não está na lista de convidados.",
-  beta_full: "As 100 vagas do beta estão preenchidas.",
+  github_account_required: "Entre com sua conta GitHub para continuar.",
   executor_unavailable: "A execução está pausada. Seu código continua salvo.",
   executor_busy:
     "A execução está ocupada no momento. Aguarde alguns instantes e tente novamente.",
@@ -581,7 +579,7 @@ export async function handler(request: Request): Promise<Response> {
         profile: {
           id: user.id,
           displayName: profile.display_name,
-          invited: true,
+          authenticated: true,
         },
         xp: profile.xp,
         ...levelForXp(profile.xp),

@@ -297,47 +297,6 @@
 .constraint-list li {
   margin-bottom: 8px;
 }
-.complexity-goal {
-  margin-top: 24px;
-  border: 1px solid var(--accent-soft);
-  border-radius: 8px;
-  background: var(--panel-hover);
-  padding: 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  border-color: var(--border);
-}
-.complexity-goal > span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--accent);
-  font-size: 12px;
-  flex-basis: 100%;
-}
-.complexity-goal > div {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 70px;
-  max-width: 100%;
-}
-.complexity-goal code {
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-.complexity-goal small {
-  font-size: 12px;
-  color: var(--arena-muted);
-}
-.complexity-goal p {
-  font-size: 12px;
-  color: var(--arena-muted);
-  line-height: 1.7;
-  margin: 0;
-  flex-basis: 100%;
-}
 .problem-footnote {
   margin-top: 22px;
   font-size: 12px;
@@ -518,6 +477,13 @@
   font-size: 13px;
   padding: 9px 13px;
   min-height: 40px;
+}
+.submission-guidance {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--arena-muted);
+  font-size: 12px;
+  line-height: 1.65;
 }
 .results-heading {
   display: flex;
@@ -1648,10 +1614,6 @@
 }
 .public-example > span {
   font-size: 12px;
-}
-.complexity-goal > span {
-  color: var(--text);
-  font-weight: 500;
 }
 .submission-result > p {
   font-size: 13px;

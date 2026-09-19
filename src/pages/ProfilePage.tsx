@@ -37,7 +37,7 @@ export default function ProfilePage() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState(() =>
     searchParams.has("authError")
-      ? "Não foi possível concluir seu login. Entre com a conta GitHub autorizada para o beta; se o acesso não for reconhecido, confira a conta usada."
+      ? "Não foi possível concluir seu login com GitHub. Tente novamente."
       : "",
   );
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function ProfilePage() {
     cleaned.delete("authError");
     setSearchParams(cleaned, { replace: true });
   }, [searchParams, setSearchParams]);
-  async function authenticate(provider: "google" | "github" | "out") {
+  async function authenticate(provider: "github" | "out") {
     setBusy(provider);
     setError("");
     try {
@@ -75,8 +75,8 @@ export default function ProfilePage() {
         />
         <div className="profile-error-actions">
           <p>
-            Entre com a conta GitHub autorizada para o beta. Se o acesso não for
-            reconhecido, confira a conta usada ou solicite um convite.
+            Entre com sua conta GitHub para salvar seu progresso e enviar
+            soluções.
           </p>
           {error && (
             <p className="arena-alert" role="alert">
@@ -124,13 +124,15 @@ export default function ProfilePage() {
             </span>
             <h2>{data.profile.displayName}</h2>
             <p>
-              {data.profile.invited
-                ? "Participante do beta Rods Leet"
+              {data.profile.authenticated
+                ? "Conta GitHub conectada"
                 : "Explore o Rods Leet"}
             </p>
             <span className="profile-access">
               <span />
-              {data.profile.invited ? "Convite confirmado" : "Modo exploração"}
+              {data.profile.authenticated
+                ? "Acesso conectado"
+                : "Modo exploração"}
             </span>
           </div>
           <div className="profile-next-level">
@@ -187,14 +189,14 @@ export default function ProfilePage() {
               </span>
               <div>
                 <h2>
-                  {data.profile.invited
-                    ? "Sua conta está conectada"
-                    : "Entre para fazer parte do beta"}
+                  {data.profile.authenticated
+                    ? "Sua conta GitHub está conectada"
+                    : "Entre com GitHub para começar"}
                 </h2>
                 <p>
-                  {data.profile.invited
+                  {data.profile.authenticated
                     ? "Seu progresso acompanha você entre dispositivos."
-                    : "O beta é gratuito e está aberto para até 100 pessoas convidadas."}
+                    : "O acesso é gratuito: entre com sua conta GitHub para salvar seu progresso."}
                 </p>
               </div>
             </div>
@@ -204,7 +206,7 @@ export default function ProfilePage() {
                 {error}
               </div>
             )}
-            {data.profile.invited ? (
+            {data.profile.authenticated ? (
               <button
                 type="button"
                 className="button button-secondary"
@@ -217,19 +219,6 @@ export default function ProfilePage() {
             ) : (
               <>
                 <div className="oauth-buttons">
-                  {import.meta.env.VITE_GOOGLE_AUTH_ENABLED === "true" && (
-                    <button
-                      type="button"
-                      className="button button-secondary"
-                      disabled={Boolean(busy)}
-                      onClick={() => void authenticate("google")}
-                    >
-                      <span className="google-mark">G</span>
-                      {busy === "google"
-                        ? "Conectando…"
-                        : "Continuar com Google"}
-                    </button>
-                  )}
                   <button
                     type="button"
                     className="button button-secondary"
@@ -242,8 +231,8 @@ export default function ProfilePage() {
                 </div>
                 <p className="account-note">
                   <LogIn size={14} />
-                  Use a conta GitHub autorizada para o beta. Você pode explorar
-                  o catálogo e escrever seu código antes de entrar.
+                  Use sua conta GitHub. Você pode explorar o catálogo e escrever
+                  seu código antes de entrar.
                 </p>
               </>
             )}

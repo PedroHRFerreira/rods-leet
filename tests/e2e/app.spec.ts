@@ -155,6 +155,15 @@ test("fundamentals challenge adapts its wording and starter code to the selected
   page,
 }) => {
   await page.goto("/desafios/sum-two-integers?language=python");
+  await expect(
+    page.getByRole("button", { name: "Submeter solução", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Submeter solução valida seu código com testes oficiais privados.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByText("Objetivo de aprendizado")).toHaveCount(0);
   await expect(page.locator(".problem-description")).toContainText(
     "Em Python, inteiros usam o tipo int",
   );
@@ -330,7 +339,7 @@ test("tutor, ranking and sign-in expose honest unavailable states", async ({
   ).toHaveValue("Como organizar uma rotina de estudos?");
   await page.getByRole("button", { name: "Enviar mensagem ao tutor" }).click();
   await expect(page.getByRole("alert")).toContainText(
-    "Entre com uma conta convidada",
+    "Entre com sua conta GitHub",
   );
   await page.goto("/ranking");
   const hero = page.locator(".ranking-hero");
@@ -352,7 +361,7 @@ test("tutor, ranking and sign-in expose honest unavailable states", async ({
   await page.goto("/perfil");
   await page.getByRole("button", { name: "Continuar com GitHub" }).click();
   await expect(page.getByRole("alert")).toContainText(
-    "O acesso por convite será liberado no beta",
+    "O login com GitHub ainda não está configurado neste ambiente",
   );
 });
 

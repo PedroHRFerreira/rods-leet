@@ -22,7 +22,7 @@ O banco de fixtures é recriado entre casos. Os resultados preservam nomes/tipos
 
 ## Pontuação, sessões e dados
 
-Todas as RPCs de mutação são exclusivas do serviço. Identidade vem do token verificado pelo Auth, e a lista de convidados limita o beta a cem perfis. RLS sem políticas de cliente e revogação de privilégios impedem escrita direta em XP, saldo ou resultado. Tokens e código não são incluídos em logs operacionais.
+Todas as RPCs de mutação são exclusivas do serviço. Identidade vem de uma conta GitHub verificada pelo Auth. RLS sem políticas de cliente e revogação de privilégios impedem escrita direta em XP, saldo ou resultado. Tokens e código não são incluídos em logs operacionais.
 
 Submissão, orçamento reservado e envio à fila são atômicos. Runtime, linguagem, versão, arquivos e assistência são snapshots. Finalização exige o token e prazo de lease vigentes; eventos de XP e conclusões possuem unicidade. Falha de infraestrutura reembolsa cota ao encerrar e não consome rejeição. Penalidade Hard é limitada ao saldo existente para impedir XP negativo. Normal não tem penalidade de XP.
 

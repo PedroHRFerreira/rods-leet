@@ -69,7 +69,7 @@ describe("public exploration and server authority", () => {
     expect(await gateway.getDashboard()).toMatchObject({
       xp: 0,
       completedCount: 0,
-      profile: { invited: false },
+      profile: { authenticated: false },
     });
     expect((await gateway.getDashboard()).recommendations[0]?.challengeId).toBe(
       "sum-two-integers",
@@ -86,23 +86,24 @@ describe("public exploration and server authority", () => {
         "same-key",
       ),
     ).rejects.toMatchObject({ code: "authentication_required" });
-    await expect(gateway.signIn("google")).rejects.toMatchObject({
+    await expect(gateway.signIn("github")).rejects.toMatchObject({
       code: "authentication_unconfigured",
     });
   });
-  test("invitation failures allow catalog exploration without inventing account progress", async () => {
+  test("authentication failures do not invent account progress", async () => {
     const { gateway } = setup(() =>
       respond(
-        { error: { code: "invite_required", message: "Convite necessário" } },
+        {
+          error: {
+            code: "github_account_required",
+            message: "Entre com sua conta GitHub",
+          },
+        },
         403,
       ),
     );
-    expect(await gateway.listChallenges()).toHaveLength(53);
-    expect((await gateway.getChallenge("find-max")).executionAvailable).toBe(
-      false,
-    );
     await expect(gateway.getDashboard()).rejects.toMatchObject({
-      code: "invite_required",
+      code: "github_account_required",
       status: 403,
     });
   });

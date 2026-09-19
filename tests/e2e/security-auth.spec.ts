@@ -12,7 +12,7 @@ test("callback failure shows a generic accessible message and cleans the marker"
   await page.goto("/perfil?authError=1&from=welcome");
   const alert = page.getByRole("alert");
   await expect(alert).toHaveText(
-    "Não foi possível concluir seu login. Entre com a conta GitHub autorizada para o beta; se o acesso não for reconhecido, confira a conta usada.",
+    "Não foi possível concluir seu login com GitHub. Tente novamente.",
   );
   await expect(page).toHaveURL(/\/perfil\?from=welcome$/);
   await expect(
@@ -38,7 +38,7 @@ test("callback errors never reflect attacker-controlled URL text", async ({
   const untrusted = "<img src=x onerror=alert(1)>secret-provider-description";
   await page.goto(`/perfil?authError=${encodeURIComponent(untrusted)}`);
   await expect(page.getByRole("alert")).toContainText(
-    "Não foi possível concluir seu login.",
+    "Não foi possível concluir seu login com GitHub.",
   );
   await expect(page.getByRole("alert")).not.toContainText(
     "secret-provider-description",

@@ -43,7 +43,7 @@ const screens = [
   {
     icon: UserRound,
     title: "Perfil",
-    text: "Entre com a conta convidada e acompanhe seu nível, suas conclusões e seu saldo de dicas.",
+    text: "Entre com sua conta GitHub e acompanhe seu nível, suas conclusões e seu saldo de dicas.",
   },
 ];
 
@@ -120,9 +120,9 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <p className="welcome-note">
-              O beta gratuito está ativo para até 100 convidados autorizados.
-              Você pode explorar o catálogo e salvar rascunhos antes de entrar;
-              avaliação remota e tutor dependem da disponibilidade do serviço.
+              O acesso é gratuito com sua conta GitHub. Você pode explorar o
+              catálogo e salvar rascunhos antes de entrar; avaliação remota e
+              tutor dependem da disponibilidade do serviço.
             </p>
           </>
         )}

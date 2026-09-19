@@ -229,7 +229,7 @@ export default function Shell({ children }: { children?: ReactNode }) {
         <div className="sidebar-bottom">
           <div className="beta-indicator">
             <span />
-            BETA FECHADO<span className="beta-capacity">100 pessoas</span>
+            ACESSO GITHUB
           </div>
           <NavLink to="/perfil" className="sidebar-profile">
             <span className="avatar">

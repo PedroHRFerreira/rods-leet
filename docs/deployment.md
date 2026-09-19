@@ -1,6 +1,6 @@
 # Operação do beta Rods Leet
 
-## Estado entregue e condições para abrir os convites
+## Estado entregue e condições operacionais
 
 O repositório contém catálogo público, API autenticada, migrações, juiz privado, fila transacional, adaptador E2B, supervisor, adaptadores de dez linguagens, política SQL PostgreSQL 18 e tutor Workers AI. A execução remota nasce **desativada**, com crédito confirmado zero e sem runtimes homologados. Não há credenciais, infraestrutura contratada, cobrança automática ou resultado de execução simulado no caminho de produção.
 
@@ -15,7 +15,7 @@ Modo Normal integra o beta. Hard permanece protegido por `private.settings.hard_
 3. Configure segredos das Edge Functions a partir de `.env.example`, sem copiar chaves privadas para variáveis `VITE_`. `APP_ORIGIN` deve corresponder exatamente ao frontend. Gere `COORDINATOR_SECRET` com ao menos 32 bytes aleatórios.
 4. Publique o catálogo com `npx tsx scripts/seed-catalog.ts`, usando `SUPABASE_URL` e a chave de serviço somente nesse processo administrativo. Apenas definições públicas são gravadas. Preserve versões publicadas: mudanças de contrato requerem outro `versionId` e a manutenção do juiz antigo enquanto houver submissões pendentes.
 5. Rode `supabase functions serve --env-file <arquivo-privado>`. As funções verificam autenticação diretamente: API valida o Bearer no Supabase Auth `/user`; coordenador usa um segredo separado. `verify_jwt=false` não significa acesso anônimo ao produto.
-6. Na configuração de Auth, habilite Google e GitHub e crie os clientes OAuth. No painel de **Google/GitHub**, use o callback mostrado pelo Supabase, normalmente `https://<project-ref>.supabase.co/auth/v1/callback`. Na lista de redirecionamentos permitidos do **Supabase**, cadastre `http://localhost:5173/auth/callback` e, depois, `https://<domínio-do-frontend>/auth/callback`; esse segundo retorno pertence à interface. O usuário só recebe perfil se o email verificado constar em `private.invites`; admissão é serializada e limitada a 100 perfis. A API revalida o convite em cada acesso. Cadastro por email não está habilitado na interface.
+6. Na configuração de Auth, habilite GitHub e crie o cliente OAuth. Use o callback mostrado pelo Supabase, normalmente `https://<project-ref>.supabase.co/auth/v1/callback`. Na lista de redirecionamentos permitidos do Supabase, cadastre `http://localhost:5173/auth/callback` e, depois, `https://<domínio-do-frontend>/auth/callback`; esse segundo retorno pertence à interface. Qualquer conta GitHub com e-mail verificado recebe um perfil na primeira autenticação. A API confirma a identidade GitHub em cada acesso. Cadastro por e-mail e Google não fazem parte da interface.
 
 As tabelas têm RLS e nenhum acesso direto de `anon`/`authenticated`. O esquema `private` não deve ser adicionado à lista de schemas expostos pelo PostgREST. As RPCs de administração/avaliação são concedidas apenas a `service_role`. O navegador nunca determina `user_id`, XP, prazo, saldo ou aceite.
 
@@ -66,7 +66,7 @@ Cron acorda o coordenador a cada minuto e limpa detalhes de logs. O consumo da f
 
 O backup em `.github/workflows/backup.yml` fica desativado até `BACKUP_ENABLED=true`. Configure um ambiente `beta-backup` com um destino S3 **já existente**, credenciais limitadas a gravação e a chave pública age. A exportação flui diretamente para criptografia, sem dump em texto claro no disco. O estado atual armazena rascunhos, arquivos aceitos e demais dados no PostgreSQL; portanto o dump inclui todos os arquivos usados. **Se Storage passar a armazenar objetos, amplie o backup para exportar os objetos antes dessa mudança entrar em produção.** Não há bucket usado pela implementação atual.
 
-Teste a restauração em uma instância Supabase local vazia com `scripts/restore-test.sh`, uma identidade age offline e `LOCAL_TEST_DATABASE_URL`. O script recusa hosts remotos. O ensaio exige um backup real e ainda não foi realizado. Não abra os convites sem evidência de restauração, OAuth, saldo, rede e homologação. Alertas operacionais devem acompanhar falhas do workflow, fila, créditos e erros da API; não há envio automático de mensagens a terceiros.
+Teste a restauração em uma instância Supabase local vazia com `scripts/restore-test.sh`, uma identidade age offline e `LOCAL_TEST_DATABASE_URL`. O script recusa hosts remotos. O ensaio exige um backup real e ainda não foi realizado. Antes de ampliar a capacidade, obtenha evidência de restauração, OAuth, saldo, rede e homologação. Alertas operacionais devem acompanhar falhas do workflow, fila, créditos e erros da API; não há envio automático de mensagens a terceiros.
 
 ## Verificação reproduzível e referências
 

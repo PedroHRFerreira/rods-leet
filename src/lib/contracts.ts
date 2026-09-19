@@ -210,7 +210,7 @@ export interface UserProfile {
   id: string;
   displayName: string;
   avatarUrl?: string;
-  invited: boolean;
+  authenticated: boolean;
 }
 export interface Dashboard {
   profile: UserProfile;
@@ -291,7 +291,7 @@ export interface AppGateway {
   saveDraft(input: DraftInput): Promise<DraftInput>;
   /** Explicit user choice only: keep local code over the latest remote draft. */
   resolveDraftConflict?(input: DraftInput): Promise<DraftInput>;
-  signIn(provider: "google" | "github"): Promise<void>;
+  signIn(provider: "github"): Promise<void>;
   signOut(): Promise<void>;
 }
 export class GatewayError extends Error {

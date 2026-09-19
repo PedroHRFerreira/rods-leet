@@ -114,7 +114,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="rl-overview-actions">
-          {!data.profile.invited && (
+          {!data.profile.authenticated && (
             <Link to="/perfil" className="button button-primary">
               <Github size={16} /> Entrar com GitHub
             </Link>

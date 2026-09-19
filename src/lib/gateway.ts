@@ -17,7 +17,7 @@ export interface GatewaySession {
 }
 export interface GatewayAuth {
   getSession(): Promise<GatewaySession | null>;
-  signIn(provider: "google" | "github"): Promise<void>;
+  signIn(provider: "github"): Promise<void>;
   signOut(): Promise<void>;
 }
 export interface GatewayOptions {
@@ -34,7 +34,7 @@ const clone = <T>(value: T): T => structuredClone(value);
 
 export function guestDashboard(): Dashboard {
   return {
-    profile: { id: "guest", displayName: "Explorador", invited: false },
+    profile: { id: "guest", displayName: "Explorador", authenticated: false },
     xp: 0,
     level: 0,
     xpIntoLevel: 0,
@@ -117,7 +117,7 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
     if (!current)
       throw new GatewayError(
         "authentication_required",
-        "Entre com uma conta convidada para usar este recurso do beta.",
+        "Entre com sua conta GitHub para usar este recurso.",
         401,
       );
     if (!live)
@@ -298,9 +298,6 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
       if (pendingSaves.get(key) === job) pendingSaves.delete(key);
     }
   }
-  const fallbackCatalogError = (error: unknown) =>
-    error instanceof GatewayError &&
-    ["invite_required", "beta_full"].includes(error.code);
   return {
     mode: live ? "live" : "demo",
     async listChallenges(filters) {
@@ -311,23 +308,18 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
           .filter(([, value]) => value !== undefined)
           .map(([key, value]) => [key, String(value)]),
       );
-      try {
-        const items = await request<PublicChallenge[]>(
-          `/challenges${query.size ? `?${query}` : ""}`,
-          "GET",
-          undefined,
-          undefined,
-          current,
-        );
-        return items.filter(
-          (c) =>
-            !filters?.mode ||
-            (c.availableModes ?? ["normal"]).includes(filters.mode),
-        );
-      } catch (error) {
-        if (fallbackCatalogError(error)) return filterCatalog(filters);
-        throw error;
-      }
+      const items = await request<PublicChallenge[]>(
+        `/challenges${query.size ? `?${query}` : ""}`,
+        "GET",
+        undefined,
+        undefined,
+        current,
+      );
+      return items.filter(
+        (c) =>
+          !filters?.mode ||
+          (c.availableModes ?? ["normal"]).includes(filters.mode),
+      );
     },
     async getChallenge(idOrSlug) {
       const publicChallenge = () => {
@@ -344,18 +336,13 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
       };
       const current = await session();
       if (!current) return publicChallenge();
-      try {
-        return await request(
-          `/challenges/${encodeURIComponent(idOrSlug)}`,
-          "GET",
-          undefined,
-          undefined,
-          current,
-        );
-      } catch (error) {
-        if (fallbackCatalogError(error)) return publicChallenge();
-        throw error;
-      }
+      return await request(
+        `/challenges/${encodeURIComponent(idOrSlug)}`,
+        "GET",
+        undefined,
+        undefined,
+        current,
+      );
     },
     async getDashboard() {
       const current = await session();
@@ -443,7 +430,7 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
       if (!live)
         throw new GatewayError(
           "authentication_unconfigured",
-          "O acesso por convite será liberado no beta. Por enquanto, você pode explorar os desafios e salvar código neste navegador.",
+          "O login com GitHub ainda não está configurado neste ambiente. Você pode explorar os desafios e salvar código neste navegador.",
           503,
         );
       try {

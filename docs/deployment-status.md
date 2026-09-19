@@ -8,8 +8,8 @@ Atualizado em 7 de setembro de 2026.
 - Funções `api` e `coordinator` publicadas. `APP_ORIGIN` corresponde ao domínio acima. Segredos administrativos ficam no Supabase, nunca em variáveis `VITE_`.
 - GitHub OAuth habilitado. Site URL: `https://rods-leet.pages.dev`; redirect permitido: `https://rods-leet.pages.dev/auth/callback`.
 - O callback do aplicativo OAuth do GitHub é `https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/callback`, sem curingas.
-- Google OAuth ainda não configurado. O botão só aparece com `VITE_GOOGLE_AUTH_ENABLED=true`, após configurar o provedor no Supabase.
-- Cadastro continua restrito a emails verificados presentes em `private.invites`; limite de 100 perfis. A conta do proprietário foi admitida e o login real foi verificado.
+- O acesso público usa somente GitHub OAuth. Google e login por e-mail não fazem parte da interface.
+- A migração `202609190001_open_github_access.sql` remove a lista de convites e o limite de perfis: qualquer conta GitHub com e-mail verificado pode criar seu perfil.
 
 ## Custos e funcionalidades pendentes
 
@@ -21,7 +21,7 @@ O Quick Tunnel é temporário e depende deste computador, do Docker, do gateway 
 
 O tutor usa resposta editorial enquanto não houver credencial de Workers AI e validação de sua cota. Isso não representa inferência de IA ativa.
 
-Backups externos e ensaio de restauração ainda precisam ser configurados antes de ampliar os convites. Consulte [operação e homologação](deployment.md) para os critérios restantes.
+Backups externos e ensaio de restauração continuam pendentes. Consulte [operação e homologação](deployment.md) para os critérios restantes.
 
 ## Verificações realizadas
 
@@ -29,7 +29,7 @@ Backups externos e ensaio de restauração ainda precisam ser configurados antes
 - Interface publicada, catálogo com 53 desafios, rota direta de desafio e editor carregando no navegador.
 - Migrações aplicadas com PGMQ, Cron e pg_net reais.
 - API sem sessão retorna 401 e permite CORS somente para a origem configurada.
-- OAuth GitHub retorna ao aplicativo e apresenta perfil real com convite confirmado.
+- OAuth GitHub retorna ao aplicativo e apresenta o perfil real da conta autenticada.
 - Configuração do banco verificada: execução e Hard desativados, crédito zero e catálogo publicado.
 - Rascunho sincronizado e preservado após recarga. O comentário usado na verificação foi removido, preservando o template inicial.
 - Após tentar Executar com executor pausado: uma conta, um rascunho, zero submissões, zero execuções cobradas, zero rejeições e zero XP, confirmados no banco.
@@ -43,6 +43,6 @@ Backups externos e ensaio de restauração ainda precisam ser configurados antes
 
 Migração `202609050003_security.sql` aplicada: armazenamento privado de sessões cifradas, transações OAuth de uso único, nonces, limites atômicos e idempotência vinculada ao conteúdo. Função `session` publicada. BFF Pages Functions usa cookies HttpOnly/Secure/SameSite, CSRF, rotas permitidas e cabeçalhos de segurança. Segredos do BFF foram autorizados e configurados no projeto Cloudflare de produção; nenhuma chave administrativa do Supabase foi enviada à Cloudflare.
 
-Ao finalizar o rollout, `BFF_REQUIRED=true` deve estar ativo na API. O caminho assinado omite o prefixo `/functions/v1`, removido pelo gateway Supabase. API também valida JWT, convite e propriedade dos dados. O registro da publicação e dos workflows deve ser conferido no commit implantado; implementação local não substitui essa verificação.
+Ao finalizar o rollout, `BFF_REQUIRED=true` deve estar ativo na API. O caminho assinado omite o prefixo `/functions/v1`, removido pelo gateway Supabase. API também valida JWT GitHub e propriedade dos dados. O registro da publicação e dos workflows deve ser conferido no commit implantado; implementação local não substitui essa verificação.
 
 ESLint e Prettier integram o workflow. O tutor remoto continua indisponível; o fallback editorial permanece ativo e não gera cobrança.

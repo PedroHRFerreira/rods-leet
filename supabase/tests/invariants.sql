@@ -5,11 +5,9 @@ declare u uuid:='00000000-0000-4000-8000-000000000001'; b uuid:='00000000-0000-4
  a public.attempts; s public.submissions; claim jsonb; before integer; h jsonb; i integer; prior_cost numeric; d date:=(now() at time zone 'UTC')::date;
 begin
  insert into auth.users(id) values(u),(b),(g);
- begin perform public.admit_user(u,'one@example.test','One');raise exception 'missing_invite_accepted'; exception when others then if sqlerrm<>'invite_required' then raise;end if;end;
- insert into private.invites(email) values('one@example.test'),('two@example.test');
  perform public.admit_user(u,'one@example.test','One');perform public.admit_user(b,'two@example.test','Two');
- perform public.admit_user(g,'not-invited@example.test','GitHub invite','idimetrix');
- if not exists(select 1 from public.profiles where id=g) then raise exception 'github_invite_not_admitted'; end if;
+ perform public.admit_user(g,'github@example.test','GitHub account','any-github-login');
+ if not exists(select 1 from public.profiles where id=g) then raise exception 'github_account_not_admitted'; end if;
  insert into public.challenge_versions(id,challenge_id,difficulty,base_xp,definition,published) values('max:v1','max','easy',100,'{}',true);
  insert into private.runtimes(language_id,runtime_version,template_id,homologated,manifest_sha256) values('javascript','22.14.0','test-template',true,repeat('a',64)) on conflict(language_id) do update set runtime_version=excluded.runtime_version,template_id=excluded.template_id,homologated=excluded.homologated,manifest_sha256=excluded.manifest_sha256;
  update private.settings set execution_enabled=true,hard_enabled=true,confirmed_credit_usd=100,cost_per_job_usd=0.02;
@@ -78,6 +76,6 @@ begin
  begin perform public.enqueue_submission(u,a.id,'max:v1','javascript','submission','[{"path":"solution.js","content":"correct"}]','budget');raise exception 'budget_overspent';exception when others then if sqlerrm<>'budget_exhausted' then raise;end if;end;
  if has_function_privilege('authenticated','public.finish_evaluation(uuid,uuid,text,jsonb,text)','EXECUTE') then raise exception 'browser_can_finalize';end if;
  if has_table_privilege('authenticated','private.assistance','SELECT') then raise exception 'private_data_exposed';end if;
- raise notice 'PASS: invitation, idempotency, hint accounting, reward uniqueness, stale fencing, Hard timer/penalty, solution practice, infrastructure retries, budget and privileges';
+ raise notice 'PASS: open GitHub admission, idempotency, hint accounting, reward uniqueness, stale fencing, Hard timer/penalty, solution practice, infrastructure retries, budget and privileges';
 end $$;
 rollback;

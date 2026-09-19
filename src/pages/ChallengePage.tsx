@@ -50,7 +50,6 @@ import type {
   SourceFile,
 } from "../lib/contracts";
 import { GatewayError } from "../lib/contracts";
-import { guestDashboard } from "../lib/gateway";
 import "../editor.css";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
@@ -98,17 +97,6 @@ export default function ChallengePage() {
       />
     );
   if (dashboard.isError) {
-    if (
-      dashboard.error instanceof GatewayError &&
-      ["invite_required", "beta_full"].includes(dashboard.error.code)
-    )
-      return (
-        <ChallengeWorkspace
-          key={`${challenge.data.id}:guest`}
-          challenge={challenge.data}
-          dashboard={guestDashboard()}
-        />
-      );
     return (
       <ErrorState
         error={dashboard.error}
@@ -148,7 +136,7 @@ function ChallengeWorkspace({
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const lastSubmissionKey = `codegamer:last-submission:v1:${dashboard.profile.id}:${challenge.id}`;
   const [submissionId, setSubmissionId] = useState<string | null>(() => {
-    if (!dashboard.profile.invited) return null;
+    if (!dashboard.profile.authenticated) return null;
     try {
       return localStorage.getItem(lastSubmissionKey);
     } catch {
@@ -177,11 +165,11 @@ function ChallengeWorkspace({
   const execution = useQuery({
     queryKey: ["execution-status"],
     queryFn: () => gateway.getExecutionStatus(),
-    enabled: dashboard.profile.invited,
+    enabled: dashboard.profile.authenticated,
     refetchInterval: 30_000,
     retry: false,
   });
-  const executionStatus = dashboard.profile.invited
+  const executionStatus = dashboard.profile.authenticated
     ? (execution.data?.status ?? "offline")
     : "offline";
   const executionMessage =
@@ -202,7 +190,7 @@ function ChallengeWorkspace({
   const completed = dashboard.completedChallengeIds.includes(challenge.id);
   const currentPercent = rewardPercent(attempt?.hintsUsed ?? 0);
   useEffect(() => {
-    if (!dashboard.profile.invited) return;
+    if (!dashboard.profile.authenticated) return;
     let active = true;
     void gateway
       .startAttempt(
@@ -218,7 +206,7 @@ function ChallengeWorkspace({
     return () => {
       active = false;
     };
-  }, [challenge.versionId, dashboard.profile.invited, gateway]);
+  }, [challenge.versionId, dashboard.profile.authenticated, gateway]);
   const official = useQuery({
     queryKey: ["submission", submissionId],
     queryFn: () => gateway.getSubmission(submissionId!),
@@ -228,7 +216,7 @@ function ChallengeWorkspace({
     retry: 2,
   });
   useEffect(() => {
-    if (!dashboard.profile.invited) return;
+    if (!dashboard.profile.authenticated) return;
     try {
       if (submissionId) {
         localStorage.setItem(lastSubmissionKey, submissionId);
@@ -241,7 +229,7 @@ function ChallengeWorkspace({
       /* Polling still works without local persistence. */
     }
   }, [
-    dashboard.profile.invited,
+    dashboard.profile.authenticated,
     lastSubmissionKey,
     submissionId,
     submissionKind,
@@ -581,26 +569,6 @@ function ChallengeWorkspace({
                     </dl>
                   </div>
                 )}
-                {challenge.complexityGoal && (
-                  <div className="complexity-goal">
-                    <span>
-                      <Sparkles size={15} />
-                      Objetivo de aprendizado
-                    </span>
-                    <div>
-                      <code>{challenge.complexityGoal.time}</code>
-                      <small>tempo</small>
-                    </div>
-                    <div>
-                      <code>{challenge.complexityGoal.space}</code>
-                      <small>memória auxiliar</small>
-                    </div>
-                    <p>
-                      A análise de crescimento é consultiva. A aprovação
-                      considera os testes e limites executados.
-                    </p>
-                  </div>
-                )}
                 <p className="problem-footnote">
                   Os testes oficiais incluem casos adicionais. Seus dados e
                   respostas esperadas permanecem privados.
@@ -776,6 +744,22 @@ function ChallengeWorkspace({
             }}
             hard={attempt?.mode === "hard"}
             busy={Boolean(busy) || inFlight}
+            executionAction={
+              busy === "run" || busy === "submit"
+                ? busy
+                : inFlight
+                  ? submissionKind
+                  : null
+            }
+            executionPhase={
+              busy === "run" || busy === "submit"
+                ? "sending"
+                : submission?.status === "running"
+                  ? "running"
+                  : submission?.status === "queued"
+                    ? "queued"
+                    : null
+            }
             executionStatus={executionStatus}
             executionMessage={executionMessage}
             onExecute={execute}
@@ -845,6 +829,8 @@ function SourceWorkspace({
   onLanguage,
   onExecute,
   busy,
+  executionAction,
+  executionPhase,
   executionStatus,
   executionMessage,
   hard,
@@ -855,6 +841,8 @@ function SourceWorkspace({
   onLanguage: (value: LanguageId) => void;
   onExecute: (files: SourceFile[], kind: "run" | "submit") => Promise<void>;
   busy: boolean;
+  executionAction: "run" | "submit" | null;
+  executionPhase: "sending" | "queued" | "running" | null;
   executionStatus: "ready" | "busy" | "offline";
   executionMessage: string;
   hard?: boolean;
@@ -1203,8 +1191,10 @@ function SourceWorkspace({
           onClick={() => void onExecute(files, "run")}
         >
           <Play size={15} />
-          {busy
-            ? "Aguarde…"
+          {executionAction === "run"
+            ? executionPhase === "sending"
+              ? "Enviando…"
+              : "Validando exemplos…"
             : executionStatus === "busy"
               ? "Executor ocupado"
               : executionStatus === "offline"
@@ -1219,9 +1209,17 @@ function SourceWorkspace({
           onClick={() => void onExecute(files, "submit")}
         >
           <Send size={15} />
-          Submeter
+          {executionAction === "submit"
+            ? executionPhase === "sending"
+              ? "Enviando…"
+              : "Validando solução…"
+            : "Submeter solução"}
         </button>
       </div>
+      <p className="submission-guidance">
+        Submeter solução valida seu código com testes oficiais privados. Use a
+        assinatura e o formato de resposta indicados para esta linguagem.
+      </p>
     </section>
   );
 }
@@ -1321,13 +1319,6 @@ function SubmissionResult({
               </span>
             )}
         </div>
-      )}
-      {submission.complexity && (
-        <p className="complexity-result">
-          {submission.complexity.label}
-          {submission.complexity.measuredRange &&
-            ` · entradas entre ${submission.complexity.measuredRange[0]} e ${submission.complexity.measuredRange[1]}`}
-        </p>
       )}
     </div>
   );
