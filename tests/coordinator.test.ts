@@ -24,7 +24,11 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 const metrics = { cpuMs: 1, wallMs: 2, peakMemoryKiB: 100 };
-function setup(kind: "run" | "submission", stdout: string) {
+function setup(
+  kind: "run" | "submission",
+  stdout: string,
+  executionMode = "program",
+) {
   vi.stubGlobal("Deno", { env: { get: () => "local" } });
   const challenge = challenges.find((c) => c.id === "sum-two-integers")!;
   mocks.rpc.mockResolvedValueOnce({
@@ -32,7 +36,7 @@ function setup(kind: "run" | "submission", stdout: string) {
       id: "submission",
       challenge_version_id: challenge.versionId,
       language_id: "javascript",
-      execution_mode: "program",
+      execution_mode: executionMode,
       kind,
       files: [{ path: "solution.js", content: "console.log(42)" }],
       stdin: "custom input",
@@ -49,6 +53,23 @@ function setup(kind: "run" | "submission", stdout: string) {
     cases: [{ termination: "ok", stdout, stderr: "", metrics }],
   });
 }
+it("runs the function with the first example and shows logs without grading its return", async () => {
+  setup("run", "debug\n42\n", "function");
+  await processOne();
+  expect(mocks.execute).toHaveBeenCalledWith(
+    expect.objectContaining({
+      executionMode: "function",
+      cases: [{ input: { a: 2, b: 3 } }],
+    }),
+  );
+  expect(mocks.rpc).toHaveBeenLastCalledWith(
+    "finish_evaluation",
+    expect.objectContaining({
+      p_verdict: "accepted",
+      p_result: expect.objectContaining({ stdout: "debug\n42\n" }),
+    }),
+  );
+});
 it("returns free program output without treating a different answer as a rejection", async () => {
   setup("run", "Hello from my program\n");
   await processOne();

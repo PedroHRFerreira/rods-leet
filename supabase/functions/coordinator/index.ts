@@ -65,6 +65,7 @@ export async function processOne(): Promise<void> {
       s.kind === "run" &&
       executionMode === "program" &&
       challenge.kind !== "sql";
+    const studyExecution = s.kind === "run" && challenge.kind !== "sql";
     let provider: CodeExecutionProvider;
     if (providerName === "local") {
       provider = new LocalExecutionProvider(
@@ -88,7 +89,10 @@ export async function processOne(): Promise<void> {
       executionMode,
       cases: freeProgram
         ? [{ input: null, stdin: s.stdin ?? "" }]
-        : evaluation.cases.map((c) => ({ input: c.input })),
+        : (studyExecution
+            ? evaluation.cases.slice(0, 1)
+            : evaluation.cases
+          ).map((c) => ({ input: c.input })),
       sqlSchema: challenge.sqlSchema,
     });
     executionRef = execution.executionRef;
@@ -102,7 +106,7 @@ export async function processOne(): Promise<void> {
       ].includes(execution.termination)
         ? execution.termination
         : "infrastructure_error";
-    } else if (freeProgram) {
+    } else if (studyExecution) {
       const actual = execution.cases[0];
       verdict =
         actual?.termination === "ok"
