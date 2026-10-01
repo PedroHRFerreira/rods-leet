@@ -6,6 +6,8 @@ Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria d
 
 ### Revisão de linguagem e usabilidade — 1 de outubro de 2026
 
+Interface publicada no commit `11a00d2`, Pages `18fd25ba-f71d-4b51-bf29-5a0074a3cf00`, e conferida no site. O endereço anterior do Quick Tunnel deixou de resolver apesar do serviço ativo; o túnel autorizado foi reiniciado e somente `LOCAL_EXECUTOR_URL` foi atualizado para `https://calcium-alloy-returning-walt.trycloudflare.com`. Token e isolamento preservados. Execução real confirmou novamente erro orientado sem XP, soma com função auxiliar e console, e aprovação do primeiro passo com 30 XP e indicação de Seu primeiro texto.
+
 As seis lições iniciais apresentam a ação e o resultado esperado antes da explicação. Os exemplos usam os valores pedidos na tarefa. A orientação curta aparece também junto ao editor; os detalhes da função ficam recolhidos nas etapas iniciais. O exemplo auxiliar da primeira soma usa os dois campos recebidos em `input`. O guia de boas-vindas aponta para o primeiro passo, as dificuldades aparecem em português e os avisos de envio explicam a redução sobre o XP inicial do desafio.
 
 Validação: 253 testes unitários, dez testes de navegador focados no guia, rascunhos, linguagem, execução e envio, lint e compilação passaram. Inspeção local em Chromium em 390, 768, 844 e 1440 px, nos temas claro e escuro: sete desafios e a trilha sem rolagem horizontal. Telas de erro e aprovação verificadas em 390 e 1440 px com APIs simuladas e XP zero no erro de execução. Capturas temporárias em `/tmp/rods-beginner-*`. Textos públicos sincronizados nos 59 desafios e API publicada mantendo a autenticação existente. Esta revisão não altera as soluções nem os critérios de aprovação já homologados.
