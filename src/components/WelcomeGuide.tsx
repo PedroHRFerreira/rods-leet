@@ -108,8 +108,8 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               <div>
                 <h3>Seu primeiro passo é simples</h3>
                 <p>
-                  Escolha um desafio Easy de lógica, leia os exemplos e escreva
-                  sua solução. Você não precisa saber tudo para começar.
+                  Comece pela trilha de lógica, em “Seu primeiro número”. O
+                  código já está pronto: você só precisa alterar um valor.
                 </p>
               </div>
             </div>
@@ -146,7 +146,7 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
             </p>
             <ol className="welcome-flow">
               <li>
-                <strong>Leia o contrato e os exemplos</strong>
+                <strong>Leia a tarefa e os exemplos</strong>
                 <p>
                   Confira o resultado esperado, as restrições e a linguagem
                   selecionada.
@@ -170,8 +170,8 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               </li>
             </ol>
             <p className="welcome-note">
-              Easy, Medium e Hard indicam a dificuldade do conteúdo. O modo de
-              jogo Normal é o inicial; o modo Hard chega numa fase posterior.
+              Fácil, Médio e Difícil indicam a dificuldade do conteúdo. O modo
+              de jogo Normal é o inicial; o modo Hard chega numa fase posterior.
             </p>
           </>
         )}
@@ -193,7 +193,7 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
                 <strong>Errou? Corrija e tente novamente</strong>
                 <span>
                   Você recebe uma explicação e pode enviar de novo. Cada envio
-                  incorreto reduz em 15% do XP base a recompensa futura desse
+                  incorreto reduz em 15% do XP inicial a recompensa desse
                   desafio, até zero. Seu XP já conquistado permanece igual.
                 </span>
               </li>

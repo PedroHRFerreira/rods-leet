@@ -21,7 +21,7 @@ test("welcome explains the product, remembers dismissal and can be reopened", as
     "Todos os testes obrigatórios precisam passar",
   );
   await guide.getByRole("button", { name: "Continuar", exact: true }).click();
-  await expect(guide).toContainText("15% do XP base");
+  await expect(guide).toContainText("15% do XP inicial");
   await expect(guide).toContainText("uma única vez");
   await guide
     .getByRole("button", { name: "Explorar desafios", exact: true })

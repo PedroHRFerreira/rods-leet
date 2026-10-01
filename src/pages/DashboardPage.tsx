@@ -164,7 +164,7 @@ export default function DashboardPage() {
                     </span>
                     <span>
                       <Zap size={14} />
-                      {next.baseXp} XP base
+                      {next.baseXp} XP inicial
                     </span>
                   </div>
                   <Link
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                     </span>
                     <div className="rl-topic-name">
                       <h3>{topic.title}</h3>
-                      <p>{items.length} desafios · Easy, Medium e Hard</p>
+                      <p>{items.length} desafios · Fácil, Médio e Difícil</p>
                     </div>
                     <div className="rl-topic-progress">
                       <span>

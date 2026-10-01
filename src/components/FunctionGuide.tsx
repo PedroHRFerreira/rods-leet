@@ -5,46 +5,50 @@ const firstSteps: Record<
   { task: string; concept: string; js: string; py: string }
 > = {
   "literal-number": {
-    task: "Troque somente o 0 do modelo por 7. Sua função deve devolver o número 7.",
+    task: "Troque o 0 por 7 na linha return.",
     concept:
       "Um número não precisa de aspas. return devolve esse valor como resposta.",
-    js: "return 6; // Devolve o número 6.",
-    py: "return 6  # Devolve o número 6.",
+    js: "return 7; // Devolve o número 7.",
+    py: "return 7  # Devolve o número 7.",
   },
   "literal-text": {
-    task: 'Preencha o texto entre as aspas com "Olá, mundo!", mantendo a mensagem exata.',
+    task: 'Escreva "Olá, mundo!" entre as aspas na linha return.',
     concept: "As aspas indicam onde um texto começa e termina.",
-    js: 'return "Bom dia"; // Devolve um texto.',
-    py: 'return "Bom dia"  # Devolve um texto.',
+    js: 'return "Olá, mundo!";',
+    py: 'return "Olá, mundo!"',
   },
   "named-value": {
-    task: "Guarde 10 em pontos. Mantenha a linha que devolve esse valor.",
+    task: "Troque o valor de pontos de 0 para 10. Mantenha return pontos.",
     concept:
       "Uma variável é um nome para um valor. = guarda o valor; return entrega a resposta.",
-    js: "const pontos = 6;\nreturn pontos;",
-    py: "pontos = 6\nreturn pontos",
+    js: "const pontos = 10;\nreturn pontos;",
+    py: "pontos = 10\nreturn pontos",
   },
   "console-and-return": {
-    task: 'Preencha mensagem com "Estou aprendendo" e execute para observar a mensagem e o retorno.',
+    task: 'Escreva "Estou aprendendo" em mensagem. Clique em Executar código para ver a saída.',
     concept: "Mostrar uma mensagem e devolver a resposta são ações diferentes.",
-    js: 'const mensagem = "Bom dia";\nconsole.log(mensagem); // Mostra para você.\nreturn mensagem; // Entrega a resposta.',
-    py: 'mensagem = "Bom dia"\nprint(mensagem)  # Mostra para você.\nreturn mensagem  # Entrega a resposta.',
+    js: 'const mensagem = "Estou aprendendo";\nconsole.log(mensagem); // Mostra a mensagem.\nreturn mensagem; // Devolve a resposta.',
+    py: 'mensagem = "Estou aprendendo"\nprint(mensagem)  # Mostra a mensagem.\nreturn mensagem  # Devolve a resposta.',
   },
   "input-echo": {
-    task: "Depois de return, use o nome input no lugar de um número fixo.",
+    task: "Troque return 0 por return input para devolver o número recebido.",
     concept:
       "input recebe o valor enviado pela aplicação. A mesma função será chamada com valores diferentes.",
     js: "// Se input recebe 6, esta linha devolve 6.\nreturn input;",
     py: "# Se input recebe 6, esta linha devolve 6.\nreturn input",
   },
   "function-double": {
-    task: "Multiplique o valor recebido por 2 na expressão depois de return.",
+    task: "Depois de return, escreva input * 2 para devolver o dobro.",
     concept:
       "A função usa a entrada para calcular uma nova resposta. * é o símbolo de multiplicação.",
-    js: "// Exemplo de uma expressão com uma entrada:\nreturn input * 3; // Triplo, não o dobro pedido.",
-    py: "# Exemplo de uma expressão com uma entrada:\nreturn input * 3  # Triplo, não o dobro pedido.",
+    js: "return input * 2;",
+    py: "return input * 2",
   },
 };
+
+export function firstStepTask(challengeId: string) {
+  return firstSteps[challengeId]?.task;
+}
 
 /** Names differ across runtimes; the starter is the learner's public contract. */
 export function modelFunctionName(
@@ -99,8 +103,8 @@ export function FunctionGuide({
             ? "Neste passo, a entrada não é usada. Preserve o parâmetro do modelo."
             : "A aplicação fornece o valor de entrada no parâmetro do modelo; não precisa pedir dados pelo teclado.";
   const helper = javascript
-    ? "const triplo = (numero) => numero * 3;\n\nexport function solve(input) {\n  return triplo(input.a);\n}"
-    : 'def triplo(numero):\n    return numero * 3\n\ndef solve(input):\n    return triplo(input["a"])';
+    ? "const soma = (a, b) => a + b;\n\nexport function solve(input) {\n  return soma(input.a, input.b);\n}"
+    : 'def soma(a, b):\n    return a + b\n\ndef solve(input):\n    return soma(input["a"], input["b"])';
   return (
     <section
       className="function-guide"
@@ -115,46 +119,46 @@ export function FunctionGuide({
           <pre className="function-guide-code">
             <code>{language === "python" ? lesson.py : lesson.js}</code>
           </pre>
-          <small>
-            Exemplo para entender a sintaxe. Use os valores pedidos na missão.
-          </small>
+          <small>Use esta orientação para completar o modelo no editor.</small>
         </div>
       )}
-      <p>
-        Mantenha a função <code>{name}</code> do modelo. A aplicação chama essa
-        função por você, uma vez para cada entrada.
-      </p>
-      {signature && (
-        <pre className="function-guide-code">
-          <code>{signature}</code>
-        </pre>
-      )}
-      <p>{inputDescription}</p>
-      {javascript && (
+      <details className="function-guide-contract" open={!lesson}>
+        <summary>Como a função do modelo funciona?</summary>
         <p>
-          <code>export</code> permite que a aplicação encontre a função. Você
-          pode usar <code>export function {name}(…)</code> ou uma função de seta
-          exportada com o mesmo nome.
+          Mantenha a função <code>{name}</code> do modelo. A aplicação chama
+          essa função por você, uma vez para cada entrada.
         </p>
-      )}
-      {language === "python" && (
+        {signature && (
+          <pre className="function-guide-code">
+            <code>{signature}</code>
+          </pre>
+        )}
+        <p>{inputDescription}</p>
+        {javascript && (
+          <p>
+            <code>export</code> permite que a aplicação encontre a função. Você
+            pode usar <code>export function {name}(…)</code> ou uma função de
+            seta exportada com o mesmo nome.
+          </p>
+        )}
+        {language === "python" && (
+          <p>
+            Preserve <code>def {name}(…):</code> e os espaços no início das
+            linhas dentro da função.
+          </p>
+        )}
         <p>
-          Preserve <code>def {name}(…):</code> e os espaços no início das linhas
-          dentro da função.
+          <code>
+            {language === "python"
+              ? "print"
+              : javascript
+                ? "console.log"
+                : "A saída de diagnóstico"}
+          </code>{" "}
+          mostra mensagens na saída. <code>return</code> devolve a resposta que
+          Submeter avalia. Você pode executar quantas vezes quiser.
         </p>
-      )}
-      <p>
-        <code>
-          {language === "python"
-            ? "print"
-            : javascript
-              ? "console.log"
-              : "A saída de diagnóstico"}
-        </code>{" "}
-        mostra mensagens em Executar. <code>return</code> devolve a resposta que
-        Submeter avalia. Você pode executar quantas vezes quiser antes de
-        submeter.
-      </p>
+      </details>
       <details className="function-guide-contract">
         <summary>Posso criar outras funções?</summary>
         <p>
@@ -166,9 +170,8 @@ export function FunctionGuide({
           (javascript || language === "python") && (
             <>
               <p>
-                Este exemplo usa somente o campo a para mostrar como chamar uma
-                função auxiliar. Para a missão, use os campos a e b recebidos e
-                devolva a soma.
+                Você pode criar soma(a, b) e chamá-la dentro de solve. Use os
+                valores recebidos em input, como neste exemplo:
               </p>
               <pre className="function-guide-code">
                 <code>{helper}</code>

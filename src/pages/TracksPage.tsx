@@ -595,10 +595,10 @@ export default function TracksPage() {
                         }
                       </strong>{" "}
                       {difficulty === "easy"
-                        ? "Easy"
+                        ? "Fácil"
                         : difficulty === "medium"
-                          ? "Medium"
-                          : "Hard"}
+                          ? "Médio"
+                          : "Difícil"}
                     </span>
                   ))}
                 </div>

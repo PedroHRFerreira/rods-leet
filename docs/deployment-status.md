@@ -4,6 +4,12 @@ Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria d
 
 ## Beta aberto publicado — 30 de setembro de 2026
 
+### Revisão de linguagem e usabilidade — 1 de outubro de 2026
+
+As seis lições iniciais apresentam a ação e o resultado esperado antes da explicação. Os exemplos usam os valores pedidos na tarefa. A orientação curta aparece também junto ao editor; os detalhes da função ficam recolhidos nas etapas iniciais. O exemplo auxiliar da primeira soma usa os dois campos recebidos em `input`. O guia de boas-vindas aponta para o primeiro passo, as dificuldades aparecem em português e os avisos de envio explicam a redução sobre o XP inicial do desafio.
+
+Validação: 253 testes unitários, dez testes de navegador focados no guia, rascunhos, linguagem, execução e envio, lint e compilação passaram. Inspeção local em Chromium em 390, 768, 844 e 1440 px, nos temas claro e escuro: sete desafios e a trilha sem rolagem horizontal. Telas de erro e aprovação verificadas em 390 e 1440 px com APIs simuladas e XP zero no erro de execução. Capturas temporárias em `/tmp/rods-beginner-*`. Textos públicos sincronizados nos 59 desafios e API publicada mantendo a autenticação existente. Esta revisão não altera as soluções nem os critérios de aprovação já homologados.
+
 ### Início guiado e validação completa
 
 O catálogo agora tem 59 desafios e a trilha de lógica tem 19 etapas. Seis passos precedem Primeira soma: número, texto, variável, console/print, entrada e transformação dentro da função. Os modelos desses passos executam sem lançar “Não implementado” e pedem uma edição pequena. JavaScript é a escolha inicial na lógica; seleção explícita, preferências e rascunhos existentes são preservados. O mapa recomenda uma sequência, mas permite visitar qualquer etapa. Avançar pelo link do próximo desafio mantém a linguagem escolhida.

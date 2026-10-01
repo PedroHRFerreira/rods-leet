@@ -49,10 +49,10 @@ export function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
     <span className={`difficulty-badge difficulty-${difficulty}`}>
       <span aria-hidden="true" />
       {difficulty === "easy"
-        ? "Easy"
+        ? "Fácil"
         : difficulty === "medium"
-          ? "Medium"
-          : "Hard"}
+          ? "Médio"
+          : "Difícil"}
     </span>
   );
 }

@@ -18,7 +18,7 @@ const lessons: Lesson[] = [
     id: "literal-number",
     title: "Seu primeiro número",
     explanation:
-      "Um programa trabalha com valores. Um número escrito diretamente no código, como 7, é um valor literal. A estrutura da função já está pronta: altere somente o 0 da linha return para devolver o número 7. return entrega a resposta da função para a aplicação. Ainda não precisa criar uma função nem chamá-la: nós fazemos isso por você.",
+      "Neste passo, sua resposta será o número 7. Troque o 0 por 7 na linha return do modelo pronto. return devolve a resposta da função. Escreva o número sem aspas e mantenha as outras linhas.",
     javascript:
       "Números ficam sem aspas. Mantenha export function solve(input) e as chaves { }. Troque return 0; por return 7;. export permite que a aplicação encontre solve; a palavra input pode ficar sem uso neste passo.",
     python:
@@ -30,7 +30,7 @@ const lessons: Lesson[] = [
         input: null,
         output: 7,
         explanation:
-          "Não há valor de entrada neste passo: null indica ausência de entrada. A resposta é o número 7, sem aspas.",
+          "Este passo não recebe uma entrada. Devolva o número 7, sem aspas.",
       },
     ],
     tags: ["primeiros passos", "números", "return"],
@@ -39,7 +39,7 @@ const lessons: Lesson[] = [
     id: "literal-text",
     title: "Seu primeiro texto",
     explanation:
-      "Você já devolveu um número. Agora devolva exatamente o texto Olá, mundo! Textos são chamados strings e precisam ficar entre aspas no código. Altere somente o texto da linha return do modelo. Preserve a maiúscula, a vírgula, o espaço, o acento e a exclamação. As aspas delimitam o texto; não fazem parte da mensagem devolvida.",
+      "Agora sua resposta será o texto Olá, mundo! Escreva essa mensagem entre as aspas na linha return. Mantenha o acento, a vírgula, o espaço e a exclamação. As aspas marcam o começo e o fim do texto; elas não fazem parte da resposta.",
     javascript:
       'Escreva o texto entre aspas simples ou duplas, por exemplo return "Oi";. Mantenha a estrutura export function solve(input) do modelo e substitua apenas o texto vazio.',
     python:
@@ -60,7 +60,7 @@ const lessons: Lesson[] = [
     id: "named-value",
     title: "Dê um nome ao valor",
     explanation:
-      "Uma variável associa um nome a um valor para podermos usá-lo depois. O modelo guarda um número em pontos e devolve esse valor na linha seguinte. Troque somente o valor inicial de pontos para 10. O sinal = faz uma atribuição: guarda o valor da direita no nome da esquerda. A avaliação considera o valor devolvido, então outras soluções que devolvam 10 também são válidas.",
+      "Uma variável dá um nome a um valor. Troque o valor de pontos de 0 para 10 no modelo. O sinal = guarda o valor nesse nome. return pontos devolve o valor guardado. Para aprovar, a função precisa devolver o número 10.",
     javascript:
       "const pontos = 0; cria o nome pontos e guarda 0 nele. return pontos; devolve o valor guardado. Troque somente 0 por 10. const serve quando não vamos atribuir outro valor ao mesmo nome.",
     python:
@@ -81,7 +81,7 @@ const lessons: Lesson[] = [
     id: "console-and-return",
     title: "Veja a mensagem e devolva a resposta",
     explanation:
-      "Mostrar uma mensagem ajuda a acompanhar o código. Essa mensagem aparece na saída de Executar, mas não substitui a resposta da função. O modelo já mostra mensagem e depois a devolve com return. Troque apenas o texto inicial por Estou aprendendo. Execute para observar a mensagem e a resposta. Submeter verifica apenas o retorno, portanto mostrar mensagens é opcional para a aprovação.",
+      "Escreva Estou aprendendo na variável mensagem. Execute o código para ver essa mensagem na saída. console.log, em JavaScript, e print, em Python, mostram mensagens. return devolve a resposta que será avaliada ao submeter. Mostrar mensagens ajuda a estudar, mas a aprovação depende da resposta devolvida.",
     javascript:
       "console.log(mensagem); mostra o valor na saída. return mensagem; entrega o valor para a avaliação. Preencha a variável mensagem com o texto pedido, mantendo ambas as linhas para observar a diferença.",
     python:
@@ -104,7 +104,7 @@ const lessons: Lesson[] = [
     id: "input-echo",
     title: "Conheça o valor de entrada",
     explanation:
-      "Até aqui sua resposta era sempre a mesma. Agora a aplicação fornece um número cada vez que chama a função. Esse número chega pelo nome input, chamado parâmetro. Devolva exatamente o número recebido: substitua o 0 depois de return pelo nome input. Não escreva um número fixo como 4, porque a mesma função será usada com outras entradas. Não precisa chamar solve nem pedir dados pelo teclado.",
+      "Agora sua função recebe um número pelo nome input. Troque return 0 por return input para devolver o número recebido. input é o parâmetro: o nome usado para acessar a entrada. A aplicação chama sua função com diferentes números. Você não precisa pedir dados pelo teclado.",
     javascript:
       'Em solve(input), input é o nome do valor recebido. return input; devolve esse valor. Escreva input sem aspas: "input" seria um texto, não o número recebido. Preserve export e o nome solve.',
     python:
@@ -132,7 +132,7 @@ const lessons: Lesson[] = [
     id: "function-double",
     title: "Transforme a entrada em uma resposta",
     explanation:
-      "Uma função reúne instruções que transformam uma entrada em uma resposta. Você conhece seu nome solve, o parâmetro input e o comando return. Agora devolva o dobro do número recebido: multiplique input por 2 usando *. Altere apenas a expressão depois de return. A aplicação chama sua função para cada exemplo e para outros números. Depois deste passo você usará dois valores recebidos para fazer a primeira soma.",
+      "Devolva o dobro do número recebido em input. Depois de return, escreva input * 2. O símbolo * multiplica: 3 * 2 resulta em 6. A aplicação chama sua função com diferentes números. No próximo desafio, você vai somar dois valores recebidos.",
     javascript:
       "O operador * multiplica: 3 * 2 vale 6. Use input * 2 depois de return. A função recebe um único número neste passo, então não use input.a. Mantenha export function solve(input); nós chamamos a função por você.",
     python:
@@ -182,8 +182,8 @@ export function firstStepChallenges(base: PublicChallenge): PublicChallenge[] {
             "A resposta deve ser um número, sem aspas.",
           ]
         : [
-            "Este passo não usa a entrada: null representa ausência de um valor.",
-            "A resposta deve ter exatamente o valor e o tipo pedidos.",
+            "Este passo não usa a entrada. Mantenha input no modelo.",
+            "Devolva a resposta pedida: números sem aspas e textos entre aspas.",
           ],
       baseXp: 30,
       availableModes: ["normal"],

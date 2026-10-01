@@ -39,7 +39,11 @@ import {
 } from "../components/ui";
 import { challengeById, topics } from "../content/catalog";
 import { LearningResourceList } from "../components/LearningResourceList";
-import { FunctionGuide, modelFunctionName } from "../components/FunctionGuide";
+import {
+  FunctionGuide,
+  firstStepTask,
+  modelFunctionName,
+} from "../components/FunctionGuide";
 import { LANGUAGES, completionReward } from "../domain/rules";
 import type {
   Attempt,
@@ -221,9 +225,9 @@ function ChallengeWorkspace({
     : "offline";
   const executionMessage =
     executionStatus === "ready"
-      ? "Execute livremente. Somente uma submissão incorreta reduz a recompensa em 15% do XP base."
+      ? "Execute quantas vezes quiser. Cada envio incorreto reduz a recompensa em 15% do XP inicial do desafio."
       : executionStatus === "busy"
-        ? "O executor está atendendo outra solução. Tente novamente em instantes; seu rascunho está salvo."
+        ? "O serviço está ocupado. Tente novamente em instantes. Seu código está salvo."
         : "A execução remota está indisponível agora. Seu rascunho continua salvo e nenhuma tentativa será consumida.";
   const actionKeys = useRef(new Map<string, string>());
   const openingKey = useRef(crypto.randomUUID());
@@ -1289,9 +1293,18 @@ function SourceWorkspace({
       {language !== "sql" && (
         <div className="program-controls">
           <p>
-            Complete <code>{modelFunctionName(challenge, language)}</code> e
-            devolva a resposta com <code>return</code>. A aplicação chama a
-            função automaticamente. Veja a orientação no enunciado.
+            {firstStepTask(challenge.id) ? (
+              <>
+                <strong>O que fazer: </strong>
+                {firstStepTask(challenge.id)}
+              </>
+            ) : (
+              <>
+                Complete <code>{modelFunctionName(challenge, language)}</code> e
+                devolva a resposta com <code>return</code>. A aplicação chama a
+                função por você.
+              </>
+            )}
           </p>
           <button
             type="button"
@@ -1391,7 +1404,7 @@ function SourceWorkspace({
             : executionStatus === "busy"
               ? "Executor ocupado"
               : executionStatus === "offline"
-                ? "Executor indisponível"
+                ? "Execução indisponível"
                 : "Executar código"}
         </button>
         <button
@@ -1454,9 +1467,9 @@ function SourceWorkspace({
         title="Submeter esta solução?"
       >
         <p>
-          Se o resultado estiver correto, você conclui este desafio e recebe até{" "}
-          {potentialXp} XP. Se estiver incorreto, pode tentar novamente com 15%
-          a menos do XP base por erro.
+          Se acertar, você conclui o desafio e recebe até {potentialXp} XP. Se
+          errar, pode tentar novamente. Cada erro reduz a recompensa em 15% do
+          XP inicial do desafio, até chegar a zero.
         </p>
         <div className="challenge-dialog-actions">
           <button
@@ -1477,9 +1490,9 @@ function SourceWorkspace({
         </div>
       </ChallengeDialog>
       <p className="submission-guidance">
-        Executar não reduz seu XP. Submeter compara o resultado com as respostas
-        esperadas. Cada resposta incorreta reduz a recompensa em 15% do XP base,
-        até zero; você pode tentar novamente.
+        Execute quantas vezes quiser, sem perder XP. Ao submeter, cada erro
+        reduz a recompensa em 15% do XP inicial do desafio, até chegar a zero.
+        Você pode tentar novamente.
       </p>
     </section>
   );
@@ -1532,17 +1545,13 @@ function SubmissionResult({
               : "Avaliação concluída"}
       </h3>
       {kind === "run" && (
-        <p>
-          Você pode editar e executar novamente quantas vezes quiser. Esta
-          execução não concede XP nem reduz sua recompensa.
-        </p>
+        <p>Edite e execute quantas vezes quiser. Executar não altera seu XP.</p>
       )}
       {submission.message && <p>{submission.message}</p>}
       {kind === "submit" && !accepted && !infrastructure && (
         <p>
-          A solução ainda não produz o resultado esperado. Confira a saída,
-          ajuste o código e tente novamente. Sua recompensa foi reduzida em 15%
-          do XP base.
+          Confira a saída, ajuste o código e tente novamente. Este erro reduziu
+          sua recompensa em 15% do XP inicial do desafio.
         </p>
       )}
       {submission.stdout !== undefined && (
@@ -1559,7 +1568,8 @@ function SubmissionResult({
       )}
       {infrastructure && (
         <p>
-          Sem penalidade ou consumo de tentativa. Você poderá tentar novamente.
+          O serviço não conseguiu avaliar seu código. Seu XP não mudou. Tente
+          novamente em alguns instantes.
         </p>
       )}
       {Boolean(submission.xpAwarded) && (

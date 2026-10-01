@@ -28,6 +28,18 @@ test("first steps explain one edit at a time and the automatic function call", a
     await expect(guide).toContainText("A aplicação chama essa função por você");
     await expect(guide).toContainText("export function solve(input)");
     await expect(guide).toContainText("Submeter avalia");
+    await expect(page.locator(".program-controls")).toContainText(
+      "O que fazer:",
+    );
+    const modelHelp = guide.locator("details").first();
+    await expect(modelHelp).not.toHaveAttribute("open", "");
+    await modelHelp
+      .getByText("Como a função do modelo funciona?", { exact: true })
+      .click();
+    await expect(modelHelp).toHaveAttribute("open", "");
+    await modelHelp
+      .getByText("Como a função do modelo funciona?", { exact: true })
+      .click();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -46,7 +58,7 @@ test("first steps explain one edit at a time and the automatic function call", a
   await guide.getByText("Posso criar outras funções?", { exact: true }).click();
   await expect(guide).toContainText("Uma função com outro nome");
   await expect(guide.locator("pre").last()).toContainText(
-    "return triplo(input.a)",
+    "return soma(input.a, input.b)",
   );
   await page.screenshot({
     path: `/tmp/rods-sum-guide-${info.project.name}.png`,

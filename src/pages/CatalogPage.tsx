@@ -174,9 +174,9 @@ export default function CatalogPage() {
             onChange={(event) => updateFilter("difficulty", event.target.value)}
           >
             <option value="">Dificuldade</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
+            <option value="easy">Fácil</option>
+            <option value="medium">Médio</option>
+            <option value="hard">Difícil</option>
           </select>
           <label className="sr-only" htmlFor="language-filter">
             Linguagem
