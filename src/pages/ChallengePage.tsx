@@ -59,6 +59,7 @@ import { GatewayError } from "../lib/contracts";
 import "../editor.css";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
+const ConceptQuizPage = lazy(() => import("./ConceptQuizPage"));
 const showJson = (value: unknown) => {
   const compact = JSON.stringify(value);
   return compact && compact.length <= 80
@@ -94,7 +95,7 @@ export default function ChallengePage() {
     retry: false,
   });
   if (challenge.isPending || dashboard.isPending)
-    return <LoadingState label="Preparando a arena…" />;
+    return <LoadingState label="Preparando o desafio…" />;
   if (challenge.isError)
     return (
       <ErrorState
@@ -108,6 +109,17 @@ export default function ChallengePage() {
         error={dashboard.error}
         retry={() => void dashboard.refetch()}
       />
+    );
+  }
+  if (challenge.data.kind === "quiz") {
+    return (
+      <Suspense fallback={<LoadingState label="Preparando a pergunta…" />}>
+        <ConceptQuizPage
+          key={`${challenge.data.id}:${dashboard.data.profile.id}`}
+          challenge={challenge.data}
+          dashboard={dashboard.data}
+        />
+      </Suspense>
     );
   }
   return (

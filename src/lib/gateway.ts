@@ -66,9 +66,9 @@ export function guestDashboard(): Dashboard {
     recentSubmissions: [],
     recommendations: [
       {
-        challengeId: "literal-number",
+        challengeId: "concept-values",
         reason:
-          "Comece do zero: altere um valor no modelo pronto e veja sua primeira resposta.",
+          "Comece do zero com perguntas simples para conhecer os conceitos antes de escrever código.",
       },
       {
         challengeId: "balanced-brackets",
@@ -92,6 +92,7 @@ function filterCatalog(filters?: ChallengeFilters): PublicChallenge[] {
           (!filters?.topicId || filters.topicId === c.topicId) &&
           (!filters?.difficulty || filters.difficulty === c.difficulty) &&
           (!filters?.languageId ||
+            c.kind === "quiz" ||
             c.languageIds.includes(filters.languageId)) &&
           (!filters?.mode || filters.mode === "normal") &&
           (!filters?.search ||
@@ -387,6 +388,8 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
     getAttempt: (id) => request(`/attempts/${encodeURIComponent(id)}`),
     run: (input, key) => request("/runs", "POST", input, key),
     submit: (input, key) => request("/submissions", "POST", input, key),
+    submitQuiz: (input, key) =>
+      request("/quiz-submissions", "POST", input, key),
     getSubmission: (id) => request(`/submissions/${encodeURIComponent(id)}`),
     requestHint: (id, key) =>
       request(`/attempts/${encodeURIComponent(id)}/hints`, "POST", {}, key),

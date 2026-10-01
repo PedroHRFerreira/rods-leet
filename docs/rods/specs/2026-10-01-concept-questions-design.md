@@ -1,0 +1,9 @@
+# Conceitos antes do código
+
+Escopo confirmado pelo usuário: perguntas guiadas de múltipla escolha, sem editor, antes dos desafios de código existentes. A trilha começa por valores, variáveis, números, texto, verdadeiro/falso, funções, parâmetros, return, export e classes. Cada etapa explica um conceito com frases curtas, apresenta três alternativas e dá uma explicação após o envio.
+
+Os dez questionários precedem os seis exercícios de edição de código já publicados. Não substituir IDs, rascunhos nem conclusões existentes. Perguntas funcionam sem executor Docker; avaliação e progresso ficam no servidor. O cliente envia somente a opção escolhida. O gabarito fica no módulo privado do avaliador. A recompensa inicial é 20 XP, uma única aprovação por pergunta, e cada erro reduz 15% dessa recompensa, conforme a regra do beta. O envio pede confirmação e o acerto permite avançar. Falhas de serviço permitem repetir a mesma solicitação sem duplicar XP nem contar dois erros.
+
+A conclusão usa as mesmas tabelas de tentativas, envios, XP e progresso. A nova operação deve validar propriedade da tentativa, versão publicada, alternativas válidas e idempotência em uma transação. Não consumir crédito do executor, criar jobs nem expor gabaritos na definição pública. As perguntas não têm linguagem selecionável, modelo de código, limites de execução, dicas consumíveis nem gabarito de programa.
+
+Entrega em seis papéis conforme parallel-delivery: domínio e regra privada independentes; interface principal, mensagens e fluxo após esses contratos; integração visual após as três interfaces. Coordenador integra API/BFF, testes, migração, publicação e verificação no site. Critérios: dez perguntas acessíveis pelo teclado, feedback de erro e sucesso, retomada de progresso, transição para código, execução de código preservada, desktop/celular e temas claro/escuro.

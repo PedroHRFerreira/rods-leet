@@ -1,8 +1,10 @@
 # Catalog validation — 30 September 2026
 
-59 challenges, three different source forms per challenge: **177/177 passed**. All public and hidden cases were executed in the isolated Docker gateway; learner code never ran on the host.
+59 code challenges, three different source forms per challenge: **177/177 passed**. All public and hidden cases were executed in the isolated Docker gateway; learner code never ran on the host.
 
 These are syntax/integration variants of the canonical algorithm, not independent correctness proofs. Sum uses three hand-authored forms; the other functions use named/arrow/helper forms, with diagnostic logging in the helper. SQL uses direct/subquery/CTE forms.
+
+The catalog now additionally includes 10 concept questionnaires. They do not run code and are not counted among these 177 runtime variants. Their answer grading and public content contract are validated separately in the questionnaire tests.
 
 ## Runtime findings
 

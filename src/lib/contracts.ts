@@ -65,6 +65,13 @@ export interface PublicChallenge {
   topicId: TopicId;
   difficulty: Difficulty;
   kind: ChallengeKind;
+  /** Guided concept question. Correct answers are kept on the server. */
+  quiz?: {
+    lesson: string[];
+    snippet?: string;
+    question: string;
+    options: { id: string; text: string }[];
+  };
   baseXp: number;
   examples: PublicExample[];
   constraints: string[];
@@ -171,6 +178,11 @@ export interface StartAttemptInput {
   challengeVersionId: string;
   mode: GameMode;
 }
+export interface QuizSubmissionInput {
+  challengeVersionId: string;
+  attemptId: string;
+  optionId: string;
+}
 export interface RunInput extends SubmissionInput {
   customTests?: SourceFile[];
   /** Free program input. Official submissions use the server's fixed cases. */
@@ -272,6 +284,10 @@ export interface AppGateway {
   run(input: RunInput, idempotencyKey: string): Promise<PublicSubmission>;
   submit(
     input: SubmissionInput,
+    idempotencyKey: string,
+  ): Promise<PublicSubmission>;
+  submitQuiz(
+    input: QuizSubmissionInput,
     idempotencyKey: string,
   ): Promise<PublicSubmission>;
   getSubmission(id: string): Promise<PublicSubmission>;

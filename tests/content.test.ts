@@ -19,13 +19,13 @@ import {
 import { sqlFixtures } from "../judge/sql.ts";
 
 describe("published beta catalog", () => {
-  test("59 distinct complete challenges, 10 topics, difficulty coverage and language templates", () => {
-    expect(challenges).toHaveLength(59);
-    expect(new Set(challenges.map((c) => c.id)).size).toBe(59);
-    expect(new Set(challenges.map((c) => c.versionId)).size).toBe(59);
+  test("69 distinct complete challenges, 10 topics, difficulty coverage and language templates", () => {
+    expect(challenges).toHaveLength(69);
+    expect(new Set(challenges.map((c) => c.id)).size).toBe(69);
+    expect(new Set(challenges.map((c) => c.versionId)).size).toBe(69);
     expect(topics).toHaveLength(10);
     for (const [topic, count] of [
-      ["logic", 19],
+      ["logic", 29],
       ["algorithms", 15],
       ["data-structures", 15],
       ["sql", 10],
@@ -38,6 +38,13 @@ describe("published beta catalog", () => {
     }
     for (const challenge of challenges) {
       expect(challenge.description.length).toBeGreaterThan(80);
+      if (challenge.kind === "quiz") {
+        expect(challenge.languageIds).toEqual([]);
+        expect(challenge.starterFilesByLanguage).toEqual({});
+        expect(challenge.functionName).toBeUndefined();
+        expect(challenge.examples).toEqual([]);
+        continue;
+      }
       expect(challenge.examples.length).toBeGreaterThan(0);
       expect(challenge.constraints.length).toBeGreaterThan(0);
       expect(challenge.executionAvailable).toBe(false);
@@ -79,7 +86,17 @@ describe("published beta catalog", () => {
         (a, b) =>
           (a.learningPath?.position ?? 0) - (b.learningPath?.position ?? 0),
       );
-    expect(logic.slice(0, 9).map((challenge) => challenge.id)).toEqual([
+    expect(logic.slice(0, 19).map((challenge) => challenge.id)).toEqual([
+      "concept-values",
+      "concept-variables",
+      "concept-numbers",
+      "concept-text",
+      "concept-booleans",
+      "concept-functions",
+      "concept-parameters",
+      "concept-return",
+      "concept-export",
+      "concept-classes",
       "literal-number",
       "literal-text",
       "named-value",
@@ -90,22 +107,56 @@ describe("published beta catalog", () => {
       "variable-bonus",
       "is-even-integer",
     ]);
-    for (const challenge of logic) {
+    for (const [index, challenge] of logic.entries()) {
       expect(challenge.estimatedMinutes).toBeGreaterThan(0);
       expect(challenge.tags?.length).toBeGreaterThan(0);
+      expect(challenge.learningPath?.position).toBe(index + 1);
+      expect(challenge.learningPath?.total).toBe(29);
+      expect(challenge.learningPath?.nextChallengeId).toBe(
+        logic[index + 1]?.id,
+      );
+      expect(challenge.prerequisites).toEqual(
+        index ? [logic[index - 1].id] : [],
+      );
+    }
+  });
+
+  test("ten concept questionnaires expose lessons and choices without answer keys or code templates", () => {
+    const quizzes = challenges.filter((challenge) => challenge.kind === "quiz");
+    expect(quizzes).toHaveLength(10);
+    for (const quiz of quizzes) {
+      expect(quiz.quiz?.lesson.length).toBeGreaterThan(0);
+      expect(quiz.quiz?.question.length).toBeGreaterThan(10);
+      expect(quiz.quiz?.options.map((option) => option.id)).toEqual([
+        "a",
+        "b",
+        "c",
+      ]);
+      expect(quiz.quiz?.options.every((option) => option.text.length > 0)).toBe(
+        true,
+      );
+      expect(quiz.starterFilesByLanguage).toEqual({});
+      expect(quiz.languageIds).toEqual([]);
+      expect(quiz.functionName).toBeUndefined();
+      const serialized = JSON.stringify(quiz);
+      expect(serialized).not.toMatch(
+        /"(?:isCorrect|correctAnswer|answer|answerId|correctOptionId)"\s*:/,
+      );
+      expect(serialized).not.toContain("hiddenInputs");
+      expect(serialized).not.toContain("canonicalSources");
     }
   });
 
   test("first lessons offer runnable edits, native editorials and an unbroken progression", () => {
-    const lessons = challenges.filter((c) =>
-      c.tags?.includes("primeiros passos"),
+    const lessons = challenges.filter(
+      (c) => c.kind !== "quiz" && c.tags?.includes("primeiros passos"),
     );
     expect(lessons).toHaveLength(6);
     for (const [index, lesson] of lessons.entries()) {
-      expect(lesson.learningPath?.position).toBe(index + 1);
-      expect(lesson.learningPath?.total).toBe(19);
+      expect(lesson.learningPath?.position).toBe(index + 11);
+      expect(lesson.learningPath?.total).toBe(29);
       expect(lesson.prerequisites).toEqual(
-        index ? [lessons[index - 1].id] : [],
+        index ? [lessons[index - 1].id] : ["concept-classes"],
       );
       expect(lesson.learningPath?.nextChallengeId).toBe(
         lessons[index + 1]?.id ?? "sum-two-integers",
@@ -139,7 +190,7 @@ describe("published beta catalog", () => {
     ).toBe(true);
   });
 
-  test.each(challenges.filter((c) => c.kind !== "sql"))(
+  test.each(challenges.filter((c) => c.kind !== "sql" && c.kind !== "quiz"))(
     "$id reference satisfies every public example and preserves input",
     (challenge) => {
       for (const example of challenge.examples) {
@@ -151,7 +202,7 @@ describe("published beta catalog", () => {
     },
   );
 
-  test.each(challenges)(
+  test.each(challenges.filter((c) => c.kind !== "quiz"))(
     "$id has private cases and an unlockable editorial",
     (challenge) => {
       const profile = getEvaluation(
@@ -176,7 +227,9 @@ describe("published beta catalog", () => {
 
   test("canonical displayed TypeScript editorials compile and solve all official cases", () => {
     // Only repository-authored reference files are compiled here. Student code is never evaluated on the host.
-    for (const challenge of challenges.filter((c) => c.kind !== "sql")) {
+    for (const challenge of challenges.filter(
+      (c) => c.kind !== "sql" && c.kind !== "quiz",
+    )) {
       const editorial = getEditorial(challenge.id, "typescript");
       const source = editorial.files.find(
         (file) => file.path === "solution.ts",

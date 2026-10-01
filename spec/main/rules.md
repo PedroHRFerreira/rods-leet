@@ -18,3 +18,4 @@
 - A trilha de lógica começa antes de funções e return: ensinar valores, variáveis, mensagens e entrada com passos pequenos e modelos guiados, mantendo uma progressão clara entre desafios.
 - Ensinar explicitamente o contrato da função fornecida antes de exigir seu uso e oferecer erros que expliquem a correção em linguagem acessível.
 - Validar pelo menos três formas de solução por desafio no executor isolado e registrar a cobertura real de linguagens e casos.
+- Esclarecimento posterior: antes dos exercícios de código, usar perguntas simples de múltipla escolha, sem editor, para ensinar valores, variáveis, tipos, funções, parâmetros, return, export e classes. Apresentar uma explicação curta e feedback após a resposta; somente depois pedir código. Para perguntas, validar todas as alternativas no avaliador; a exigência de três códigos se aplica aos exercícios de programação.

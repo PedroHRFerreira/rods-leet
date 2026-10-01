@@ -204,7 +204,7 @@ export function allowedApi(request: Request): URL {
       new RegExp(`^/(challenges|attempts|submissions)/${id}$`),
     ],
     POST: [
-      /^\/(attempts|runs|submissions)$/,
+      /^\/(attempts|runs|submissions|quiz-submissions)$/,
       /^\/tutor\/messages$/,
       /^\/tutor\/conversations\/clear$/,
       new RegExp(`^/attempts/${id}/hints$`),

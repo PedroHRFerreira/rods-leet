@@ -66,9 +66,11 @@ export default function DashboardPage() {
     catalog.data.find((item) => !completed.has(item.id)) ??
     catalog.data[0];
   const reason = guidedNext
-    ? guidedNext.learningPath?.position === 1
-      ? "Comece do zero: altere um valor no modelo pronto e veja sua primeira resposta."
-      : `Próximo passo da sua rota: ${guidedNext.title}. Cada etapa prepara você para a seguinte.`
+    ? guidedNext.kind === "quiz"
+      ? guidedNext.learningPath?.position === 1
+        ? "Comece com uma pergunta simples, sem escrever código."
+        : "Aprenda um conceito e escolha uma resposta antes de começar a programar."
+      : `Próximo passo: ${guidedNext.title}. Use o que aprendeu nas perguntas para praticar no código.`
     : (data.recommendations[0]?.reason ??
       "Um bom ponto de partida para praticar os fundamentos.");
   const name =
@@ -115,7 +117,8 @@ export default function DashboardPage() {
           <span className="rl-eyebrow">SEU ESPAÇO DE PRÁTICA</span>
           <h1>{name ? `Bom te ver, ${name}.` : "Vamos resolver o próximo."}</h1>
           <p>
-            Escolha um problema. Escreva sua solução. Aprenda com o resultado.
+            Aprenda os conceitos com perguntas simples. Depois, pratique no
+            código.
           </p>
         </div>
         <div className="rl-overview-actions">
@@ -171,16 +174,31 @@ export default function DashboardPage() {
                     to={`/desafios/${next.slug}`}
                     className="button button-primary"
                   >
-                    Abrir desafio <ArrowRight size={16} />
+                    {next.kind === "quiz"
+                      ? "Responder pergunta"
+                      : "Abrir desafio"}{" "}
+                    <ArrowRight size={16} />
                   </Link>
                 </div>
                 <div className="rl-example">
                   <div className="rl-example-bar">
                     <Terminal size={15} />
-                    <span>Exemplo público</span>
+                    <span>
+                      {next.kind === "quiz"
+                        ? "Pergunta guiada"
+                        : "Exemplo público"}
+                    </span>
                     <span className="rl-example-dot" />
                   </div>
-                  {next.examples[0] ? (
+                  {next.kind === "quiz" && next.quiz ? (
+                    <div className="rl-example-body">
+                      <span className="rl-code-label">PENSE E ESCOLHA</span>
+                      <p>{next.quiz.question}</p>
+                      <span className="muted small-text">
+                        Leia uma explicação curta e escolha uma das respostas.
+                      </span>
+                    </div>
+                  ) : next.examples[0] ? (
                     <div className="rl-example-body">
                       <span className="rl-code-label">ENTRADA</span>
                       <pre>{formatExample(next.examples[0].input)}</pre>
@@ -199,9 +217,11 @@ export default function DashboardPage() {
                     </div>
                   )}
                   <div className="rl-example-caption">
-                    {next.languageIds.length === 1
-                      ? "Ambiente específico do desafio"
-                      : `${next.languageIds.length} linguagens disponíveis`}
+                    {next.kind === "quiz"
+                      ? "Sem editor · conceitos de programação"
+                      : next.languageIds.length === 1
+                        ? "Ambiente específico do desafio"
+                        : `${next.languageIds.length} linguagens disponíveis`}
                   </div>
                 </div>
               </article>

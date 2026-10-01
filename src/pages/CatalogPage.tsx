@@ -59,7 +59,9 @@ export default function CatalogPage() {
       (item) =>
         (!topic || item.topicId === topic) &&
         (!difficulty || item.difficulty === difficulty) &&
-        (!language || item.languageIds.some((id) => id === language)) &&
+        (!language ||
+          item.kind === "quiz" ||
+          item.languageIds.some((id) => id === language)) &&
         (!status ||
           (status === "completed"
             ? completed.has(item.id)
@@ -98,7 +100,7 @@ export default function CatalogPage() {
       <PageHeading
         eyebrow="BIBLIOTECA DE PRÁTICA"
         title="Desafios"
-        description="Um problema de cada vez. Escolha o assunto, escreva sua solução e teste seu raciocínio."
+        description="Comece com perguntas simples. Depois, pratique escrevendo código."
       >
         <span className="catalog-total">
           <Code2 size={17} />
@@ -288,11 +290,13 @@ export default function CatalogPage() {
               </div>
               <DifficultyBadge difficulty={item.difficulty} />
               <span className="challenge-row-language">
-                {item.kind === "sql"
-                  ? "PostgreSQL 18"
-                  : item.kind === "project"
-                    ? "Múltiplos arquivos"
-                    : `${item.languageIds.length} linguagens`}
+                {item.kind === "quiz"
+                  ? "Pergunta • sem código"
+                  : item.kind === "sql"
+                    ? "PostgreSQL 18"
+                    : item.kind === "project"
+                      ? "Múltiplos arquivos"
+                      : `${item.languageIds.length} linguagens`}
               </span>
               <span className="challenge-row-xp">
                 {item.baseXp}
@@ -317,8 +321,9 @@ export default function CatalogPage() {
       <div className="catalog-bottom-note">
         <LightbulbIcon />
         <span>
-          Todos os testes obrigatórios precisam passar. Dicas continuam
-          disponíveis, com ajustes transparentes no XP.
+          Acerte a pergunta ou resolva o desafio de código para avançar. Você
+          pode tentar novamente; cada erro reduz a recompensa em 15% do XP
+          inicial.
         </span>
         <Link to="/perfil" className="text-link">
           Regras de progresso <ArrowRight size={14} />

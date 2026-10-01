@@ -1326,6 +1326,13 @@ textarea::placeholder {
 [data-theme="light"] .constellation-detail-path {
   background: var(--panel-hover);
 }
+[data-theme="light"]
+  .constellation-flow
+  .skill-node.selected
+  .skill-node-label
+  strong {
+  color: #f5f5f5;
+}
 .constellation-flow,
 .constellation-mini-flow {
   position: relative;
@@ -1501,6 +1508,14 @@ textarea::placeholder {
 }
 .skill-node.cluster-core {
   --node-color: #12d6a2;
+}
+.skill-node.cluster-concepts {
+  --node-color: #50b8ff;
+}
+.constellation-flow
+  .constellation-edge.cluster-concepts
+  .react-flow__edge-path {
+  stroke: #50b8ff;
 }
 .skill-node.cluster-patterns {
   --node-color: #a56aff;

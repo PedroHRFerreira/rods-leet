@@ -13,38 +13,46 @@ const logic = challenges
   );
 
 describe("learning-path states", () => {
-  test("recommends the first two guided lessons and keeps later lessons for exploration", () => {
+  test("starts with concept questions and keeps code lessons available for later exploration", () => {
     const states = learningPathStates(logic, new Set());
-    expect(states.get("literal-number")).toBe("current");
-    expect(states.get("literal-text")).toBe("available");
+    expect(states.get("concept-values")).toBe("current");
+    expect(states.get("concept-variables")).toBe("available");
+    expect(states.get("literal-number")).toBe("locked");
     expect(states.get("is-even-integer")).toBe("locked");
   });
 
   test("keeps completed nodes and advances the guided route", () => {
     const states = learningPathStates(
       logic,
-      new Set(["literal-number", "sum-two-integers", "is-even-integer"]),
+      new Set(["concept-values", "sum-two-integers", "is-even-integer"]),
     );
     expect(states.get("sum-two-integers")).toBe("completed");
-    expect(states.get("literal-text")).toBe("current");
+    expect(states.get("concept-variables")).toBe("current");
     expect(states.get("is-even-integer")).toBe("completed");
-    expect(states.get("named-value")).toBe("available");
+    expect(states.get("concept-numbers")).toBe("available");
     expect(states.get("sum-even")).toBe("locked");
   });
 });
 
 describe("guided recommendations and map geometry", () => {
-  test("starts from syntax and advances without discarding older completions", () => {
+  test("teaches concepts before code and preserves older completions", () => {
     expect(nextLearningChallenge(challenges, new Set())?.id).toBe(
-      "literal-number",
+      "concept-values",
     );
     expect(
       nextLearningChallenge(
         challenges,
-        new Set(["literal-number", "sum-two-integers"]),
+        new Set(["concept-values", "sum-two-integers"]),
       )?.id,
-    ).toBe("literal-text");
-    const introduction = logic.slice(0, 6).map((challenge) => challenge.id);
+    ).toBe("concept-variables");
+    const questions = logic
+      .filter((challenge) => challenge.kind === "quiz")
+      .map((challenge) => challenge.id);
+    expect(questions).toHaveLength(10);
+    expect(nextLearningChallenge(challenges, new Set(questions))?.id).toBe(
+      "literal-number",
+    );
+    const introduction = logic.slice(0, 16).map((challenge) => challenge.id);
     expect(nextLearningChallenge(challenges, new Set(introduction))?.id).toBe(
       "sum-two-integers",
     );
@@ -62,10 +70,10 @@ describe("guided recommendations and map geometry", () => {
     ).toBeUndefined();
   });
 
-  test("places all 19 lessons separately and connects adjacent steps without a row jump", () => {
-    expect(logic).toHaveLength(19);
+  test("places all 29 lessons separately and connects adjacent steps without a row jump", () => {
+    expect(logic).toHaveLength(29);
     const positions = learningPathPositions(logic.length);
-    expect(new Set(positions.map(([x, y]) => `${x},${y}`)).size).toBe(19);
+    expect(new Set(positions.map(([x, y]) => `${x},${y}`)).size).toBe(29);
     for (let index = 1; index < positions.length; index++) {
       const [x, y] = positions[index];
       const [previousX, previousY] = positions[index - 1];

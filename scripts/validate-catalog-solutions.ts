@@ -74,7 +74,8 @@ if (
 )
   throw new Error("Unsupported baseline language");
 for (const challenge of challenges.filter(
-  (challenge) => !selected || selected.includes(challenge.id),
+  (challenge) =>
+    challenge.kind !== "quiz" && (!selected || selected.includes(challenge.id)),
 )) {
   const variants: SolutionVariant[] = baselineLanguage
     ? [

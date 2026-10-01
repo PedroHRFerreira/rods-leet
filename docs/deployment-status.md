@@ -4,6 +4,16 @@ Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria d
 
 ## Beta aberto publicado — 30 de setembro de 2026
 
+### Perguntas antes do código — 1 de outubro de 2026
+
+A trilha de lógica começa por dez perguntas guiadas sem editor: valores, variáveis, números, textos, verdadeiro/falso, funções, parâmetros, return, export e classes. Só depois aparecem os seis modelos para pequenas edições de código. O catálogo tem 69 etapas (dez perguntas e 59 exercícios de código), com 29 etapas na lógica. IDs, rascunhos e conclusões dos exercícios existentes foram preservados.
+
+As perguntas recebem explicação curta, três alternativas, confirmação, feedback e próximo passo. A avaliação privada ocorre no servidor e grava tentativa, conclusão e XP na mesma transação, sem depender do executor ou consumir seus créditos. Cada pergunta oferece 20 XP antes das penalidades; erro reduz 15% desse valor inicial e a aprovação concede XP uma única vez. Repetir um envio após resposta perdida usa a mesma chave; novas escolhas ficam pausadas até confirmar o resultado. Gabaritos não fazem parte dos arquivos do navegador.
+
+A migração `202610010001_concept_quizzes.sql` foi primeiro exercitada em transação revertida: propriedade, opção inválida, repetição sem contar dois erros, chave reaproveitada com resposta diferente, 17 XP após um erro, aprovação única, dez conclusões com um bônus de dica e ausência de jobs com execução desativada. Depois foi aplicada e registrada pelo comando oficial de reparo, autorizado pelo usuário. A API mantém sua autenticação existente.
+
+Validação: 280 testes unitários; todos os 43 cenários de navegador aplicáveis passaram após atualizar nomes das telas e aguardar o carregamento antes de reabrir o guia mobile (um cenário exclusivo de tablet fica pulado no projeto mobile). Chromium verificou as dez perguntas em quatro larguras e dois temas (80 páginas), mais o mapa de 29 etapas, sem editor nas perguntas nem rolagem horizontal. Teclado, confirmação, erro, recuperação de envio e avanço foram inspecionados. Os 177 códigos anteriormente homologados seguem preservados; perguntas têm avaliação de suas 30 alternativas, separada da execução de código.
+
 ### Revisão de linguagem e usabilidade — 1 de outubro de 2026
 
 Interface publicada no commit `11a00d2`, Pages `18fd25ba-f71d-4b51-bf29-5a0074a3cf00`, e conferida no site. O endereço anterior do Quick Tunnel deixou de resolver apesar do serviço ativo; o túnel autorizado foi reiniciado e somente `LOCAL_EXECUTOR_URL` foi atualizado para `https://calcium-alloy-returning-walt.trycloudflare.com`. Token e isolamento preservados. Execução real confirmou novamente erro orientado sem XP, soma com função auxiliar e console, e aprovação do primeiro passo com 30 XP e indicação de Seu primeiro texto.

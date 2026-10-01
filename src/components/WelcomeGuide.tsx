@@ -22,7 +22,7 @@ const screens = [
   {
     icon: Code2,
     title: "Desafios",
-    text: "Busque por assunto, dificuldade ou linguagem e abra o editor para resolver um problema.",
+    text: "Comece com perguntas sobre os conceitos. Depois, abra os desafios de código para praticar.",
   },
   {
     icon: BookOpen,
@@ -32,7 +32,7 @@ const screens = [
   {
     icon: Trophy,
     title: "Ranking",
-    text: "Compare o XP conquistado com soluções aprovadas. As regras são iguais para todos.",
+    text: "Compare o XP conquistado nos desafios. As regras são iguais para todos.",
   },
   {
     icon: UserRound,
@@ -63,7 +63,7 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
   const titles = [
     "Bem-vindo ao Rods Leet",
     "Encontre seu caminho",
-    "Da ideia à solução",
+    "Das perguntas ao código",
     "Aprenda no seu ritmo",
   ];
   return (
@@ -100,16 +100,15 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
         {step === 0 && (
           <>
             <p className="welcome-lead">
-              Um espaço para aprender programação resolvendo problemas, uma
-              solução de cada vez.
+              Aprenda programação passo a passo, começando pelos conceitos.
             </p>
             <div className="welcome-start">
               <Code2 size={28} />
               <div>
                 <h3>Seu primeiro passo é simples</h3>
                 <p>
-                  Comece pela trilha de lógica, em “Seu primeiro número”. O
-                  código já está pronto: você só precisa alterar um valor.
+                  Comece por “O que é um valor?”. Leia uma explicação curta e
+                  escolha uma resposta. Você não precisa escrever código ainda.
                 </p>
               </div>
             </div>
@@ -141,31 +140,31 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
         {step === 2 && (
           <>
             <p className="welcome-lead">
-              No editor, experimentar e enviar para avaliação são ações
-              diferentes.
+              Primeiro, entenda os conceitos. Depois, pratique no editor.
             </p>
             <ol className="welcome-flow">
               <li>
-                <strong>Leia a tarefa e os exemplos</strong>
+                <strong>Responda às primeiras perguntas</strong>
                 <p>
-                  Confira o resultado esperado, as restrições e a linguagem
-                  selecionada.
+                  Aprenda sobre valores, variáveis, tipos e funções. Escolha uma
+                  resposta e confirme o envio. Se errar, leia a explicação e
+                  tente novamente.
                 </p>
               </li>
               <li>
-                <strong>Escreva e execute</strong>
+                <strong>Comece a praticar no código</strong>
                 <p>
-                  Execute quantas vezes quiser para ver o resultado do seu
-                  código, incluindo console.log e print. Executar não concede
-                  XP.
+                  Depois das perguntas, use o modelo pronto para fazer pequenas
+                  alterações. Execute quantas vezes quiser para ver o resultado.
+                  Executar não concede XP.
                 </p>
               </li>
               <li>
                 <strong>Submeta sua solução</strong>
                 <p>
                   “Submeter” pede sua confirmação antes de avaliar o resultado.
-                  Todos os testes obrigatórios precisam passar. Se acertar, você
-                  ganha XP e avança para o próximo desafio.
+                  A aplicação verifica sua resposta. Se acertar, você ganha XP e
+                  segue para o próximo desafio.
                 </p>
               </li>
             </ol>
@@ -178,15 +177,15 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
         {step === 3 && (
           <>
             <p className="welcome-lead">
-              Progresso vem da prática. Experimente antes de confirmar o envio.
+              Leia com calma e tente novamente quando precisar.
             </p>
             <ul className="welcome-rules">
               <li>
                 <strong>XP por conquista</strong>
                 <span>
                   A primeira aprovação do desafio concede XP uma única vez.
-                  Depois de aprovar, você ainda pode executar seu código para
-                  estudar.
+                  Depois de concluir, você pode rever as perguntas e continuar
+                  praticando no editor.
                 </span>
               </li>
               <li>
@@ -200,16 +199,17 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               <li>
                 <strong>Dicas quando precisar</strong>
                 <span>
-                  Você começa com uma dica e ganha outra a cada dez desafios
-                  distintos concluídos. A recompensa fica em 100% sem dicas, 95%
-                  com uma e 85% com duas ou mais.
+                  Nos desafios de código, você começa com uma dica e ganha outra
+                  a cada dez desafios distintos concluídos. A recompensa fica em
+                  100% sem dicas, 95% com uma e 85% com duas ou mais.
                 </span>
               </li>
               <li>
                 <strong>Gabarito para estudar</strong>
                 <span>
-                  Disponível após aprovação ou três submissões incorretas. Abrir
-                  antes de resolver transforma o desafio em prática sem XP.
+                  Nos desafios de código, disponível após aprovação ou três
+                  submissões incorretas. Abrir antes de resolver transforma o
+                  desafio em prática sem XP.
                 </span>
               </li>
             </ul>
@@ -247,11 +247,11 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
             if (step < 3) setStep(step + 1);
             else {
               onClose();
-              navigate("/desafios?topic=logic&difficulty=easy");
+              navigate("/desafios/concept-values");
             }
           }}
         >
-          {step < 3 ? "Continuar" : "Explorar desafios"}
+          {step < 3 ? "Continuar" : "Começar pelas perguntas"}
           <ArrowRight size={16} />
         </button>
       </footer>

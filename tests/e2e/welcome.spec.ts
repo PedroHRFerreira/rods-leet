@@ -17,18 +17,19 @@ test("welcome explains the product, remembers dismissal and can be reopened", as
     guide.getByRole("heading", { name: "Perfil", exact: true }),
   ).toBeVisible();
   await guide.getByRole("button", { name: "Continuar", exact: true }).click();
-  await expect(guide).toContainText(
-    "Todos os testes obrigatórios precisam passar",
-  );
+  await expect(guide).toContainText("A aplicação verifica sua resposta");
   await guide.getByRole("button", { name: "Continuar", exact: true }).click();
   await expect(guide).toContainText("15% do XP inicial");
   await expect(guide).toContainText("uma única vez");
   await guide
-    .getByRole("button", { name: "Explorar desafios", exact: true })
+    .getByRole("button", { name: "Começar pelas perguntas", exact: true })
     .click();
-  await expect(page).toHaveURL(/topic=logic&difficulty=easy/);
+  await expect(page).toHaveURL(/desafios\/concept-values$/);
   await page.reload();
   await expect(guide).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "O que é um valor?", exact: true }),
+  ).toBeVisible();
   const menu = page.getByRole("button", { name: "Abrir navegação" });
   if (await menu.isVisible()) await menu.click();
   await page.getByRole("button", { name: "Como funciona" }).click();

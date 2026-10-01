@@ -14,6 +14,7 @@ import {
 } from "./templates.ts";
 import { learningResourcesFor } from "./learning-resources.ts";
 import { firstStepChallenges } from "./first-steps.ts";
+import { conceptChallenges } from "./concept-lessons.ts";
 
 export type { PublicChallenge, Topic } from "./types.ts";
 
@@ -349,7 +350,7 @@ const logic: PublicChallenge[] = [
 
 // The sequence guides newcomers without blocking free navigation in the
 // catalog. Prerequisites remain informational during the beta.
-logic.unshift(...firstStepChallenges(logic[0]));
+logic.unshift(...conceptChallenges(logic[0]), ...firstStepChallenges(logic[0]));
 for (let index = 0; index < logic.length; index++) {
   const previous = logic[index - 1];
   const next = logic[index + 1];

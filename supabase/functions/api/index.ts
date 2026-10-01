@@ -20,6 +20,7 @@ import {
 import { WorkersAiTutor } from "../_shared/tutor.ts";
 import { recommend } from "../_shared/recommendations.ts";
 import { executorStatus } from "../coordinator/index.ts";
+import { evaluateConceptQuiz } from "../../../judge/concept-quiz.ts";
 
 const errorMessages: Record<string, string> = {
   github_account_required: "Entre com sua conta GitHub para continuar.",
@@ -42,6 +43,8 @@ const errorMessages: Record<string, string> = {
   hard_unavailable: "O modo Hard chega na segunda fase.",
   draft_conflict:
     "Este rascunho foi atualizado em outra aba. Recarregue antes de salvar.",
+  invalid_option: "Escolha uma das respostas desta pergunta.",
+  quiz_required: "Esta ação está disponível apenas para perguntas.",
 };
 
 export async function handler(request: Request): Promise<Response> {
@@ -227,6 +230,7 @@ export async function handler(request: Request): Promise<Response> {
           (!url.searchParams.get("difficulty") ||
             c.difficulty === url.searchParams.get("difficulty")) &&
           (!url.searchParams.get("languageId") ||
+            c.kind === "quiz" ||
             c.languageIds.includes(
               url.searchParams.get("languageId") as never,
             )) &&
@@ -263,6 +267,34 @@ export async function handler(request: Request): Promise<Response> {
     }
     if (request.method === "GET" && /^\/attempts\/[^/]+$/.test(path)) {
       return json(await attemptResponse(await ownAttempt(path.split("/")[2])));
+    }
+    if (request.method === "POST" && path === "/quiz-submissions") {
+      const body = await readJson(request, 2000);
+      const c = challenge(body.challengeVersionId);
+      if (c.kind !== "quiz" || !c.quiz) throw new ApiError("quiz_required");
+      const optionId = stringValue(body.optionId, "option", 64);
+      if (!c.quiz.options.some((option) => option.id === optionId))
+        throw new ApiError("invalid_option");
+      const evaluation = evaluateConceptQuiz(c.id, optionId);
+      const s = await db.rpc<Row>("submit_quiz", {
+        p_user: user.id,
+        p_attempt: stringValue(body.attemptId, "attempt"),
+        p_version: c.versionId,
+        p_option: optionId,
+        p_verdict: evaluation.verdict,
+        p_result: { message: evaluation.message },
+        p_key: idempotencyKey(request),
+      });
+      const xp = await db.rows<Row>(
+        "xp_events",
+        `submission_id=eq.${s.id}&user_id=eq.${user.id}&select=amount`,
+      );
+      return json(
+        presentSubmission(
+          s,
+          xp.reduce((sum, row) => sum + row.amount, 0),
+        ),
+      );
     }
     if (
       request.method === "POST" &&

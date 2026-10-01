@@ -40,7 +40,8 @@ import {
 } from "../components/ui";
 import type { PublicChallenge } from "../lib/contracts";
 
-type ConstellationCluster = "core" | "patterns" | "reasoning" | "mastery";
+type ConstellationCluster =
+  "concepts" | "core" | "patterns" | "reasoning" | "mastery";
 
 type ConstellationNodeData = {
   id: string;
@@ -112,6 +113,16 @@ function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
         <span className="skill-node-glyph" aria-hidden="true">
           {[
             "7",
+            "=",
+            "+",
+            "Aa",
+            "?",
+            "ƒ",
+            "→",
+            "↩",
+            "↗",
+            "{}",
+            "7",
             "Aa",
             "=",
             "›_",
@@ -152,13 +163,15 @@ function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
 
 const constellationNodeTypes = { skill: SkillNode };
 function clusterFor(position: number): ConstellationCluster {
-  if (position < 6) return "core";
-  if (position < 13) return "patterns";
-  if (position < 17) return "reasoning";
+  if (position < 10) return "concepts";
+  if (position < 16) return "core";
+  if (position < 23) return "patterns";
+  if (position < 27) return "reasoning";
   return "mastery";
 }
 
 function clusterColor(cluster: ConstellationCluster) {
+  if (cluster === "concepts") return "#50b8ff";
   if (cluster === "core") return "#12d6a2";
   if (cluster === "patterns") return "#a56aff";
   if (cluster === "reasoning") return "#ffb300";
@@ -258,10 +271,10 @@ function LogicLearningMap({
       <header className="constellation-heading">
         <div>
           <span className="eyebrow">ROTA GUIADA · LÓGICA</span>
-          <h2 id="logic-map-title">Constelação de fundamentos</h2>
+          <h2 id="logic-map-title">Do primeiro conceito ao código</h2>
           <p>
-            Navegue pelas habilidades que formam sua base. A rota recomenda o
-            próximo passo sem fechar o restante do catálogo.
+            Comece com dez perguntas sobre programação. Depois, faça pequenas
+            alterações no código e avance para os problemas de lógica.
           </p>
         </div>
         <div className="constellation-legend" aria-label="Legenda do mapa">
@@ -330,8 +343,8 @@ function LogicLearningMap({
             {stateLabel(selectedState)}
           </div>
           <span className="logic-detail-index">
-            NÓ {String(selectedIndex + 1).padStart(2, "0")} ·{" "}
-            {selected.difficulty}
+            ETAPA {String(selectedIndex + 1).padStart(2, "0")} ·{" "}
+            {selected.kind === "quiz" ? "Pergunta guiada" : "Prática no código"}
           </span>
           <h3>{selected.title}</h3>
           <p>{selected.description}</p>
@@ -375,8 +388,12 @@ function LogicLearningMap({
             to={`/desafios/${selected.slug}`}
           >
             {selectedState === "completed"
-              ? "Praticar novamente"
-              : "Abrir desafio"}{" "}
+              ? selected.kind === "quiz"
+                ? "Rever pergunta"
+                : "Praticar novamente"
+              : selected.kind === "quiz"
+                ? "Responder pergunta"
+                : "Abrir desafio"}{" "}
             <ArrowRight size={16} />
           </Link>
         </article>
@@ -442,7 +459,10 @@ function LogicLearningMap({
         >
           <div>
             <span className="logic-detail-index">
-              NÓ {String(selectedIndex + 1).padStart(2, "0")}
+              ETAPA {String(selectedIndex + 1).padStart(2, "0")} ·{" "}
+              {selected.kind === "quiz"
+                ? "Pergunta guiada"
+                : "Prática no código"}
             </span>
             <h3>{selected.title}</h3>
             <p>{selected.description}</p>
@@ -466,8 +486,12 @@ function LogicLearningMap({
             to={`/desafios/${selected.slug}`}
           >
             {selectedState === "completed"
-              ? "Praticar novamente"
-              : "Abrir desafio"}
+              ? selected.kind === "quiz"
+                ? "Rever pergunta"
+                : "Praticar novamente"
+              : selected.kind === "quiz"
+                ? "Responder pergunta"
+                : "Abrir desafio"}
             <ArrowRight size={16} />
           </Link>
         </article>
@@ -525,14 +549,14 @@ export default function TracksPage() {
         <span className="tracks-intro-index">01 →</span>
         <div>
           <span className="eyebrow">POR ONDE COMEÇAR</span>
-          <h2>Uma base sólida faz a diferença.</h2>
+          <h2>Aprenda os conceitos antes de escrever código.</h2>
           <p>
-            Comece com valores, variáveis e mensagens. O modelo pronto ensina
-            entrada, função e retorno antes dos desafios de lógica. Depois,
-            explore algoritmos, estruturas de dados e SQL.
+            Responda perguntas simples sobre valores, variáveis, tipos, funções
+            e classes. Depois, pratique com modelos prontos e avance para
+            algoritmos, estruturas de dados e SQL.
           </p>
         </div>
-        <Link to="/desafios/literal-number" className="button button-secondary">
+        <Link to="/desafios/concept-values" className="button button-secondary">
           Começar do zero <ArrowRight size={17} />
         </Link>
       </section>

@@ -3,9 +3,13 @@ import { challenges } from "./catalog";
 
 describe("materiais públicos de aprendizado", () => {
   test("cada desafio tem uma referência conceitual oficial", () => {
-    expect(challenges).toHaveLength(59);
+    expect(challenges).toHaveLength(69);
 
     for (const challenge of challenges) {
+      if (challenge.kind === "quiz") {
+        expect(challenge.quiz?.lesson.length).toBeGreaterThan(0);
+        continue;
+      }
       const concepts = challenge.learningResources.filter(
         (resource) => resource.category === "concept",
       );

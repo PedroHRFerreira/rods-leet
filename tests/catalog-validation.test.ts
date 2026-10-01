@@ -4,8 +4,10 @@ import { getEvaluation } from "../judge/index";
 import { solutionVariants } from "../judge/validation/solutions";
 
 describe("isolated catalog validation fixture coverage", () => {
-  it("covers every catalog challenge with three distinct source variants and public plus hidden cases", () => {
-    for (const challenge of challenges) {
+  it("covers all 59 code challenges with three distinct source variants and public plus hidden cases", () => {
+    const code = challenges.filter((challenge) => challenge.kind !== "quiz");
+    expect(code).toHaveLength(59);
+    for (const challenge of code) {
       const variants = solutionVariants(challenge);
       expect(variants, challenge.id).toHaveLength(3);
       expect(

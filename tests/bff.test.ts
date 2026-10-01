@@ -168,6 +168,7 @@ describe("BFF security boundary", () => {
     ["POST", "/api/attempts"],
     ["POST", "/api/runs"],
     ["POST", "/api/submissions"],
+    ["POST", "/api/quiz-submissions"],
     ["POST", "/api/attempts/00000000-0000-0000-0000-000000000001/hints"],
     ["POST", "/api/challenges/find-max/solution-access"],
     ["POST", "/api/tutor/messages"],
