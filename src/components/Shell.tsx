@@ -74,7 +74,7 @@ export default function Shell({ children }: { children?: ReactNode }) {
     location.pathname === "/perfil"
       ? "Meu perfil"
       : location.pathname.startsWith("/desafios/")
-        ? "Editor"
+        ? "Desafio"
         : (navigation.find((item) => item.to === location.pathname)?.label ??
           "Rods Leet");
   const name = dashboard.data?.profile.displayName || "Visitante";
