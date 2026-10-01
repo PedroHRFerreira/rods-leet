@@ -2,7 +2,7 @@
 
 ## Atualização após as correções solicitadas
 
-As observações do ambiente publicado abaixo são históricas. As seguintes mudanças estão implementadas e verificadas localmente, ainda sem implantação:
+As observações da auditoria inicial abaixo são históricas. As seguintes mudanças estão implementadas, verificadas localmente e publicadas:
 
 - Acesso aberto com identidade anônima automática e sessão de 30 dias, mantendo cookies opacos, tokens cifrados, CSRF e isolamento dos dados.
 - Tutor retirado da navegação, dos atalhos e da rota acessível.
@@ -15,7 +15,9 @@ Verificações da atualização: 224 testes Vitest; 33 testes Playwright aprovad
 
 Inspeção visual: 12 rotas em 320, 390, 768 e 1440 pixels, nos temas claro e escuro (96 combinações), sem erros de JavaScript nem transbordamento horizontal. Capturas em `/tmp/rods-beta-visual`, revisão adicional dos resultados, confirmação e aprovação em `/tmp/rods-free-*.png`. Revisadas imagens de painel, perfil, fundamentos, SQL, ranking, catálogo, trilhas e estados de recuperação. A exploração local apresenta execução indisponível de forma explícita.
 
-Para liberar o beta: aplicar `202609300001_public_beta.sql`, habilitar Anonymous Sign-Ins no Supabase, publicar as funções compatíveis, atualizar a imagem e a conexão do executor, sincronizar o catálogo de 53 desafios e validar o fluxo completo no endereço publicado, inclusive visitante novo, execução, rejeição/repetição, aprovação e XP único. O teste local não fecha esses passos.
+Publicação concluída: código `a89487a` na branch `main`, migração aplicada, Anonymous Sign-Ins habilitado, funções publicadas e catálogo com 53 desafios. API preserva JWT obrigatório. Executor e Quick Tunnel autorizado ativos, imagem homologada atualizada. No site, visitante novo recebeu identidade anônima; executou código com saída `5`; errou uma submissão; acertou a seguinte com 85 XP; continuou praticando com saída `7` e zero XP adicional. A confirmação de submissão foi verificada no navegador e cancelada na conta GitHub existente, que preservou seus 100 XP. O Cron remoto processou os trabalhos. Consulte [estado da implantação](deployment-status.md) para evidências e limites operacionais.
+
+O beta pode receber os primeiros testes enquanto este computador e o túnel estiverem ativos. A disponibilidade permanente, backups e restauração continuam pendentes. Reiniciar o túnel pode exigir atualizar seu endereço no coordenador.
 
 RODS: o assistente interativo gerou o plano de personalização, revisado e aprovado pelo usuário. A geração da proposta de arquivos terminou por timeout; uma nova execução não retornou pergunta nem plano válidos. A geração personalizada ainda não está concluída. O scaffolding de oito skills permanece instalado. O plano está em [revisão das skills](rods/specs/2026-09-30-skills-plan-review.md).
 

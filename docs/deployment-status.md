@@ -2,9 +2,17 @@
 
 Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria de 30 de setembro e a preparação local do beta aberto, consulte [validação do beta](beta-readiness-2026-09-30.md) e [escopo da atualização](rods/specs/2026-09-30-open-beta-design.md). A configuração histórica abaixo não comprova disponibilidade atual.
 
-## Atualização do beta aberto — ainda não implantada
+## Beta aberto publicado — 30 de setembro de 2026
 
-O código local agora prevê acesso anônimo, tutor oculto, execução de programas com stdout/stderr, confirmação de submissão e redução de 15% do XP por erro. A implantação requer a migração `202609300001_public_beta.sql`, Anonymous Sign-Ins habilitado no Supabase, funções BFF/API/sessão/coordenador compatíveis, nova imagem de executor e sincronização do catálogo pelo seed. Esses passos remotos ainda não foram executados nesta atualização.
+Código enviado à branch `main` no commit `a89487a`; publicação Pages `2853bdd8-4a2e-4c38-9352-cff54892d647`. Migração `202609300001_public_beta.sql` aplicada; Anonymous Sign-Ins habilitado, preservando os demais parâmetros remotos. API, sessão e coordenador publicados. API mantém `verify_jwt=true`; acesso anônimo usa uma identidade válida, sem dispensar autenticação interna.
+
+Catálogo sincronizado com 53 desafios. Imagem Docker local atualizada para a versão homologada de programas livres, digest `sha256:33f1992a606a5943e906d2cffc6585e0189242c8c02204bc0383fd7f8857c2d1`. Gateway e Quick Tunnel supervisionados como serviços de usuário `rods-leet-executor` e `rods-leet-tunnel`, com reinício automático. O túnel público foi explicitamente autorizado e exige o token privado do gateway; Docker não é exposto.
+
+Teste real em sessão anônima nova: execução de `print(2+3)` retornou `5`; solução incorreta foi rejeitada sem XP; correção passou os casos oficiais e concedeu 85 XP; após aprovar, uma execução de estudo retornou `7` sem novo XP. O Cron existente processou os trabalhos. No navegador publicado, tutor ausente, primeiro fundamento disponível, editor com execução habilitada e confirmação de submissão funcionando. Conta GitHub anterior manteve 100 XP e uma conclusão.
+
+**Limite operacional:** execução depende deste computador, Docker e serviços ativos. Os serviços atuais são transitórios da sessão de usuário; não garantem retorno após reiniciar o computador. Reiniciar o Quick Tunnel pode trocar seu endereço: atualizar `LOCAL_EXECUTOR_URL` no arquivo privado `.env.supabase-executor` e nos secrets do coordenador. Não há hospedagem permanente do executor nem custo de nuvem contratado. Hard continua desativado.
+
+O plano personalizado do RODS foi aprovado, mas a geração de arquivos pelo CLI ainda falhou por timeout/resposta inválida. As oito skills de scaffolding estão versionadas; a personalização de onze skills permanece pendente.
 
 - Frontend: https://rods-leet.pages.dev, Cloudflare Pages, repositório privado `PedroHRFerreira/rods-leet`, branch `main`.
 - Build: Node 22, `npm run build`, saída `dist`. Novos commits em `main` publicam automaticamente.
