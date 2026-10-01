@@ -5,27 +5,27 @@ const firstSteps: Record<
   { task: string; concept: string; js: string; py: string }
 > = {
   "literal-number": {
-    task: "Troque somente o 0 do modelo pelo número pedido.",
+    task: "Troque somente o 0 do modelo por 7. Sua função deve devolver o número 7.",
     concept:
       "Um número não precisa de aspas. return devolve esse valor como resposta.",
     js: "return 6; // Devolve o número 6.",
     py: "return 6  # Devolve o número 6.",
   },
   "literal-text": {
-    task: "Preencha o texto entre as aspas, mantendo a mensagem exata.",
+    task: 'Preencha o texto entre as aspas com "Olá, mundo!", mantendo a mensagem exata.',
     concept: "As aspas indicam onde um texto começa e termina.",
     js: 'return "Bom dia"; // Devolve um texto.',
     py: 'return "Bom dia"  # Devolve um texto.',
   },
   "named-value": {
-    task: "Altere o valor guardado em pontos. Mantenha a linha que o devolve.",
+    task: "Guarde 10 em pontos. Mantenha a linha que devolve esse valor.",
     concept:
       "Uma variável é um nome para um valor. = guarda o valor; return entrega a resposta.",
     js: "const pontos = 6;\nreturn pontos;",
     py: "pontos = 6\nreturn pontos",
   },
   "console-and-return": {
-    task: "Preencha mensagem e execute para observar as duas linhas.",
+    task: 'Preencha mensagem com "Estou aprendendo" e execute para observar a mensagem e o retorno.',
     concept: "Mostrar uma mensagem e devolver a resposta são ações diferentes.",
     js: 'const mensagem = "Bom dia";\nconsole.log(mensagem); // Mostra para você.\nreturn mensagem; // Entrega a resposta.',
     py: 'mensagem = "Bom dia"\nprint(mensagem)  # Mostra para você.\nreturn mensagem  # Entrega a resposta.',
