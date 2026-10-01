@@ -1,6 +1,6 @@
 # Plano do `rods init` — revisão antes da geração
 
-Estado: plano revisado e aprovado pelo usuário, com os ajustes abaixo enviados ao assistente. A geração da proposta terminou com `Planning CLI timed out`; uma nova execução terminou com `Planning CLI did not provide a question or plan`. Nenhuma skill personalizada foi gerada por este plano ainda. Este documento organiza a proposta apresentada pelo próprio assistente para revisão e retomada.
+Estado em 1 de outubro: o plano aprovado foi retomado pelo `rods init` e a proposta de onze skills foi gerada e revisada. As quatro skills preservadas foram conferidas byte a byte; os caminhos e comandos citados existem. A aplicação aguarda a escolha final do usuário no assistente. A [prévia completa dos arquivos](2026-10-01-skills-proposal-review.md) registra os diffs e o contorno temporário das falhas de resposta e timeout do CLI. Este documento preserva o escopo aprovado e a revisão inicial.
 
 ## Arquivos previstos
 
@@ -35,4 +35,4 @@ A geração deve mostrar os diffs antes de aplicar os arquivos. O plano não aut
 
 Antes de aceitar, corrigir a referência histórica do assistente para a migração real `supabase/migrations/202609300001_public_beta.sql`. Remover do plano os trechos que tratam o projeto como uma cópia somente leitura: a geração será no workspace atual, seguida da revisão das diferenças. Manter a preservação dos arquivos personalizados.
 
-O usuário aprovou estes ajustes. A próxima etapa é retomar a geração pelo assistente e revisar os diffs concretos antes de aplicar. A opção de pular continua sendo “ignorar planejamento do rods”.
+O usuário aprovou estes ajustes. A geração e a revisão dos diffs concretos foram concluídas em 1 de outubro. A próxima etapa é confirmar a aplicação no assistente, conferir a preservação dos arquivos e o diagnóstico do adaptador. A opção de pular continua sendo “ignorar planejamento do rods”.

@@ -10,6 +10,8 @@ Atualizadas somente as dependências indiretas de produção `fast-uri` de 3.1.7
 
 README, exemplos de ambiente e roteiro de operação agora descrevem o catálogo de 69 etapas, as perguntas antes do código, o acesso anônimo, o BFF no mesmo domínio e o contrato de função. O roteiro diferencia o executor Docker ativo das opções futuras de E2B e tutor. Executor e túnel foram verificados ativos; disponibilidade permanente e backup/restauração seguem sem comprovação nova.
 
+Correções publicadas em `7e2d0ac`, Pages `cd818373-a906-4339-ba34-fb0721a4d549`. A proposta personalizada do RODS foi finalmente gerada e revisada, mantendo as quatro skills preservadas byte a byte. A aplicação aguarda a escolha final no assistente; veja a [prévia dos arquivos](rods/specs/2026-10-01-skills-proposal-review.md). Para a geração foram usados somente um adaptador temporário de resposta estruturada e uma cópia temporária do CLI com prazo ampliado; o CLI instalado e a dependência RODS do projeto foram preservados.
+
 ### Perguntas antes do código — 1 de outubro de 2026
 
 A trilha de lógica começa por dez perguntas guiadas sem editor: valores, variáveis, números, textos, verdadeiro/falso, funções, parâmetros, return, export e classes. Só depois aparecem os seis modelos para pequenas edições de código. O catálogo tem 69 etapas (dez perguntas e 59 exercícios de código), com 29 etapas na lógica. IDs, rascunhos e conclusões dos exercícios existentes foram preservados.
