@@ -4,6 +4,16 @@ Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria d
 
 ## Beta aberto publicado — 30 de setembro de 2026
 
+### Confirmação, reações e progresso — 1 de outubro de 2026
+
+Primeira entrega da auditoria de experiência publicada em `3de1888`, Pages `e5329402-02bf-4469-95b6-52c4c2397511`. A opção de dispensar confirmação é persistida neste navegador por identidade e por tipo (pergunta/código), somente ao confirmar; pode ser reativada no perfil. Resultados oficiais recebem uma reação breve, com movimento reduzido respeitado e sem repetição após reload. O progresso mostra etapas realmente concluídas e restantes do módulo ou trilha, separado da posição editorial. Avaliação, XP e testes privados continuam no servidor; feedback com mídia e prática local permanecem entregas posteriores.
+
+Validação local: 297 testes unitários e 49 cenários de navegador aprovados; um cenário exclusivo de tablet omitido no projeto mobile. Tipos do frontend/BFF, lint, formatação, build e build do BFF passaram. Revisão independente por subagentes e inspeção Chromium em desktop/mobile, temas claro/escuro, teclado, acerto/erro, falha técnica e movimento reduzido. O CI completo da branch passou em [36908686149](https://github.com/PedroHRFerreira/rods-leet/actions/runs/36908686149), incluindo validações do servidor, SQL e banco local. Assets ativos conferidos contra o build local (`index-CfTUC9zo.js`, `index-CrOkvpL9.css`).
+
+Teste conectado em produção com sessão anônima nova: cancelar não salva a preferência; erro oficial seguido de acerto concede 17 XP; aprovação de outra pergunta atualiza o progresso de 0 para 2 de 10; reload preserva conclusão sem repetir reação; preferência de código continua independente; perfil reativa a confirmação. Nenhum erro de JavaScript observado. Capturas temporárias de acerto, erro e mobile inspecionadas. Usuários existentes não foram alterados.
+
+Limites constatados nesta verificação: o preview publica os assets, mas `/api/session` retorna 503, enquanto o domínio oficial retorna 200; a configuração conectada de preview requer homologação própria. O executor e o Quick Tunnel não estão ativos nesta máquina e a imagem `rods-leet-executor:local` não existe no contexto Docker `orbstack`. A tela oficial apresenta execução indisponível sem falsa conclusão; aprovação real de código não pôde ser revalidada em produção. Os testes locais de execução/aprovação passaram com API controlada, sem substituir essa lacuna operacional. Esta entrega não recriou imagem, túnel, credenciais ou homologação do executor.
+
 ### Revisão de manutenção — 1 de outubro de 2026
 
 Atualizadas somente as dependências indiretas de produção `fast-uri` de 3.1.7 para 3.1.8 e `ip-address` de 10.7.0 para 10.7.2. Auditoria de produção: zero vulnerabilidades; 280 testes e compilação aprovados após a atualização. As correções correspondem aos avisos dos mantenedores de [fast-uri](https://github.com/fastify/fast-uri/security/advisories/GHSA-hrr3-gc8f-f4qj) e [ip-address](https://github.com/beaugunderson/ip-address/security/advisories/GHSA-j6r3-76f7-8jcv). A auditoria completa ainda aponta dois alertas moderados e cinco altos em ferramentas de desenvolvimento; não foi aplicada atualização principal do Vitest nem mudança ampla de ferramentas.
