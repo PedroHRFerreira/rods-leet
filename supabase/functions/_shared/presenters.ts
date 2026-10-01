@@ -26,6 +26,8 @@ export function presentSubmission(row: Row, xp = 0, hideDetails = false) {
           publicCases: result.publicCases,
           metrics: result.metrics,
           complexity: result.complexity,
+          stdout: result.stdout,
+          stderr: result.stderr,
         }
       : {}),
     xpAwarded: xp,
@@ -49,12 +51,14 @@ export function presentAttempt(
     mode: row.mode,
     startedAt: row.started_at,
     deadlineAt: row.deadline_at,
-    status: expired
-      ? "expired"
-      : row.state === "exhausted"
-        ? "failed"
-        : row.state,
-    rejectedCount: row.rejected_count,
+    status: solved
+      ? "accepted"
+      : expired
+        ? "expired"
+        : row.state === "exhausted"
+          ? "failed"
+          : row.state,
+    rejectedCount: rejects,
     pendingCount: submissions.filter(
       (s) => s.kind === "submission" && s.status !== "finished",
     ).length,

@@ -7,8 +7,9 @@ export interface ExecutionRequest {
   languageId: string;
   runtimeVersion: string;
   functionName: string;
+  executionMode?: "function" | "program";
   files: Array<{ path: string; content: string }>;
-  cases: Array<{ input: unknown }>;
+  cases: Array<{ input: unknown; stdin?: string }>;
   sqlSchema?: string;
 }
 export interface CaseExecution {
@@ -146,8 +147,9 @@ export class E2BExecutionProvider implements CodeExecutionProvider {
         JSON.stringify({
           languageId: request.languageId,
           functionName: request.functionName,
+          executionMode: request.executionMode ?? "function",
           manifestSha256: request.manifestSha256,
-          cases: request.cases.map((c) => ({ input: c.input })),
+          cases: request.cases.map((c) => ({ input: c.input, stdin: c.stdin })),
           sqlSchema: request.sqlSchema,
         }),
         { user: "root" },

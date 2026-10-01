@@ -61,7 +61,14 @@ const selected = new Set(
   ).split(","),
 );
 
-async function execute(languageId, path, content, selectedCases = cases) {
+async function execute(
+  languageId,
+  path,
+  content,
+  selectedCases = cases,
+  executionMode = "function",
+  allowFailure = false,
+) {
   const response = await fetch(`${endpoint}/v1/execute`, {
     method: "POST",
     headers: {
@@ -75,6 +82,7 @@ async function execute(languageId, path, content, selectedCases = cases) {
       languageId,
       runtimeVersion: JSON.parse(manifest).versions[languageId],
       functionName: languageId === "sql" ? "sql" : "findMax",
+      executionMode,
       files: [{ path, content }],
       cases: selectedCases,
     }),
@@ -82,13 +90,139 @@ async function execute(languageId, path, content, selectedCases = cases) {
   if (!response.ok) throw new Error(`${languageId}:gateway_${response.status}`);
   const result = await response.json();
   if (
-    result.termination !== "ok" ||
-    result.cases.length !== selectedCases.length
+    !allowFailure &&
+    (result.termination !== "ok" ||
+      result.cases.length !== selectedCases.length)
   )
     throw new Error(
       `${languageId}:execution_failed:${JSON.stringify(result).slice(0, 1000)}`,
     );
   return result;
+}
+
+const programs = {
+  javascript: [
+    "solution.js",
+    'console.log("aprendi"); console.error("diagnostico");',
+  ],
+  typescript: [
+    "solution.ts",
+    'const texto: string = "aprendi"; console.log(texto); console.error("diagnostico");',
+  ],
+  python: [
+    "solution.py",
+    'import sys\nprint("aprendi")\nprint("diagnostico", file=sys.stderr)\n',
+  ],
+  java: [
+    "Solution.java",
+    'public class Solution {public static void main(String[] args){System.out.println("aprendi");System.err.println("diagnostico");}}',
+  ],
+  csharp: [
+    "Solution.cs",
+    'System.Console.WriteLine("aprendi");System.Console.Error.WriteLine("diagnostico");',
+  ],
+  cpp: [
+    "solution.cpp",
+    '#include <iostream>\nint main(){std::cout<<"aprendi\\n";std::cerr<<"diagnostico\\n";}',
+  ],
+  c: [
+    "solution.c",
+    '#include <stdio.h>\nint main(){puts("aprendi");fprintf(stderr,"diagnostico\\n");return 0;}',
+  ],
+  go: [
+    "solution.go",
+    'package main\nimport("fmt";"os")\nfunc main(){fmt.Println("aprendi");fmt.Fprintln(os.Stderr,"diagnostico")}',
+  ],
+  rust: [
+    "solution.rs",
+    'fn main(){println!("aprendi");eprintln!("diagnostico");}',
+  ],
+  kotlin: [
+    "Solution.kt",
+    'fun main(){println("aprendi");System.err.println("diagnostico")}',
+  ],
+};
+
+for (const [language, [path, content]] of Object.entries(programs)) {
+  if (!selected.has(language)) continue;
+  const result = await execute(
+    language,
+    path,
+    content,
+    [{ input: null, stdin: "" }],
+    "program",
+  );
+  const output = result.cases[0];
+  if (
+    output?.termination !== "ok" ||
+    output.stdout.trim() !== "aprendi" ||
+    output.stderr.trim() !== "diagnostico"
+  )
+    throw new Error(
+      `${language}:program_output_failed:${JSON.stringify(result).slice(0, 1000)}`,
+    );
+  console.log(
+    JSON.stringify({ language, executionMode: "program", status: "passed" }),
+  );
+}
+
+if (selected.has("python")) {
+  const result = await execute(
+    "python",
+    "solution.py",
+    "import json,sys\nvalue=json.load(sys.stdin)\nprint(sum(value))\n",
+    [{ input: [2, 3] }, { input: [5, -1] }],
+    "program",
+  );
+  if (result.cases.map((item) => item.stdout.trim()).join(",") !== "5,4")
+    throw new Error("program_stdin_cases_failed");
+  console.log(
+    JSON.stringify({ executionMode: "program", status: "stdin_cases_passed" }),
+  );
+  for (const [source, expected] of [
+    ['raise ValueError("erro de aprendizado")\n', "runtime_error"],
+    ['while True:\n    print("x"*4096)\n', "output_limit"],
+    ["while True:\n    pass\n", "time_limit"],
+  ]) {
+    const failed = await execute(
+      "python",
+      "solution.py",
+      source,
+      [{ input: null, stdin: "" }],
+      "program",
+      true,
+    );
+    if (failed.cases[0]?.termination !== expected)
+      throw new Error(`program_${expected}_not_enforced`);
+    console.log(
+      JSON.stringify({
+        executionMode: "program",
+        status: `${expected}_passed`,
+      }),
+    );
+  }
+}
+if (selected.has("typescript")) {
+  const failed = await execute(
+    "typescript",
+    "solution.ts",
+    "const broken: = ;",
+    [{ input: null, stdin: "" }],
+    "program",
+    true,
+  );
+  if (
+    failed.termination !== "compile_error" ||
+    !failed.compilation ||
+    !(failed.compilation.stdout || failed.compilation.stderr)
+  )
+    throw new Error("program_compile_error_not_returned");
+  console.log(
+    JSON.stringify({
+      executionMode: "program",
+      status: "compile_error_passed",
+    }),
+  );
 }
 
 for (const [language, [path, content]] of Object.entries(references)) {

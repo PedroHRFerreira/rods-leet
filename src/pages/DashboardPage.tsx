@@ -11,7 +11,6 @@ import {
   Terminal,
   Trophy,
   Zap,
-  Github,
 } from "lucide-react";
 import { useGateway } from "../lib/gateway-context";
 import { topics } from "../content/catalog";
@@ -114,11 +113,6 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="rl-overview-actions">
-          {!data.profile.authenticated && (
-            <Link to="/perfil" className="button button-primary">
-              <Github size={16} /> Entrar com GitHub
-            </Link>
-          )}
           <Link to="/desafios" className="button button-secondary">
             Explorar catálogo <ArrowRight size={16} />
           </Link>
@@ -329,11 +323,11 @@ export default function DashboardPage() {
             </span>
             <h2>Travou em um problema?</h2>
             <p>
-              Use uma dica para encontrar o próximo passo ou organize seus
-              estudos com o tutor.
+              Releia os exemplos, experimente seu código e siga uma trilha para
+              reforçar os fundamentos.
             </p>
-            <Link to="/tutor">
-              Abrir tutor <ArrowRight size={15} />
+            <Link to="/trilhas">
+              Encontrar uma trilha <ArrowRight size={15} />
             </Link>
           </section>
         </aside>

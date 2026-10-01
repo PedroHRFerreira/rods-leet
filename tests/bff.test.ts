@@ -24,6 +24,74 @@ const env = {
 const url = (path: string) => env.APP_ORIGIN + path;
 afterEach(() => vi.unstubAllGlobals());
 describe("BFF security boundary", () => {
+  it("creates an isolated anonymous session without exposing provider tokens", async () => {
+    let stored: { id: string; payload: string } | undefined;
+    const fetchMock = vi.fn(async (target, init) => {
+      if (String(target).endsWith("/auth/v1/signup")) {
+        expect(JSON.parse(init.body)).toEqual({});
+        return Response.json({
+          access_token: "anonymous-access-secret",
+          refresh_token: "anonymous-refresh-secret",
+          expires_in: 3600,
+          user: { id: "anonymous-a", is_anonymous: true },
+        });
+      }
+      const body = JSON.parse(init.body);
+      if (body.op === "create-anonymous") stored = body;
+      return Response.json(true);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await handleBff(new Request(url("/api/session")), env);
+    expect(response.status).toBe(200);
+    const output = await response.json();
+    expect(output).toEqual({
+      user: { id: "anonymous-a" },
+      csrf: expect.any(String),
+    });
+    expect(response.headers.get("set-cookie")).toContain(
+      "HttpOnly; Secure; SameSite=Lax",
+    );
+    expect(JSON.stringify(output)).not.toContain("secret");
+    expect(stored).toBeDefined();
+    expect(
+      await unseal(stored!.payload, env.BFF_ENCRYPTION_KEY, stored!.id),
+    ).toMatchObject({
+      access_token: "anonymous-access-secret",
+      user: { id: "anonymous-a" },
+      csrf: output.csrf,
+    });
+  });
+  it("does not mint an anonymous session for a cross-site session request", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await handleBff(
+      new Request(url("/api/session"), {
+        headers: { "sec-fetch-site": "cross-site" },
+      }),
+      env,
+    );
+    expect(response.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("reports unavailable anonymous access rather than exposing an unusable identity", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (target) =>
+        String(target).endsWith("/auth/v1/signup")
+          ? Response.json(
+              { msg: "Anonymous sign-ins disabled" },
+              { status: 422 },
+            )
+          : Response.json(true),
+      ),
+    );
+    const response = await handleBff(new Request(url("/api/session")), env);
+    expect(response.status).toBe(503);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(await response.json()).toMatchObject({
+      error: { code: "anonymous_access_unavailable" },
+    });
+  });
   it("ends a stalled input stream within its read deadline", async () => {
     const stream = new ReadableStream<Uint8Array>({ start() {} });
     await expect(readBounded(stream, 1024, 10)).rejects.toThrow("body_timeout");

@@ -142,6 +142,41 @@ async function authToken(
     user: { id: data.user.id },
   };
 }
+async function anonymousTokens(
+  env: Environment,
+): Promise<Omit<Tokens, "csrf">> {
+  const response = await fetchWithoutRedirect(
+    `${env.SUPABASE_URL}/auth/v1/signup`,
+    {
+      method: "POST",
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  const data = JSON.parse(await readBounded(response.body, 64 * 1024));
+  if (
+    !response.ok ||
+    typeof data.access_token !== "string" ||
+    typeof data.refresh_token !== "string" ||
+    typeof data.user?.id !== "string" ||
+    data.user.is_anonymous !== true ||
+    typeof data.expires_in !== "number"
+  )
+    throw new HttpError(
+      response.status === 429 ? 429 : 503,
+      response.status === 429 ? "rate_limited" : "anonymous_access_unavailable",
+    );
+  return {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expiresAt: Date.now() + data.expires_in * 1000,
+    user: { id: data.user.id },
+  };
+}
 async function getSession(
   env: Environment,
   token: string,
@@ -312,7 +347,27 @@ export async function handleBff(
         bucket: `session-read:${await digest(request.headers.get("cf-connecting-ip") ?? "unknown")}`,
       });
       const current = token ? await getSession(env, token, false) : null;
-      return json(current ? { user: current.user, csrf: current.csrf } : null);
+      if (current) return json({ user: current.user, csrf: current.csrf });
+      // Anonymous Auth gives every browser its own server-verified identity.
+      // Provider tokens stay encrypted on the server, exactly as for OAuth.
+      await service(env, {
+        op: "rate",
+        bucket: `anonymous-create:${await digest(request.headers.get("cf-connecting-ip") ?? "unknown")}`,
+      });
+      const next = randomToken();
+      const id = await digest(next);
+      const created = { ...(await anonymousTokens(env)), csrf: randomToken() };
+      await service(env, {
+        op: "create-anonymous",
+        id,
+        payload: await seal(created, env.BFF_ENCRYPTION_KEY, id),
+      });
+      const response = json({ user: created.user, csrf: created.csrf });
+      response.headers.append(
+        "Set-Cookie",
+        cookie(SESSION_COOKIE, next, 30 * 86400),
+      );
+      return response;
     }
     if (
       url.pathname === "/auth/logout" &&

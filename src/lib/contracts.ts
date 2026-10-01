@@ -134,6 +134,8 @@ export interface PublicSubmission {
   submittedAt: string;
   completedAt?: string;
   message?: string;
+  stdout?: string;
+  stderr?: string;
   publicCases?: PublicCaseResult[];
   metrics?: { cpuMs?: number; wallMs?: number; peakMemoryKiB?: number };
   xpAwarded?: number;
@@ -163,6 +165,7 @@ export interface SubmissionInput {
   attemptId: string;
   languageId: LanguageId;
   files: SourceFile[];
+  executionMode?: "function" | "program";
 }
 export interface StartAttemptInput {
   challengeVersionId: string;
@@ -170,6 +173,8 @@ export interface StartAttemptInput {
 }
 export interface RunInput extends SubmissionInput {
   customTests?: SourceFile[];
+  /** Free program input. Official submissions use the server's fixed cases. */
+  stdin?: string;
 }
 export interface HintResult {
   text: string;
@@ -211,6 +216,8 @@ export interface UserProfile {
   displayName: string;
   avatarUrl?: string;
   authenticated: boolean;
+  /** Connected identity created automatically for this browser, without login. */
+  anonymous?: boolean;
 }
 export interface Dashboard {
   profile: UserProfile;
@@ -226,7 +233,8 @@ export interface Dashboard {
   /** UTC dates with completed challenges, independent of the recent-result limit. */
   activityDays?: string[];
   recommendations: Array<{ challengeId: string; reason: string }>;
-  remoteRunsRemaining: number;
+  /** null means practice runs have no daily quota. */
+  remoteRunsRemaining: number | null;
   tutorMessagesRemaining: number;
   executionStatus: "available" | "unconfigured" | "quota_exhausted" | "paused";
 }

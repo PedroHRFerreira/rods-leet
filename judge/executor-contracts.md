@@ -4,6 +4,14 @@
 
 Cada avaliação possui `cases: {input, expected, public}[]` e `compare(input, expected, actual): boolean`. Expectativas e comparadores executam no coordenador confiável, fora do sandbox do aluno. O sandbox recebe somente o input de cada caso. Imagens, dependências e comandos não podem ser fornecidos pelo aluno.
 
+## Execução livre e programas
+
+O pedido ao executor aceita `executionMode: "function" | "program"` (padrão `function` para preservar soluções anteriores). Em `program`, compila e executa o arquivo do aluno com seu ponto de entrada normal, sem injetar chamadas a `solve` ou `findMax`. Java usa `Solution.main`, Kotlin `SolutionKt`, Go pacote `main`, C/C++/Rust `main`, C# aceita instruções de nível superior, JavaScript/TypeScript/Python executam o arquivo diretamente. Todos continuam dentro do mesmo sandbox sem rede, com limites por processo e job.
+
+Cada caso pode conter `stdin` textual explícito (até 64 KiB). Sem `stdin`, o programa recebe o JSON de `input` seguido de uma quebra de linha. Para Executar livre sem entrada, o coordenador envia um único caso `{input: null, stdin: ""}`; retorna stdout, stderr, termination e metrics sem julgar. Executar não consome tentativa de submissão nem XP.
+
+Para Submeter programas, o coordenador envia todos os casos oficiais e compara o stdout real usando `parseProgramOutput`: JSON preserva tipos; texto simples recebe trim; os escalares Python `True`, `False`, `None` normalizam para booleanos/null. O programa deve imprimir somente o resultado final em stdout, podendo usar stderr para diagnóstico. Logs adicionais não são descartados para evitar aprovação ambígua. A avaliação usa `getEvaluation(id, language, kind, "program")`; maior pontuação compara o valor diretamente, pois um processo independente recebe sua própria entrada. O modo função mantém a verificação de imutabilidade. SQL preserva fixtures e papel restrito em ambos os modos.
+
 ## Funções JSON — 38 desafios
 
 | Linguagem  | Arquivo       | Assinatura                                     | Dependência instalada na imagem                   |

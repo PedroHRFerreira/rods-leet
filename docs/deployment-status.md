@@ -1,6 +1,10 @@
 # Rods Leet — ambiente de testes
 
-Atualizado em 7 de setembro de 2026.
+Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria de 30 de setembro e a preparação local do beta aberto, consulte [validação do beta](beta-readiness-2026-09-30.md) e [escopo da atualização](rods/specs/2026-09-30-open-beta-design.md). A configuração histórica abaixo não comprova disponibilidade atual.
+
+## Atualização do beta aberto — ainda não implantada
+
+O código local agora prevê acesso anônimo, tutor oculto, execução de programas com stdout/stderr, confirmação de submissão e redução de 15% do XP por erro. A implantação requer a migração `202609300001_public_beta.sql`, Anonymous Sign-Ins habilitado no Supabase, funções BFF/API/sessão/coordenador compatíveis, nova imagem de executor e sincronização do catálogo pelo seed. Esses passos remotos ainda não foram executados nesta atualização.
 
 - Frontend: https://rods-leet.pages.dev, Cloudflare Pages, repositório privado `PedroHRFerreira/rods-leet`, branch `main`.
 - Build: Node 22, `npm run build`, saída `dist`. Novos commits em `main` publicam automaticamente.

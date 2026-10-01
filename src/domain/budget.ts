@@ -64,12 +64,6 @@ export function reserveExecution(
   )
     throw new Error("Aguarde a próxima janela de execução");
   const daily = state.reservations.filter((item) => item.day === day);
-  if (
-    daily.filter(
-      (item) => item.userId === input.userId && !item.infrastructureFailure,
-    ).length >= BETA_LIMITS.runsPerUserPerDay
-  )
-    throw new Error("Cota diária de execuções esgotada");
   const cost = (items: ExecutionReservation[]) =>
     items.reduce(
       (sum, item) =>

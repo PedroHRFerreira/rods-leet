@@ -58,6 +58,11 @@ async function readJson(request) {
 function validate(input) {
   if (!input || typeof input !== "object") throw new Error("invalid_request");
   if (
+    input.executionMode !== undefined &&
+    !["program", "function"].includes(input.executionMode)
+  )
+    throw new Error("invalid_execution_mode");
+  if (
     !Array.isArray(input.files) ||
     input.files.length < 1 ||
     input.files.length > 20
@@ -89,6 +94,16 @@ function validate(input) {
     bytes += Buffer.byteLength(file.content);
   }
   if (bytes > 256 * 1024) throw new Error("code_too_large");
+  for (const item of input.cases) {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      (item.stdin !== undefined &&
+        (typeof item.stdin !== "string" ||
+          Buffer.byteLength(item.stdin) > 65536))
+    )
+      throw new Error("invalid_case");
+  }
   for (const key of [
     "submissionId",
     "manifestSha256",
@@ -117,8 +132,12 @@ async function execute(input, request) {
       JSON.stringify({
         languageId: input.languageId,
         functionName: input.functionName,
+        executionMode: input.executionMode ?? "function",
         manifestSha256: input.manifestSha256,
-        cases: input.cases.map(({ input: value }) => ({ input: value })),
+        cases: input.cases.map(({ input: value, stdin }) => ({
+          input: value,
+          stdin,
+        })),
         sqlSchema: input.sqlSchema,
       }),
       { mode: 0o600 },

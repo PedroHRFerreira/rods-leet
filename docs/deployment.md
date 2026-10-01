@@ -15,7 +15,7 @@ Modo Normal integra o beta. Hard permanece protegido por `private.settings.hard_
 3. Configure segredos das Edge Functions a partir de `.env.example`, sem copiar chaves privadas para variáveis `VITE_`. `APP_ORIGIN` deve corresponder exatamente ao frontend. Gere `COORDINATOR_SECRET` com ao menos 32 bytes aleatórios.
 4. Publique o catálogo com `npx tsx scripts/seed-catalog.ts`, usando `SUPABASE_URL` e a chave de serviço somente nesse processo administrativo. Apenas definições públicas são gravadas. Preserve versões publicadas: mudanças de contrato requerem outro `versionId` e a manutenção do juiz antigo enquanto houver submissões pendentes.
 5. Rode `supabase functions serve --env-file <arquivo-privado>`. As funções verificam autenticação diretamente: API valida o Bearer no Supabase Auth `/user`; coordenador usa um segredo separado. `verify_jwt=false` não significa acesso anônimo ao produto.
-6. Na configuração de Auth, habilite GitHub e crie o cliente OAuth. Use o callback mostrado pelo Supabase, normalmente `https://<project-ref>.supabase.co/auth/v1/callback`. Na lista de redirecionamentos permitidos do Supabase, cadastre `http://localhost:5173/auth/callback` e, depois, `https://<domínio-do-frontend>/auth/callback`; esse segundo retorno pertence à interface. Qualquer conta GitHub com e-mail verificado recebe um perfil na primeira autenticação. A API confirma a identidade GitHub em cada acesso. Cadastro por e-mail e Google não fazem parte da interface.
+6. Para o beta aberto, habilite **Anonymous Sign-Ins** no Supabase Auth e aplique `202609300001_public_beta.sql`. O BFF cria automaticamente uma identidade anônima, mantém tokens cifrados no servidor e um cookie opaco de sessão de 30 dias. A API verifica a identidade real no Auth; dados continuam separados por usuário. O login não aparece na interface. Sessões GitHub existentes continuam válidas, sem exigir um novo login.
 
 As tabelas têm RLS e nenhum acesso direto de `anon`/`authenticated`. O esquema `private` não deve ser adicionado à lista de schemas expostos pelo PostgREST. As RPCs de administração/avaliação são concedidas apenas a `service_role`. O navegador nunca determina `user_id`, XP, prazo, saldo ou aceite.
 
@@ -39,7 +39,7 @@ Guarde evidências, versão dos executáveis, template ID e SHA-256 exato de `/o
 
 Em `private.settings`, registre o **saldo efetivamente confirmado**, descontado consumo de homologação/build. A aplicação reserva no máximo 80% desse valor e US$1 por dia UTC. O custo máximo por job começa em US$0,02; compare com o preço vigente de 90 segundos, CPU e memória do template, arredonde para cima e ajuste antes de ativar. Valores de configuração não mudam o plano comercial do fornecedor. Mantenha sem método de pagamento e sem upgrade automático.
 
-Preencha `coordinator_url`, `coordinator_secret` e `execution_enabled=true` somente ao concluir os passos anteriores. Uma nova submissão reserva orçamento, cota e mensagem na mesma transação. São permitidas quatro VMs ativas, uma execução pendente/ativa por pessoa, uma criação por segundo e dez execuções por dia UTC. Novas tentativas técnicas recebem reserva própria, no máximo duas, sem descontar outra tentativa do aluno. Reservas já potencialmente consumidas não são devolvidas com base em estimativas não verificadas.
+Preencha `coordinator_url`, `coordinator_secret` e `execution_enabled=true` somente ao concluir os passos anteriores. Uma nova submissão reserva orçamento e mensagem na mesma transação. São permitidas quatro VMs ativas, uma execução pendente/ativa por pessoa e uma criação por segundo. O beta não limita a quantidade diária de execuções de estudo. Novas tentativas técnicas recebem reserva própria, no máximo duas, sem descontar outra tentativa do aluno. Reservas já potencialmente consumidas não são devolvidas com base em estimativas não verificadas.
 
 ## Executor local do beta (custo de nuvem zero)
 
@@ -55,6 +55,10 @@ O executor local mantém o BFF e a fila no Supabase. O navegador nunca acessa o 
 Cada job usa um contêiner descartável, sem rede, sistema-base somente leitura, usuário do aluno sem privilégios e limites de CPU, memória, processos, duração e saída. O gateway aceita um job por vez, limita o corpo a 2 MiB, o código a 256 KiB e destrói os arquivos temporários ao terminar. Ele não deve rodar como root nem ter uma porta pública própria. O usuário que executa o gateway precisa apenas de permissão para iniciar contêineres Docker; essa permissão equivale a controle administrativo do host e deve ficar restrita à máquina dedicada ao beta.
 
 O custo cobrado por provedor é `0` nessa modalidade. Cloudflare Tunnel não acrescenta cobrança ao fluxo, mas a máquina, energia e conexão locais continuam sob responsabilidade do operador. Se a máquina estiver desligada, executar e submeter permanecem enfileirados ou retornam indisponibilidade sem consumir tentativa nem XP.
+
+O contrato do beta aceita `executionMode=program`: compila/roda o arquivo de entrada normal de cada linguagem, recebe stdin e apresenta stdout/stderr. `function` mantém os desafios e rascunhos anteriores. Atualize a imagem do executor junto do coordenador; uma imagem antiga não implementa esse contrato. Para submissões, o programa recebe cada entrada oficial e deve imprimir somente o resultado esperado; logs podem ir para stderr. Executar usa a entrada de estudo e não avalia nem concede XP.
+
+Submeter requer confirmação na interface. Uma rejeição do código reduz o XP disponível em 15% do valor base por erro, até zero; a primeira aprovação concede a recompensa uma única vez e bloqueia novos envios oficiais. Estudo permanece disponível. As regras completas e atuais ficam em [regras do produto](product-rules.md).
 
 ## Publicação, tutor e recuperação
 

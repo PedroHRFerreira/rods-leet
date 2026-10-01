@@ -26,13 +26,13 @@ const result = (
     ...overrides,
   });
 describe("progression rules", () => {
-  it("only rewards the first accepted submission per challenge and mode", () => {
+  it("only rewards the first accepted submission per challenge across modes", () => {
     const first = result(createProgressState());
     expect(first.xpDelta).toBe(100);
     expect(result(first.state).duplicate).toBe(true);
     expect(result(first.state, { submissionId: "s2" }).xpDelta).toBe(0);
     const hard = result(first.state, { submissionId: "s3", mode: "hard" });
-    expect(hard.xpDelta).toBe(300);
+    expect(hard.xpDelta).toBe(0);
     expect(hard.state.completedChallengeIds).toEqual(["max"]);
   });
   it("uses cumulative assistance and idempotent hint consumption", () => {
@@ -60,23 +60,30 @@ describe("progression rules", () => {
     }).state;
     expect(state.hintBalance).toBe(2);
   });
-  it("normal errors cost no XP; hard penalties clamp the event itself to the balance", () => {
+  it("rejections reduce future reward without deducting existing XP", () => {
     const initial = result(createProgressState(), { baseXp: 20 }).state;
     const normal = result(initial, {
       submissionId: "normal-fail",
       verdict: "wrong_answer",
+      challengeId: "retry",
     });
     expect(normal.xpDelta).toBe(0);
     const hard = result(normal.state, {
       submissionId: "hard-fail",
       verdict: "compile_error",
       mode: "hard",
+      challengeId: "retry",
     });
-    expect(hard.xpDelta).toBe(-20);
-    expect(hard.state.xp).toBe(0);
+    expect(hard.xpDelta).toBe(0);
+    expect(hard.state.xp).toBe(20);
     expect(
       hard.state.xpEvents.reduce((sum, event) => sum + event.amount, 0),
-    ).toBe(0);
+    ).toBe(20);
+    expect(hard.state.incorrectByChallenge.retry).toBe(2);
+    expect(
+      result(hard.state, { submissionId: "retry-ok", challengeId: "retry" })
+        .xpDelta,
+    ).toBe(70);
     expect(hard.state.completedChallengeIds).toEqual(["max"]);
   });
   it("does not penalize or finalize progress on infrastructure failure", () => {
@@ -85,6 +92,27 @@ describe("progression rules", () => {
       result(state, { mode: "hard", verdict: "infrastructure_error" }).state,
     ).toBe(state);
     expect(result(state).xpDelta).toBe(100);
+  });
+  it("reduces future reward by 15% per rejection and floors it at zero", () => {
+    let state = createProgressState();
+    for (let index = 0; index < 7; index++) {
+      const failed = result(state, {
+        submissionId: `failed-${index}`,
+        verdict: "wrong_answer",
+      });
+      expect(failed.xpDelta).toBe(0);
+      expect(
+        result(failed.state, {
+          submissionId: `failed-${index}`,
+          verdict: "wrong_answer",
+        }).duplicate,
+      ).toBe(true);
+      state = failed.state;
+    }
+    expect(state.incorrectByChallenge.max).toBe(7);
+    const approved = result(state, { submissionId: "accepted-final" });
+    expect(approved.xpDelta).toBe(0);
+    expect(approved.state.completedChallengeIds).toEqual(["max"]);
   });
   it("unlocks solution after three errors and persists practice across sessions", () => {
     let state = createProgressState();
@@ -103,12 +131,12 @@ describe("progression rules", () => {
         submissionId: "already-queued",
         assistance: queuedSnapshot,
       }).xpDelta,
-    ).toBe(100);
+    ).toBe(55);
   });
   it("does not make a solved challenge practice-only by reading its solution", () => {
     const state = accessSolution(result(createProgressState()).state, "max");
     expect(result(state, { submissionId: "hard", mode: "hard" }).xpDelta).toBe(
-      300,
+      0,
     );
   });
   it("calculates cumulative level boundaries", () => {

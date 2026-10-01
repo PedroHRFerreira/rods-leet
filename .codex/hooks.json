@@ -1,0 +1,78 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rods hook run --target codex",
+            "timeout": 60,
+            "statusMessage": "Rods escalation"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rods hook run --target codex",
+            "timeout": 30,
+            "statusMessage": "Rods escalation"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rods hook run --target codex",
+            "timeout": 60,
+            "statusMessage": "Rods escalation"
+          }
+        ],
+        "matcher": "Bash|apply_patch|Edit|Write"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rods hook run --target codex",
+            "timeout": 60,
+            "statusMessage": "Rods escalation"
+          }
+        ],
+        "matcher": "Bash|apply_patch|Edit|Write"
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rods hook run --target codex",
+            "timeout": 60,
+            "statusMessage": "Rods escalation"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rods hook run --target codex",
+            "timeout": 60,
+            "statusMessage": "Rods escalation"
+          }
+        ]
+      }
+    ]
+  }
+}

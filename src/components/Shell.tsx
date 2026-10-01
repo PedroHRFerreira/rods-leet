@@ -9,7 +9,6 @@ import {
   useNavigate,
 } from "react-router-dom";
 import {
-  ArrowUpRight,
   BookOpen,
   ChevronRight,
   Code2,
@@ -20,7 +19,6 @@ import {
   Menu,
   Moon,
   Search,
-  Sparkles,
   Sun,
   Trophy,
   UserRound,
@@ -39,7 +37,6 @@ const navigation = [
     icon: BookOpen,
   },
   { to: "/ranking", label: "Ranking", icon: Trophy },
-  { to: "/tutor", label: "Tutor de IA", mobileLabel: "Tutor", icon: Sparkles },
 ];
 
 export default function Shell({ children }: { children?: ReactNode }) {
@@ -209,7 +206,6 @@ export default function Shell({ children }: { children?: ReactNode }) {
             >
               <Icon size={20} />
               <span>{label}</span>
-              {to === "/tutor" && <span className="nav-new">BETA</span>}
             </NavLink>
           ))}
         </nav>
@@ -229,7 +225,7 @@ export default function Shell({ children }: { children?: ReactNode }) {
         <div className="sidebar-bottom">
           <div className="beta-indicator">
             <span />
-            ACESSO GITHUB
+            BETA ABERTO
           </div>
           <NavLink to="/perfil" className="sidebar-profile">
             <span className="avatar">
@@ -313,21 +309,6 @@ export default function Shell({ children }: { children?: ReactNode }) {
           className={`page-content ${location.pathname.startsWith("/desafios/") ? "page-content-arena" : ""} ${compactTracksNavigation ? "page-content-tracks" : ""}`}
           tabIndex={-1}
         >
-          {gateway.mode === "demo" && (
-            <div className="exploration-banner">
-              <Compass size={15} />
-              <span>
-                Modo exploração{" "}
-                <span className="exploration-detail">
-                  — conheça os desafios e prepare seu código. A avaliação remota
-                  será liberada no beta.
-                </span>
-              </span>
-              <Link to="/perfil">
-                Acessar beta <ArrowUpRight size={13} />
-              </Link>
-            </div>
-          )}
           {children ?? <Outlet />}
         </main>
         <footer className="app-footer">

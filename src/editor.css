@@ -2336,3 +2336,93 @@
     padding: 14px 7px;
   }
 }
+
+/* Free execution and accessible confirmation inside the challenge editor. */
+.program-controls {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.program-controls label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+.program-controls select,
+.program-controls textarea {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  max-width: 100%;
+}
+.program-controls textarea {
+  width: 100%;
+  margin: 8px 0;
+  resize: vertical;
+  font-family: monospace;
+}
+.program-controls p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 12px 0;
+}
+.program-output {
+  margin: 16px 0;
+  min-width: 0;
+}
+.program-output strong {
+  font-size: 13px;
+}
+.program-output pre {
+  margin: 8px 0;
+  background: var(--panel);
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 320px;
+  overflow: auto;
+}
+.challenge-dialog {
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.challenge-dialog::backdrop {
+  background: #000b;
+  backdrop-filter: blur(4px);
+}
+.challenge-dialog h2 {
+  font-size: 22px;
+  margin: 0 0 16px;
+}
+.challenge-dialog p {
+  line-height: 1.7;
+  color: var(--muted);
+}
+.challenge-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+@media (max-width: 600px) {
+  .program-controls {
+    padding: 14px;
+  }
+  .challenge-dialog-actions .button {
+    flex: 1 1 100%;
+  }
+}

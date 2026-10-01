@@ -1,5 +1,5 @@
 import type { GameMode, RankingEntry, Verdict } from "../lib/contracts";
-import { rewardPercent } from "./rules";
+import { completionReward, rewardPercent } from "./rules";
 
 export interface XpEvent {
   id: string;
@@ -126,6 +126,8 @@ export function applyFinalVerdict(
     return { state, xpDelta: 0, duplicate: true };
   if (input.verdict === "infrastructure_error")
     return { state, xpDelta: 0, duplicate: false };
+  if (state.completedChallengeIds.includes(input.challengeId))
+    return { state, xpDelta: 0, duplicate: true };
   if (!Number.isSafeInteger(input.baseXp) || input.baseXp < 0)
     throw new Error("Recompensa inválida");
   if (
@@ -137,15 +139,19 @@ export function applyFinalVerdict(
   next.processedSubmissionIds.push(input.submissionId);
   let xpDelta = 0;
   if (input.verdict === "accepted") {
-    const rewardKey = `${input.challengeId}:${input.mode}`;
-    if (!next.rewardedKeys.includes(rewardKey)) {
+    const rewardKey = input.challengeId;
+    if (
+      !next.rewardedKeys.some(
+        (key) => key === rewardKey || key.startsWith(`${rewardKey}:`),
+      )
+    ) {
       next.rewardedKeys.push(rewardKey);
       if (!input.assistance.practiceOnly) {
-        xpDelta = Math.floor(
-          (input.baseXp *
-            (input.mode === "hard" ? 3 : 1) *
-            rewardPercent(input.assistance.hintsUsed)) /
-            100,
+        xpDelta = completionReward(
+          input.baseXp,
+          input.mode === "hard",
+          input.assistance.hintsUsed,
+          next.incorrectByChallenge[input.challengeId] ?? 0,
         );
       }
     }
@@ -156,7 +162,6 @@ export function applyFinalVerdict(
   } else {
     next.incorrectByChallenge[input.challengeId] =
       (next.incorrectByChallenge[input.challengeId] ?? 0) + 1;
-    if (input.mode === "hard") xpDelta = -Math.min(30, next.xp);
   }
   if (xpDelta !== 0) {
     next.xp += xpDelta;

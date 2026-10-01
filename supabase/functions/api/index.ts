@@ -37,6 +37,8 @@ const errorMessages: Record<string, string> = {
   solution_locked:
     "O gabarito abre após aprovação ou três submissões incorretas.",
   authentication_required: "Entre com sua conta para continuar.",
+  challenge_already_completed:
+    "Você já concluiu este desafio. Continue praticando ou avance para o próximo.",
   hard_unavailable: "O modo Hard chega na segunda fase.",
   draft_conflict:
     "Este rascunho foi atualizado em outra aba. Recarregue antes de salvar.",
@@ -283,6 +285,15 @@ export async function handler(request: Request): Promise<Response> {
       const body = await readJson(request);
       const c = challenge(body.challengeVersionId);
       const language = stringValue(body.languageId, "language");
+      const executionMode = body.executionMode ?? "function";
+      if (executionMode !== "function" && executionMode !== "program")
+        throw new ApiError("invalid_execution_mode");
+      const stdin = path === "/runs" ? (body.stdin ?? "") : "";
+      if (
+        typeof stdin !== "string" ||
+        new TextEncoder().encode(stdin).length > 65536
+      )
+        throw new ApiError("invalid_stdin");
       const starter =
         c.starterFilesByLanguage[
           language as keyof typeof c.starterFilesByLanguage
@@ -308,6 +319,8 @@ export async function handler(request: Request): Promise<Response> {
         p_version: c.versionId,
         p_language: language,
         p_kind: path === "/runs" ? "run" : "submission",
+        p_execution_mode: executionMode,
+        p_stdin: stdin,
         p_files: files,
         p_key: idempotencyKey(request),
       });
@@ -338,8 +351,8 @@ export async function handler(request: Request): Promise<Response> {
         `id=eq.${encodeURIComponent(path.split("/")[2])}&user_id=eq.${user.id}`,
       );
       if (!rows[0]) throw new ApiError("submission_not_found", 404);
-      const s = rows[0],
-        a = await ownAttempt(s.attempt_id);
+      const s = rows[0];
+      await ownAttempt(s.attempt_id);
       const xp = await db.rows<Row>(
         "xp_events",
         `submission_id=eq.${s.id}&user_id=eq.${user.id}&select=amount`,
@@ -348,7 +361,7 @@ export async function handler(request: Request): Promise<Response> {
         presentSubmission(
           s,
           xp.reduce((n, r) => n + r.amount, 0),
-          a.mode === "hard" && a.state !== "accepted" && a.rejected_count < 3,
+          false,
         ),
       );
     }
@@ -580,6 +593,7 @@ export async function handler(request: Request): Promise<Response> {
           id: user.id,
           displayName: profile.display_name,
           authenticated: true,
+          anonymous: user.anonymous,
         },
         xp: profile.xp,
         ...levelForXp(profile.xp),
@@ -592,13 +606,13 @@ export async function handler(request: Request): Promise<Response> {
           .slice(0, 8)
           .map((r) => presentSubmission(r, 0, true)),
         recommendations: recommend(catalog, ids, recent as never),
-        remoteRunsRemaining: Math.max(0, 10 - context.usage.executions),
+        remoteRunsRemaining: null,
         tutorMessagesRemaining: Math.max(0, 2 - context.usage.tutor_calls),
         executionStatus: !context.executionEnabled
           ? "paused"
           : !context.availableLanguages.length
             ? "unconfigured"
-            : !context.budgetAvailable || context.usage.executions >= 10
+            : !context.budgetAvailable
               ? "quota_exhausted"
               : "available",
       });

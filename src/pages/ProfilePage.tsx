@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import {
-  AlertCircle,
   ArrowUpRight,
   Award,
   CheckCircle2,
-  Github,
   Lightbulb,
-  LogIn,
-  LogOut,
   ShieldCheck,
   Target,
   UserRound,
@@ -26,45 +21,12 @@ import {
 import "../editor.css";
 
 export default function ProfilePage() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const gateway = useGateway();
-  const queryClient = useQueryClient();
   const dashboard = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => gateway.getDashboard(),
     retry: false,
   });
-  const [busy, setBusy] = useState("");
-  const [error, setError] = useState(() =>
-    searchParams.has("authError")
-      ? "Não foi possível concluir seu login com GitHub. Tente novamente."
-      : "",
-  );
-  useEffect(() => {
-    if (!searchParams.has("authError")) return;
-    // Keep only our generic notification; never display provider or URL error text.
-    const cleaned = new URLSearchParams(searchParams);
-    cleaned.delete("authError");
-    setSearchParams(cleaned, { replace: true });
-  }, [searchParams, setSearchParams]);
-  async function authenticate(provider: "github" | "out") {
-    setBusy(provider);
-    setError("");
-    try {
-      if (provider === "out") {
-        await gateway.signOut();
-        queryClient.clear();
-      } else await gateway.signIn(provider);
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Não foi possível entrar. Tente novamente.",
-      );
-    } finally {
-      setBusy("");
-    }
-  }
   if (dashboard.isPending) return <LoadingState />;
   if (dashboard.isError)
     return (
@@ -75,23 +37,9 @@ export default function ProfilePage() {
         />
         <div className="profile-error-actions">
           <p>
-            Entre com sua conta GitHub para salvar seu progresso e enviar
-            soluções.
+            Não foi possível carregar seu progresso. Tente novamente; você pode
+            continuar consultando os desafios sem login.
           </p>
-          {error && (
-            <p className="arena-alert" role="alert">
-              {error}
-            </p>
-          )}
-          <button
-            type="button"
-            className="button button-secondary"
-            disabled={Boolean(busy)}
-            onClick={() => void authenticate("out")}
-          >
-            <LogOut size={16} />
-            {busy ? "Saindo…" : "Sair e trocar de conta"}
-          </button>
           <Link className="text-link" to="/desafios">
             Continuar explorando os desafios
           </Link>
@@ -102,9 +50,9 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <PageHeading
-        eyebrow="SUA CONTA"
+        eyebrow="SEU ESPAÇO"
         title="Perfil e progresso"
-        description="Sua conta, suas soluções e o que vem a seguir."
+        description="Suas soluções e seu progresso neste navegador."
       />
       <div className="profile-grid">
         <section className="panel profile-card">
@@ -124,15 +72,13 @@ export default function ProfilePage() {
             </span>
             <h2>{data.profile.displayName}</h2>
             <p>
-              {data.profile.authenticated
+              {data.profile.authenticated && !data.profile.anonymous
                 ? "Conta GitHub conectada"
-                : "Explore o Rods Leet"}
+                : "Perfil anônimo"}
             </p>
             <span className="profile-access">
               <span />
-              {data.profile.authenticated
-                ? "Acesso conectado"
-                : "Modo exploração"}
+              Beta aberto · sem login obrigatório
             </span>
           </div>
           <div className="profile-next-level">
@@ -188,54 +134,18 @@ export default function ProfilePage() {
                 <ShieldCheck size={21} />
               </span>
               <div>
-                <h2>
-                  {data.profile.authenticated
-                    ? "Sua conta GitHub está conectada"
-                    : "Entre com GitHub para começar"}
-                </h2>
+                <h2>Progresso neste navegador</h2>
                 <p>
-                  {data.profile.authenticated
-                    ? "Seu progresso acompanha você entre dispositivos."
-                    : "O acesso é gratuito: entre com sua conta GitHub para salvar seu progresso."}
+                  Você pode praticar sem criar uma conta. Sua sessão identifica
+                  seu progresso neste navegador.
                 </p>
               </div>
             </div>
-            {error && (
-              <div className="arena-alert" role="alert">
-                <AlertCircle size={17} />
-                {error}
-              </div>
-            )}
-            {data.profile.authenticated ? (
-              <button
-                type="button"
-                className="button button-secondary"
-                disabled={Boolean(busy)}
-                onClick={() => void authenticate("out")}
-              >
-                <LogOut size={16} />
-                {busy ? "Saindo…" : "Sair da conta"}
-              </button>
-            ) : (
-              <>
-                <div className="oauth-buttons">
-                  <button
-                    type="button"
-                    className="button button-secondary"
-                    disabled={Boolean(busy)}
-                    onClick={() => void authenticate("github")}
-                  >
-                    <Github size={17} />
-                    {busy === "github" ? "Conectando…" : "Continuar com GitHub"}
-                  </button>
-                </div>
-                <p className="account-note">
-                  <LogIn size={14} />
-                  Use sua conta GitHub. Você pode explorar o catálogo e escrever
-                  seu código antes de entrar.
-                </p>
-              </>
-            )}
+            <p className="account-note">
+              Apagar os dados do site ou usar outro navegador pode fazer você
+              perder o acesso ao progresso desta sessão. Neste beta, não há
+              recuperação de perfil anônimo entre dispositivos.
+            </p>
           </section>
           <section className="panel profile-practice">
             <div>

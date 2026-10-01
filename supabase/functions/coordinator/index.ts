@@ -1,5 +1,5 @@
 import { challenges } from "../../../src/content/catalog.ts";
-import { getEvaluation } from "../../../judge/index.ts";
+import { getEvaluation, parseProgramOutput } from "../../../judge/index.ts";
 import { Database, env, secretsMatch } from "../_shared/db.ts";
 import {
   E2BExecutionProvider,
@@ -50,7 +50,17 @@ export async function processOne(): Promise<void> {
       (c) => c.versionId === s.challenge_version_id,
     );
     if (!challenge) throw new Error("version_unavailable");
-    const evaluation = getEvaluation(challenge.id, s.language_id, s.kind);
+    const executionMode = s.execution_mode ?? "function";
+    const evaluation = getEvaluation(
+      challenge.id,
+      s.language_id,
+      s.kind,
+      executionMode,
+    );
+    const freeProgram =
+      s.kind === "run" &&
+      executionMode === "program" &&
+      challenge.kind !== "sql";
     let provider: CodeExecutionProvider;
     if (providerName === "local") {
       provider = new LocalExecutionProvider(
@@ -71,7 +81,10 @@ export async function processOne(): Promise<void> {
       functionName:
         challenge.kind === "sql" ? "sql" : (challenge.functionName ?? "solve"),
       files: s.files,
-      cases: evaluation.cases.map((c) => ({ input: c.input })),
+      executionMode,
+      cases: freeProgram
+        ? [{ input: null, stdin: s.stdin ?? "" }]
+        : evaluation.cases.map((c) => ({ input: c.input })),
       sqlSchema: challenge.sqlSchema,
     });
     executionRef = execution.executionRef;
@@ -85,6 +98,23 @@ export async function processOne(): Promise<void> {
       ].includes(execution.termination)
         ? execution.termination
         : "infrastructure_error";
+    } else if (freeProgram) {
+      const actual = execution.cases[0];
+      verdict =
+        actual?.termination === "ok"
+          ? "accepted"
+          : (actual?.termination ?? "infrastructure_error");
+      result = actual
+        ? {
+            message:
+              actual.termination === "ok"
+                ? "Código executado. Confira a saída abaixo."
+                : "Seu programa encerrou com erro ou excedeu um limite.",
+            stdout: actual.stdout,
+            stderr: actual.stderr,
+            metrics: actual.metrics,
+          }
+        : { message: "Falha da infraestrutura. Sua tentativa foi preservada." };
     } else {
       verdict = "accepted";
       let cpuMs = 0,
@@ -103,7 +133,10 @@ export async function processOne(): Promise<void> {
         if (actual.termination !== "ok") verdict = actual.termination;
         else {
           try {
-            value = JSON.parse(actual.stdout);
+            value =
+              executionMode === "program" && challenge.kind !== "sql"
+                ? parseProgramOutput(actual.stdout)
+                : JSON.parse(actual.stdout);
             passed = evaluation.compare(test.input, test.expected, value);
           } catch {
             passed = false;
@@ -116,7 +149,7 @@ export async function processOne(): Promise<void> {
             passed,
             input: JSON.stringify(test.input).slice(0, 2000),
             expected: JSON.stringify(test.expected).slice(0, 2000),
-            actual: JSON.stringify(value ?? null).slice(0, 2000),
+            actual: actual.stdout.slice(0, 2000),
           });
         }
         cpuMs += actual.metrics.cpuMs;

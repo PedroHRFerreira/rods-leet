@@ -6,7 +6,6 @@ import {
   Code2,
   Compass,
   LayoutDashboard,
-  Sparkles,
   Trophy,
   UserRound,
   X,
@@ -36,14 +35,9 @@ const screens = [
     text: "Compare o XP conquistado com soluções aprovadas. As regras são iguais para todos.",
   },
   {
-    icon: Sparkles,
-    title: "Tutor",
-    text: "Tire dúvidas e organize seus estudos. A ajuda sobre um desafio ativo conta como dica.",
-  },
-  {
     icon: UserRound,
     title: "Perfil",
-    text: "Entre com sua conta GitHub e acompanhe seu nível, suas conclusões e seu saldo de dicas.",
+    text: "Acompanhe seu nível e suas conclusões com o progresso neste navegador.",
   },
 ];
 
@@ -120,9 +114,9 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <p className="welcome-note">
-              O acesso é gratuito com sua conta GitHub. Você pode explorar o
-              catálogo e salvar rascunhos antes de entrar; avaliação remota e
-              tutor dependem da disponibilidade do serviço.
+              O beta é gratuito e não exige login. Seu progresso fica associado
+              a este navegador; apagar os dados do site pode fazer você perder o
+              acesso a ele.
             </p>
           </>
         )}
@@ -161,15 +155,17 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               <li>
                 <strong>Escreva e execute</strong>
                 <p>
-                  “Executar exemplos” testa os exemplos. Não concede XP nem
-                  significa aprovação oficial.
+                  Execute quantas vezes quiser para ver o resultado do seu
+                  código, incluindo console.log e print. Executar não concede
+                  XP.
                 </p>
               </li>
               <li>
                 <strong>Submeta sua solução</strong>
                 <p>
-                  “Submeter” envia para a avaliação oficial. Todos os testes
-                  obrigatórios precisam passar.
+                  “Submeter” pede sua confirmação antes de avaliar o resultado.
+                  Todos os testes obrigatórios precisam passar. Se acertar, você
+                  ganha XP e avança para o próximo desafio.
                 </p>
               </li>
             </ol>
@@ -182,14 +178,23 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
         {step === 3 && (
           <>
             <p className="welcome-lead">
-              Progresso vem da prática. Pedir ajuda faz parte do aprendizado.
+              Progresso vem da prática. Experimente antes de confirmar o envio.
             </p>
             <ul className="welcome-rules">
               <li>
                 <strong>XP por conquista</strong>
                 <span>
-                  A primeira aprovação por desafio e modo concede XP. Repetir em
-                  outra linguagem não duplica a recompensa.
+                  A primeira aprovação do desafio concede XP uma única vez.
+                  Depois de aprovar, você ainda pode executar seu código para
+                  estudar.
+                </span>
+              </li>
+              <li>
+                <strong>Errou? Corrija e tente novamente</strong>
+                <span>
+                  Você recebe uma explicação e pode enviar de novo. Cada envio
+                  incorreto reduz em 15% do XP base a recompensa futura desse
+                  desafio, até zero. Seu XP já conquistado permanece igual.
                 </span>
               </li>
               <li>

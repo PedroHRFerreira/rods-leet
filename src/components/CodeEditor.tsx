@@ -4,10 +4,7 @@ import * as monaco from "monaco-editor";
 import EditorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
 import TypeScriptWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 import { LANGUAGES } from "../domain/rules";
-import {
-  hasUnsafeSourceCharacters,
-  isClipboardShortcut,
-} from "../domain/source-security";
+import { hasUnsafeSourceCharacters } from "../domain/source-security";
 import type { LanguageId } from "../lib/contracts";
 
 // Workers and editor assets are served by this application, without a public CDN.
@@ -55,7 +52,6 @@ export default function CodeEditor({
   onChange,
   language,
   path,
-  hard = false,
   readOnly = false,
   onUnsafeInput,
 }: {
@@ -94,29 +90,14 @@ export default function CodeEditor({
     }
     onChange(next);
   };
-  const blockClipboard = (event: {
-    preventDefault(): void;
-    stopPropagation(): void;
-  }) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
   return (
     <div className="code-editor-wrap">
       <div className="editor-accessibility">
-        <span>
-          {hard
-            ? "Autocomplete desativado · modo Hard"
-            : "Digite sua solução diretamente no editor"}
-        </span>
+        <span>Escreva, cole e experimente seu código livremente</span>
         <button type="button" onClick={() => setSimple(!simple)}>
           {simple ? "Editor avançado" : "Editor simples"}
         </button>
       </div>
-      <p className="editor-clipboard-note" role="status">
-        Copiar, recortar, colar e arrastar código estão desativados neste
-        desafio.
-      </p>
       {simple ? (
         <textarea
           className="simple-code-editor"
@@ -124,13 +105,6 @@ export default function CodeEditor({
           spellCheck={false}
           value={value}
           onChange={(event) => acceptChange(event.target.value)}
-          onCopy={blockClipboard}
-          onCut={blockClipboard}
-          onPaste={blockClipboard}
-          onDrop={blockClipboard}
-          onKeyDown={(event) => {
-            if (isClipboardShortcut(event)) blockClipboard(event);
-          }}
           readOnly={readOnly}
         />
       ) : (
@@ -144,23 +118,6 @@ export default function CodeEditor({
           path={path}
           value={value}
           onChange={(next) => acceptChange(next ?? "")}
-          onMount={(editor) => {
-            const root = editor.getDomNode();
-            if (!root) return;
-            const events = ["copy", "cut", "paste", "drop", "dragstart"];
-            const stop = (event: Event) => blockClipboard(event);
-            const stopShortcut = (event: KeyboardEvent) => {
-              if (isClipboardShortcut(event)) blockClipboard(event);
-            };
-            for (const event of events)
-              root.addEventListener(event, stop, true);
-            root.addEventListener("keydown", stopShortcut, true);
-            editor.onDidDispose(() => {
-              for (const event of events)
-                root.removeEventListener(event, stop, true);
-              root.removeEventListener("keydown", stopShortcut, true);
-            });
-          }}
           theme={theme}
           loading={
             <div className="editor-loading" role="status">
@@ -181,12 +138,12 @@ export default function CodeEditor({
             ariaLabel: `Código de ${path}`,
             accessibilitySupport: "on",
             folding: true,
-            quickSuggestions: !hard,
-            suggestOnTriggerCharacters: !hard,
-            wordBasedSuggestions: hard ? "off" : "currentDocument",
-            parameterHints: { enabled: !hard },
-            inlineSuggest: { enabled: !hard },
-            snippetSuggestions: hard ? "none" : "inline",
+            quickSuggestions: true,
+            suggestOnTriggerCharacters: true,
+            wordBasedSuggestions: "currentDocument",
+            parameterHints: { enabled: true },
+            inlineSuggest: { enabled: true },
+            snippetSuggestions: "inline",
           }}
         />
       )}

@@ -144,6 +144,8 @@ def main():
     if request['manifestSha256']!=digest:raise RuntimeError('manifest_mismatch')
     manifest=json.loads((ROOT/'manifest.json').read_text())
     if request['languageId'] not in manifest['languages']:raise RuntimeError('runtime_unavailable')
+    mode=request.get('executionMode','function')
+    if mode not in ('function','program'):raise RuntimeError('invalid_execution_mode')
     if request['functionName'] not in ('solve','findMax','shortestPath','sql'):raise RuntimeError('invalid_entrypoint')
     restrict_postgres_socket(Path('/run/postgresql'),request['languageId']=='sql',pwd.getpwnam('postgres').pw_uid)
     CONTROL.mkdir(mode=0o700,exist_ok=True)
@@ -178,7 +180,9 @@ def main():
                 database.execute('GRANT USAGE ON SCHEMA challenge TO cg_student; GRANT SELECT ON ALL TABLES IN SCHEMA challenge TO cg_student',prepare=False)
                 allowed=[row[0].decode() if isinstance(row[0],bytes) else row[0] for row in database.execute("SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='challenge'")]
             case_input={'allowedRelations':allowed}
-        result=run_limited(command,json.dumps(case_input,separators=(',',':'))+'\n',5,2,sql=request['languageId']=='sql')
+        stdin=case.get('stdin',json.dumps(case_input,separators=(',',':'))+'\n') if mode=='program' and request['languageId']!='sql' else json.dumps(case_input,separators=(',',':'))+'\n'
+        if not isinstance(stdin,str) or (mode=='program' and 'stdin' in case and len(stdin.encode())>65536):raise RuntimeError('invalid_stdin')
+        result=run_limited(command,stdin,5,2,sql=request['languageId']=='sql')
         total+=len(result['stdout'].encode())+len(result['stderr'].encode())
         if total>JOB_LIMIT:result['termination']='output_limit';result['stdout']='';result['stderr']=''
         cases.append(result)

@@ -6,6 +6,21 @@ import { compareSql, equalJson, type SqlResult } from "./comparators.ts";
 import { sqlFixtures } from "./sql.ts";
 
 export { getEditorial } from "./editorial.ts";
+export type ExecutionMode = "function" | "program";
+
+/** A program prints its result as JSON; plain text remains a string. */
+export function parseProgramOutput(stdout: string): unknown {
+  const text = stdout.trim();
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Python's scalar print syntax is convenient for first lessons.
+    if (text === "True") return true;
+    if (text === "False") return false;
+    if (text === "None") return null;
+    return text;
+  }
+}
 export interface EvaluationCase {
   input: unknown;
   expected: unknown;
@@ -21,6 +36,7 @@ export function getEvaluation(
   challengeId: string,
   languageId: string,
   kind: string = "submission",
+  executionMode: ExecutionMode = "function",
 ): Evaluation {
   const challenge = challengeById.get(challengeId);
   if (!challenge || !challenge.languageIds.includes(languageId as never))
@@ -59,6 +75,7 @@ export function getEvaluation(
       if (challengeId === "shortest-path")
         return comparePath(input as PathInput, expected, actual);
       if (challengeId === "find-max") {
+        if (executionMode === "program") return equalJson(expected, actual);
         if (!actual || typeof actual !== "object") return false;
         const result = actual as {
           result?: unknown;

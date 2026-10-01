@@ -45,7 +45,7 @@ export const BETA_LIMITS = Object.freeze({
   globalConcurrency: 4,
   userConcurrency: 1,
   creationIntervalMs: 1_000,
-  runsPerUserPerDay: 10,
+  runsPerUserPerDay: 0, // Zero disables the per-person execution quota.
   dailyCreditMicros: 1_000_000,
   availableCreditFraction: 0.8,
   queueVisibilitySeconds: 180,
@@ -57,3 +57,28 @@ export const BETA_LIMITS = Object.freeze({
 });
 export const rewardPercent = (hintsUsed: number): number =>
   hintsUsed === 0 ? 100 : hintsUsed === 1 ? 95 : 85;
+
+/** Each rejected submission reduces only this challenge's future reward. */
+export const rejectionRewardFactor = (rejections: number): number => {
+  if (!Number.isSafeInteger(rejections) || rejections < 0)
+    throw new Error("Quantidade de erros inválida");
+  return Math.max(0, (100 - 15 * rejections) / 100);
+};
+
+export function completionReward(
+  baseXp: number,
+  hard: boolean,
+  hintsUsed: number,
+  rejections: number,
+): number {
+  if (!Number.isSafeInteger(baseXp) || baseXp < 0)
+    throw new Error("Recompensa inválida");
+  if (!Number.isSafeInteger(hintsUsed) || hintsUsed < 0)
+    throw new Error("Assistência inválida");
+  return Math.floor(
+    baseXp *
+      (hard ? 3 : 1) *
+      (rewardPercent(hintsUsed) / 100) *
+      rejectionRewardFactor(rejections),
+  );
+}

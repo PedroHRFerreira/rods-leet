@@ -60,3 +60,21 @@ it("enforces concurrency and creation rate while keeping failed cost accounted",
     }),
   ).toBe(settled);
 });
+it("allows more than ten sequential practice runs without a daily user quota", () => {
+  let state = initial();
+  for (let index = 0; index < 15; index++) {
+    const id = `practice-${index}`;
+    state = reserveExecution(state, {
+      ...request,
+      id,
+      maxCostMicros: 1000,
+      serverNow: `2026-09-05T00:00:${String(index).padStart(2, "0")}Z`,
+    });
+    state = settleExecution(state, {
+      id,
+      actualCostMicros: 1000,
+      infrastructureFailure: false,
+    });
+  }
+  expect(state.reservations).toHaveLength(15);
+});

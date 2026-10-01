@@ -17,7 +17,11 @@ export async function handler(request: Request): Promise<Response> {
     if (op === "rate") {
       const bucket = stringValue(body.bucket, "bucket", 160);
       // Callers may tighten but never lift the anonymous admission ceiling.
-      if (!/^(login|callback|session-read):[a-f0-9]{64}$/.test(bucket))
+      if (
+        !/^(login|callback|session-read|anonymous-create):[a-f0-9]{64}$/.test(
+          bucket,
+        )
+      )
         throw new ApiError("invalid_bucket");
       await rateLimit(db, bucket, bucket.startsWith("session-read:") ? 60 : 5);
       return new Response("true", { headers });
@@ -25,6 +29,7 @@ export async function handler(request: Request): Promise<Response> {
     if (
       ![
         "create",
+        "create-anonymous",
         "get",
         "delete",
         "oauth-put",
@@ -38,7 +43,7 @@ export async function handler(request: Request): Promise<Response> {
     const id = stringValue(body.id, "id", 64);
     if (!/^[a-f0-9]{64}$/.test(id)) throw new ApiError("invalid_id");
     if (
-      ["create", "oauth-put", "update"].includes(op) &&
+      ["create", "create-anonymous", "oauth-put", "update"].includes(op) &&
       (typeof body.payload !== "string" ||
         body.payload.length > 24576 ||
         !body.payload.length)

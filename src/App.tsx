@@ -1,6 +1,6 @@
 import { Component, lazy, Suspense, useEffect } from "react";
 import type { ErrorInfo, ReactNode } from "react";
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Navigate, Route, Routes } from "react-router-dom";
 import Shell from "./components/Shell";
 import { EmptyState, LoadingState } from "./components/ui";
 import DashboardPage from "./pages/DashboardPage";
@@ -8,7 +8,6 @@ import CatalogPage from "./pages/CatalogPage";
 import TracksPage from "./pages/TracksPage";
 
 const ChallengePage = lazy(() => import("./pages/ChallengePage"));
-const TutorPage = lazy(() => import("./pages/TutorPage"));
 const RankingPage = lazy(() => import("./pages/RankingPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 
@@ -50,10 +49,10 @@ function AuthCallback() {
   return (
     <EmptyState
       title="Acesso ao beta"
-      description="Não foi possível concluir o login. Volte ao perfil e tente novamente."
+      description="O beta está aberto sem login obrigatório. Continue pelo catálogo de desafios."
     >
-      <Link className="button button-primary" to="/perfil">
-        Voltar ao perfil
+      <Link className="button button-primary" to="/desafios">
+        Explorar desafios
       </Link>
     </EmptyState>
   );
@@ -69,7 +68,7 @@ export default function App() {
             <Route path="desafios" element={<CatalogPage />} />
             <Route path="trilhas" element={<TracksPage />} />
             <Route path="desafios/:slug" element={<ChallengePage />} />
-            <Route path="tutor" element={<TutorPage />} />
+            <Route path="tutor" element={<Navigate to="/desafios" replace />} />
             <Route path="ranking" element={<RankingPage />} />
             <Route path="perfil" element={<ProfilePage />} />
             <Route path="auth/callback" element={<AuthCallback />} />

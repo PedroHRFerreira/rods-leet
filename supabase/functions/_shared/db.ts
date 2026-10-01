@@ -89,6 +89,17 @@ export async function authenticatedUser(request: Request) {
   });
   if (!response.ok) throw new ApiError("authentication_required", 401);
   const user = await response.json();
+  if (typeof user.id !== "string")
+    throw new ApiError("authentication_required", 401);
+  if (user.is_anonymous === true) {
+    return {
+      id: user.id as string,
+      email: "",
+      name: `Explorador ${user.id.slice(0, 6)}`,
+      githubLogin: null,
+      anonymous: true,
+    };
+  }
   if (
     typeof user.id !== "string" ||
     typeof user.email !== "string" ||
@@ -114,6 +125,7 @@ export async function authenticatedUser(request: Request) {
       : undefined;
   if (!githubIdentity) throw new ApiError("github_account_required", 403);
   return {
+    anonymous: false,
     id: user.id as string,
     email: user.email as string,
     name: String(

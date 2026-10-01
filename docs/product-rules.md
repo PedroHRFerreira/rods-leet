@@ -1,17 +1,19 @@
 # Regras vigentes do CodeGamer
 
-Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre documentos anteriores. O produto é gratuito e aberto para contas GitHub com e-mail verificado. Hard é uma capacidade da segunda fase e só pode ser habilitado após homologação.
+Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre documentos anteriores. O primeiro beta é gratuito e acessível sem login obrigatório. Uma sessão anônima interna separa os dados e o progresso de cada visitante. Hard é uma capacidade da segunda fase e só pode ser habilitado após homologação.
 
 ## Avaliação e progresso
 
 - Todos os testes obrigatórios devem passar. Testes do aluno, tutor e diagnósticos de crescimento não decidem aprovação.
 - `easy`, `medium`, `hard` são dificuldades. `normal`, `hard` são modos independentes.
-- Normal não retira XP por erro. Hard retira até 30 XP por submissão rejeitada; o saldo nunca fica negativo.
-- Primeira aprovação por usuário, desafio e modo: XP base no Normal, três vezes a base no Hard. Linguagem, versão e nova sessão não reiniciam a recompensa.
-- Recompensa: 100% sem dicas, 95% com uma, 85% com duas ou mais; arredondar para baixo para XP inteiro. Assistência é cumulativa por desafio, em todas as sessões e linguagens.
+- Executar compila/roda o código para estudo e mostra saída padrão, erros e falhas reais, sem conceder XP. Programas podem usar console/print sem assinatura obrigatória; soluções em formato de função também continuam aceitas. Programas recebem a entrada do caso em stdin e imprimem o resultado.
+- Submeter exige confirmação visual e compara os resultados reais com os resultados esperados dos casos obrigatórios. Respostas esperadas fixas não são aprovação simulada.
+- Rejeição atribuível ao código não desconta XP já conquistado. Ela reduz a recompensa futura desse desafio em 15% do XP base por erro acumulado, linearmente até zero. Falhas da plataforma não contam. É possível corrigir e tentar novamente.
+- Primeira aprovação por usuário e desafio: XP base no Normal, três vezes a base no Hard quando habilitado. Linguagem, modo, versão e nova sessão não reiniciam a recompensa. Após aprovar, avançar ao próximo desafio; não aceitar outra submissão oficial do mesmo desafio, mas continuar permitindo execuções de estudo.
+- Recompensa: aplicar ao XP base o multiplicador do modo, o fator de dicas (100% sem dicas, 95% com uma, 85% com duas ou mais) e `max(0, 1 - 0.15 × rejeições acumuladas)`; arredondar para baixo para XP inteiro. Assistência e rejeições são cumulativas por desafio em todas as sessões e linguagens.
 - Uma dica inicial; mais uma a cada dez desafios distintos concluídos. Repetir desafio ou mudar modo não concede outra conclusão distinta.
 - Gabarito gratuito após uma aprovação ou três submissões incorretas acumuladas. Abrir antes de resolver torna futuras submissões desse desafio prática sem XP. Uma submissão pendente preserva o snapshot de assistência do envio.
-- Nível inicial zero. A transição do nível L para L+1 custa 150 × (L+1) XP adicionais. Penalidades podem reduzir nível, mas não apagam conclusões.
+- Nível inicial zero. A transição do nível L para L+1 custa 150 × (L+1) XP adicionais. Erros nesta versão não reduzem nível nem apagam conclusões.
 - Ranking único, ordenado por XP líquido, conclusões distintas e instante em que a pontuação foi alcançada. Nunca vender XP, multiplicadores de XP ou posição no ranking.
 
 ## Sessões Hard
@@ -25,7 +27,7 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 ## Limites e segurança
 
 - Até 20 arquivos de texto e 256 KiB, com paths relativos dentro de áreas declaradas pelo manifesto; proibir travessia, links e arquivos de configuração não autorizados.
-- Dez execuções remotas por usuário/dia, quatro globais simultâneas, uma por usuário, no máximo uma criação de sandbox por segundo.
+- Execuções de estudo sem cota diária por usuário. Manter quatro globais simultâneas, uma por usuário e no máximo uma criação de sandbox por segundo; esses controles operacionais não mudam a quantidade de tentativas de estudo.
 - Sandbox: 90 segundos absolutos; compilação até 45 segundos; por caso, 2 segundos CPU e 5 segundos de duração, com perfil homologado por runtime. Limites de saída 64 KiB por caso/256 KiB por job.
 - Código arbitrário executa apenas no provedor isolado configurado. Demonstração local não executa código nem finge aprovação/XP.
 - Reserva prévia de custo máximo; teto US$1/dia e 80% dos créditos gratuitos confirmados. Sem saldo confirmado, bloquear execução. Não cadastrar pagamento nem habilitar upgrade automático.
@@ -35,6 +37,7 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 
 ## Tutor e operação
 
+- Tutor oculto da navegação e dos atalhos enquanto não estiver pronto. Suas regras abaixo só se aplicam quando a funcionalidade for habilitada em versão posterior.
 - Duas interações/dia por usuário, entrada até 2.048 tokens, saída até 1.024 e reserva global 8.000 neurons/dia. Cota esgotada fornece conteúdo editorial.
 - Ajuda sobre desafio ativo conta como dica; revisão após aprovação e estudo geral não reduzem XP conquistado. O tutor nunca decide veredito nem recebe segredos ou testes ocultos.
 - Manter rascunhos e soluções aceitas; rejeitadas por 30 dias e logs por sete. Backup diário criptografado fora do projeto Supabase e ensaio de restauração contínuo.

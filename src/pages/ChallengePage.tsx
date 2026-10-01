@@ -3,6 +3,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -37,8 +38,9 @@ import {
   TopicIcon,
 } from "../components/ui";
 import { challengeById, topics } from "../content/catalog";
+import { programStarterFiles } from "../content/program-templates";
 import { LearningResourceList } from "../components/LearningResourceList";
-import { LANGUAGES, rewardPercent } from "../domain/rules";
+import { LANGUAGES, completionReward } from "../domain/rules";
 import type {
   Attempt,
   Dashboard,
@@ -174,7 +176,7 @@ function ChallengeWorkspace({
     : "offline";
   const executionMessage =
     executionStatus === "ready"
-      ? "Execução isolada pronta. Executar exemplos não concede XP nem consome tentativas."
+      ? "Execute livremente. Somente uma submissão incorreta reduz a recompensa em 15% do XP base."
       : executionStatus === "busy"
         ? "O executor está atendendo outra solução. Tente novamente em instantes; seu rascunho está salvo."
         : "A execução remota está indisponível agora. Seu rascunho continua salvo e nenhuma tentativa será consumida.";
@@ -184,11 +186,34 @@ function ChallengeWorkspace({
   const prerequisite = challenge.prerequisites?.[0]
     ? challengeById.get(challenge.prerequisites[0])
     : undefined;
-  const nextChallenge = challenge.learningPath?.nextChallengeId
+  const guidedNextChallenge = challenge.learningPath?.nextChallengeId
     ? challengeById.get(challenge.learningPath.nextChallengeId)
     : undefined;
+  const remainingChallenges = [...challengeById.values()].filter(
+    (item) =>
+      item.id !== challenge.id &&
+      !dashboard.completedChallengeIds.includes(item.id),
+  );
+  const nextChallenge =
+    guidedNextChallenge ??
+    remainingChallenges.find((item) => item.topicId === challenge.topicId) ??
+    remainingChallenges[0];
   const completed = dashboard.completedChallengeIds.includes(challenge.id);
-  const currentPercent = rewardPercent(attempt?.hintsUsed ?? 0);
+  const approved =
+    completed ||
+    attempt?.status === "accepted" ||
+    (submissionKind === "submit" && submission?.verdict === "accepted");
+  const potentialXp =
+    completed || attempt?.practiceOnly
+      ? 0
+      : completionReward(
+          challenge.baseXp,
+          attempt?.mode === "hard",
+          attempt?.hintsUsed ?? 0,
+          attempt?.rejectedCount ?? 0,
+        );
+  const [approval, setApproval] = useState<PublicSubmission | null>(null);
+  const pendingApproval = useRef<string | null>(null);
   useEffect(() => {
     if (!dashboard.profile.authenticated) return;
     let active = true;
@@ -247,6 +272,13 @@ function ChallengeWorkspace({
     if (!official.data) return;
     setSubmission(official.data);
     if (official.data.status === "completed") {
+      if (
+        official.data.verdict === "accepted" &&
+        pendingApproval.current === official.data.id
+      ) {
+        pendingApproval.current = null;
+        setApproval(official.data);
+      }
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["ranking"] });
       void gateway
@@ -265,7 +297,8 @@ function ChallengeWorkspace({
     return key;
   }
   async function ensureAttempt() {
-    if (attempt?.status === "active") return attempt;
+    if (attempt?.status === "active" || attempt?.status === "accepted")
+      return attempt;
     const next = await gateway.startAttempt(
       { challengeVersionId: challenge.versionId, mode: "normal" },
       keyFor("attempt"),
@@ -274,7 +307,13 @@ function ChallengeWorkspace({
     setAttempt(next);
     return next;
   }
-  async function execute(files: SourceFile[], kind: "run" | "submit") {
+  async function execute(
+    files: SourceFile[],
+    kind: "run" | "submit",
+    executionMode: "function" | "program",
+    stdin: string,
+  ) {
+    if (kind === "submit" && approved) return;
     if (executionStatus !== "ready") {
       setError(executionMessage);
       return;
@@ -287,11 +326,14 @@ function ChallengeWorkspace({
         challengeVersionId: challenge.versionId,
         attemptId: current.id,
         languageId: language,
+        executionMode,
+        ...(kind === "run" ? { stdin } : {}),
         files: files.map((file) => ({ ...file })),
       };
       const operation = `${kind}:${JSON.stringify(input)}`;
       const next = await gateway[kind](input, keyFor(operation));
       actionKeys.current.delete(operation);
+      if (kind === "submit") pendingApproval.current = next.id;
       setSubmission(next);
       setSubmissionId(next.id);
       setSubmissionKind(kind);
@@ -368,15 +410,7 @@ function ChallengeWorkspace({
         </div>
         <div className="arena-xp">
           <Zap size={18} fill="currentColor" />
-          <strong>
-            {Math.floor(
-              ((attempt?.practiceOnly ? 0 : challenge.baseXp) *
-                (attempt?.mode === "hard" ? 3 : 1) *
-                currentPercent) /
-                100,
-            )}{" "}
-            XP
-          </strong>
+          <strong>{potentialXp} XP</strong>
           <small>
             {completed
               ? "Primeira recompensa já recebida"
@@ -763,6 +797,8 @@ function ChallengeWorkspace({
             executionStatus={executionStatus}
             executionMessage={executionMessage}
             onExecute={execute}
+            approved={approved}
+            potentialXp={potentialXp}
           />
           <section
             className="panel results-panel"
@@ -773,9 +809,7 @@ function ChallengeWorkspace({
                 <Terminal size={16} />
                 Resultados
               </h2>
-              <span>
-                {dashboard.remoteRunsRemaining} execuções disponíveis hoje
-              </span>
+              <span>Execuções livres · sem limite de tentativas</span>
             </div>
             {official.isError && (
               <div className="arena-alert" role="alert">
@@ -803,8 +837,8 @@ function ChallengeWorkspace({
                 </span>
                 <strong>Seu próximo aprendizado começa no código.</strong>
                 <p>
-                  Execute os exemplos públicos para conferir sua solução.
-                  Submeta quando estiver pronta para a avaliação oficial.
+                  Execute seu código quantas vezes quiser para aprender. Submeta
+                  quando estiver pronta para a avaliação oficial.
                 </p>
               </div>
             )}
@@ -815,12 +849,45 @@ function ChallengeWorkspace({
           </section>
         </div>
       </div>
+      <ChallengeDialog
+        open={Boolean(approval)}
+        onClose={() => setApproval(null)}
+        title="Desafio aprovado!"
+      >
+        <p>
+          Parabéns, seu resultado está correto. Você recebeu{" "}
+          {approval?.xpAwarded ?? 0} XP. Pode continuar executando seu código
+          para experimentar outras formas de resolver.
+        </p>
+        <div className="challenge-dialog-actions">
+          <button
+            className="button button-secondary"
+            onClick={() => setApproval(null)}
+          >
+            Ver meu resultado
+          </button>
+          {nextChallenge && (
+            <Link
+              className="button button-primary"
+              to={`/desafios/${nextChallenge.slug}`}
+            >
+              Próximo desafio <ChevronRight size={16} />
+            </Link>
+          )}
+          {!nextChallenge && (
+            <Link className="button button-primary" to="/desafios">
+              Ver desafios concluídos <ChevronRight size={16} />
+            </Link>
+          )}
+        </div>
+      </ChallengeDialog>
     </div>
   );
 }
 
 interface EditorDraft extends DraftInput {
   localDirty?: boolean;
+  executionMode?: "function" | "program";
 }
 function SourceWorkspace({
   challenge,
@@ -834,12 +901,21 @@ function SourceWorkspace({
   executionStatus,
   executionMessage,
   hard,
+  approved,
+  potentialXp,
 }: {
   challenge: PublicChallenge;
   language: LanguageId;
   userId: string;
   onLanguage: (value: LanguageId) => void;
-  onExecute: (files: SourceFile[], kind: "run" | "submit") => Promise<void>;
+  onExecute: (
+    files: SourceFile[],
+    kind: "run" | "submit",
+    executionMode: "function" | "program",
+    stdin: string,
+  ) => Promise<void>;
+  approved: boolean;
+  potentialXp: number;
   busy: boolean;
   executionAction: "run" | "submit" | null;
   executionPhase: "sending" | "queued" | "running" | null;
@@ -874,10 +950,40 @@ function SourceWorkspace({
     } catch {
       /* A malformed draft never replaces the starter. */
     }
-    return (challenge.starterFilesByLanguage[language] ?? []).map((file) => ({
-      ...file,
-    }));
+    const starter =
+      language === "sql"
+        ? (challenge.starterFilesByLanguage[language] ?? [])
+        : programStarterFiles(language);
+    return starter.map((file) => ({ ...file }));
   });
+  const [executionMode, setExecutionMode] = useState<"function" | "program">(
+    () => {
+      if (language === "sql") return "function";
+      try {
+        return localStorage.getItem(`${storageKey}:mode`) === "program"
+          ? "program"
+          : initialDraft.current
+            ? "function"
+            : "program";
+      } catch {
+        return initialDraft.current ? "function" : "program";
+      }
+    },
+  );
+  const [stdin, setStdin] = useState("");
+  const [confirmSubmission, setConfirmSubmission] = useState(false);
+  const [confirmStarter, setConfirmStarter] = useState(false);
+  const updateMode = useCallback(
+    (mode: "function" | "program") => {
+      setExecutionMode(mode);
+      try {
+        localStorage.setItem(`${storageKey}:mode`, mode);
+      } catch {
+        /* Mode remains selected during this visit. */
+      }
+    },
+    [storageKey],
+  );
   const [activeFile, setActiveFile] = useState(files[0]?.path ?? "solution");
   const [saveState, setSaveState] = useState("Salvo neste dispositivo");
   const [otherTab, setOtherTab] = useState(false);
@@ -968,6 +1074,12 @@ function SourceWorkspace({
         if (!remote) return;
         const loaded = { ...remote, localDirty: false };
         setFiles(remote.files);
+        try {
+          if (!localStorage.getItem(`${storageKey}:mode`))
+            updateMode("function");
+        } catch {
+          updateMode("function");
+        }
         setActiveFile(remote.files[0]?.path ?? "solution");
         initialDraft.current = loaded;
         try {
@@ -995,11 +1107,15 @@ function SourceWorkspace({
       if (saveTimer.current) clearTimeout(saveTimer.current);
       window.removeEventListener("storage", onStorage);
     };
-  }, [challenge.id, gateway, language, storageKey, synchronize]);
+  }, [challenge.id, gateway, language, storageKey, synchronize, updateMode]);
   function updateCode(content: string) {
-    const next = files.map((file) =>
-      file.path === activeFile ? { ...file, content } : file,
+    saveFiles(
+      files.map((file) =>
+        file.path === activeFile ? { ...file, content } : file,
+      ),
     );
+  }
+  function saveFiles(next: SourceFile[]) {
     const nextBytes = new TextEncoder().encode(
       next.map((item) => item.content).join(""),
     ).byteLength;
@@ -1110,6 +1226,70 @@ function SourceWorkspace({
           </select>
         </label>
       </div>
+      {language !== "sql" && (
+        <div className="program-controls">
+          <label>
+            Forma de executar{" "}
+            <select
+              aria-label="Forma de executar"
+              value={executionMode}
+              onChange={(event) =>
+                updateMode(event.target.value as "function" | "program")
+              }
+              disabled={busy}
+            >
+              <option value="program">Programa livre · entrada e saída</option>
+              <option value="function">Função do modelo</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className="text-link"
+            onClick={() => setConfirmStarter(true)}
+            disabled={busy}
+          >
+            Carregar modelo desta forma
+          </button>
+          <p>
+            Alterar a forma de executar mantém seu código. Use o modelo se
+            quiser começar novamente.
+          </p>
+          <p>
+            {executionMode === "program"
+              ? "Use console.log, print ou a saída padrão da sua linguagem. Ao submeter, cada entrada chega como JSON em uma linha: leia os valores e imprima somente o resultado esperado. Para objetos e listas, imprima JSON. Mensagens de diagnóstico devem ir para a saída de erros, pois a saída completa é comparada."
+              : "Implemente a função indicada no modelo. O resultado retornado pela função será comparado com a resposta esperada."}
+          </p>
+          {executionMode === "program" && (
+            <>
+              <label htmlFor="program-stdin">Entrada para experimentar</label>
+              <textarea
+                id="program-stdin"
+                aria-label="Entrada para experimentar"
+                value={stdin}
+                onChange={(event) => {
+                  if (
+                    new TextEncoder().encode(event.target.value).byteLength <=
+                    65536
+                  )
+                    setStdin(event.target.value);
+                }}
+                placeholder="Digite aqui a entrada que seu programa vai ler"
+                rows={3}
+              />
+              <button
+                className="text-link"
+                onClick={() =>
+                  setStdin(
+                    JSON.stringify(challenge.examples[0]?.input ?? null) + "\n",
+                  )
+                }
+              >
+                Usar entrada do primeiro exemplo
+              </button>
+            </>
+          )}
+        </div>
+      )}
       <div
         className="code-file-tabs"
         role="tablist"
@@ -1188,37 +1368,108 @@ function SourceWorkspace({
           className="button button-secondary"
           disabled={busy || !file || executionStatus !== "ready"}
           title={executionStatus === "ready" ? undefined : executionMessage}
-          onClick={() => void onExecute(files, "run")}
+          onClick={() => void onExecute(files, "run", executionMode, stdin)}
         >
           <Play size={15} />
           {executionAction === "run"
             ? executionPhase === "sending"
               ? "Enviando…"
-              : "Validando exemplos…"
+              : "Executando…"
             : executionStatus === "busy"
               ? "Executor ocupado"
               : executionStatus === "offline"
                 ? "Executor indisponível"
-                : "Executar exemplos"}
+                : "Executar código"}
         </button>
         <button
           type="button"
           className="button button-primary"
-          disabled={busy || !file || executionStatus !== "ready"}
-          title={executionStatus === "ready" ? undefined : executionMessage}
-          onClick={() => void onExecute(files, "submit")}
+          disabled={busy || !file || executionStatus !== "ready" || approved}
+          title={
+            approved
+              ? "Este desafio já foi aprovado"
+              : executionStatus === "ready"
+                ? undefined
+                : executionMessage
+          }
+          onClick={() => setConfirmSubmission(true)}
         >
           <Send size={15} />
           {executionAction === "submit"
             ? executionPhase === "sending"
               ? "Enviando…"
               : "Validando solução…"
-            : "Submeter solução"}
+            : approved
+              ? "Desafio aprovado"
+              : "Submeter solução"}
         </button>
       </div>
+      <ChallengeDialog
+        open={confirmStarter}
+        onClose={() => setConfirmStarter(false)}
+        title="Carregar um novo modelo?"
+      >
+        <p>
+          O código atual será substituído pelo modelo escolhido. Copie seu
+          código se quiser guardar as duas versões.
+        </p>
+        <div className="challenge-dialog-actions">
+          <button
+            className="button button-secondary"
+            onClick={() => setConfirmStarter(false)}
+          >
+            Manter meu código
+          </button>
+          <button
+            className="button button-primary"
+            onClick={() => {
+              const starter =
+                executionMode === "program"
+                  ? programStarterFiles(language)
+                  : (challenge.starterFilesByLanguage[language] ?? []).map(
+                      (file) => ({ ...file }),
+                    );
+              saveFiles(starter);
+              setActiveFile(starter[0]?.path ?? "solution");
+              setConfirmStarter(false);
+            }}
+          >
+            Substituir pelo modelo
+          </button>
+        </div>
+      </ChallengeDialog>
+      <ChallengeDialog
+        open={confirmSubmission}
+        onClose={() => setConfirmSubmission(false)}
+        title="Submeter esta solução?"
+      >
+        <p>
+          Se o resultado estiver correto, você conclui este desafio e recebe até{" "}
+          {potentialXp} XP. Se estiver incorreto, pode tentar novamente com 15%
+          a menos do XP base por erro.
+        </p>
+        <div className="challenge-dialog-actions">
+          <button
+            className="button button-secondary"
+            onClick={() => setConfirmSubmission(false)}
+          >
+            Continuar editando
+          </button>
+          <button
+            className="button button-primary"
+            onClick={() => {
+              setConfirmSubmission(false);
+              void onExecute(files, "submit", executionMode, stdin);
+            }}
+          >
+            Confirmar submissão
+          </button>
+        </div>
+      </ChallengeDialog>
       <p className="submission-guidance">
-        Submeter solução valida seu código com testes oficiais privados. Use a
-        assinatura e o formato de resposta indicados para esta linguagem.
+        Executar não reduz seu XP. Submeter compara o resultado com as respostas
+        esperadas. Cada resposta incorreta reduz a recompensa em 15% do XP base,
+        até zero; você pode tentar novamente.
       </p>
     </section>
   );
@@ -1263,7 +1514,7 @@ function SubmissionResult({
           <XCircle size={21} />
         )}
         {kind === "run" && accepted
-          ? "Exemplos públicos passaram"
+          ? "Execução concluída"
           : hard && !accepted && !infrastructure
             ? "Solução rejeitada"
             : submission.verdict
@@ -1272,12 +1523,30 @@ function SubmissionResult({
       </h3>
       {kind === "run" && (
         <p>
-          Este resultado testa somente os exemplos públicos. Console e print
-          ainda não são um programa livre: use Submeter para a avaliação
-          oficial. Executar exemplos não concede XP nem consome tentativas.
+          Você pode editar e executar novamente quantas vezes quiser. Esta
+          execução não concede XP nem reduz sua recompensa.
         </p>
       )}
       {submission.message && <p>{submission.message}</p>}
+      {kind === "submit" && !accepted && !infrastructure && (
+        <p>
+          A solução ainda não produz o resultado esperado. Confira a saída,
+          ajuste o código e tente novamente. Sua recompensa foi reduzida em 15%
+          do XP base.
+        </p>
+      )}
+      {submission.stdout !== undefined && (
+        <div className="program-output">
+          <strong>Saída do seu código</strong>
+          <pre>{submission.stdout || "(nenhuma saída)"}</pre>
+        </div>
+      )}
+      {submission.stderr && (
+        <div className="program-output">
+          <strong>Erros e avisos</strong>
+          <pre>{submission.stderr}</pre>
+        </div>
+      )}
       {infrastructure && (
         <p>
           Sem penalidade ou consumo de tentativa. Você poderá tentar novamente.
@@ -1348,5 +1617,36 @@ function HardClock({ attempt }: { attempt: Attempt }) {
         servidor
       </span>
     </div>
+  );
+}
+
+function ChallengeDialog({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    if (open && !dialog.current?.open) dialog.current?.showModal();
+    if (!open && dialog.current?.open) dialog.current?.close();
+  }, [open]);
+  return (
+    <dialog
+      ref={dialog}
+      className="challenge-dialog"
+      aria-labelledby={titleId}
+      onCancel={onClose}
+      onClose={onClose}
+    >
+      <h2 id={titleId}>{title}</h2>
+      {children}
+    </dialog>
   );
 }

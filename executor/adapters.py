@@ -10,10 +10,35 @@ def write(path,content):
     os.chmod(target,0o444)
     if target.parent!=WORK:os.chmod(target.parent,0o755)
 
+def prepare_program(language):
+    """Compile/run the learner's program itself, without injecting a judge call."""
+    if language=='javascript':
+        write('package.json','{"type":"module"}')
+        return ['node','--max-old-space-size=1024','solution.js'],None
+    if language=='typescript':
+        write('package.json','{"type":"commonjs"}')
+        return ['node','--max-old-space-size=1024','solution.js'],['/usr/local/bin/tsc','solution.ts','--outDir','/workspace','--target','ES2022','--module','commonjs','--moduleResolution','node','--skipLibCheck']
+    if language=='python':return ['/opt/python/bin/python3','-I','solution.py'],None
+    if language=='java':return ['java','-Xmx1024m','-cp','.:/opt/libs/*','Solution'],['javac','-cp','/opt/libs/*','Solution.java']
+    if language=='csharp':
+        write('CodeGamer.csproj','<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><Nullable>enable</Nullable><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup><ItemGroup><Compile Include="Solution.cs"/></ItemGroup></Project>')
+        return ['dotnet','bin/Release/net8.0/CodeGamer.dll'],['dotnet','build','CodeGamer.csproj','-c','Release','--ignore-failed-sources','--nologo']
+    if language=='cpp':return ['./program'],['g++','-std=c++20','-O2','solution.cpp','-o','program']
+    if language=='c':return ['./program'],['gcc','-std=c17','-O2','solution.c','-lcjson','-o','program']
+    if language=='go':
+        write('go.mod','module codegamer\n\ngo 1.23\n')
+        return ['./program'],['go','build','-o','program','solution.go']
+    if language=='rust':
+        write('Cargo.toml','[package]\nname="codegamer"\nversion="0.1.0"\nedition="2021"\n[[bin]]\nname="program"\npath="solution.rs"\n[dependencies]\nserde_json="=1.0.140"\n')
+        return ['target/release/program'],['cargo','build','--offline','--release']
+    if language=='kotlin':return ['java','-Xmx1024m','-cp','program.jar:/opt/kotlin-libs/*','SolutionKt'],['kotlinc','Solution.kt','-classpath','/opt/kotlin-libs/kotlinx-serialization-json-jvm.jar:/opt/kotlin-libs/kotlinx-serialization-core-jvm.jar','-include-runtime','-d','program.jar']
+    raise RuntimeError('unsupported_language')
+
 def prepare(request,manifest):
     language=request['languageId']; name=request['functionName']; maximum=name=='findMax'
     if language=='sql':
         return ['/opt/python/bin/python3','-I','/opt/codegamer/sql_runner.py'],None
+    if request.get('executionMode','function')=='program':return prepare_program(language)
     if language in ('javascript','typescript'):
         module='./solution.js'
         call='student.findMax(input)' if maximum else 'student.shortestPath(input.graph,input.start,input.end)' if name=='shortestPath' else 'student.solve(input)'

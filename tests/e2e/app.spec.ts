@@ -158,24 +158,20 @@ test("fundamentals challenge adapts its wording and starter code to the selected
   await expect(
     page.getByRole("button", { name: "Submeter solução", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByText(
-      "Submeter solução valida seu código com testes oficiais privados.",
-    ),
-  ).toBeVisible();
+  await expect(page.getByText(/Executar não reduz seu XP/)).toBeVisible();
   await expect(page.getByText("Objetivo de aprendizado")).toHaveCount(0);
   await expect(page.locator(".problem-description")).toContainText(
     "Em Python, inteiros usam o tipo int",
   );
   await expect(page.locator(".monaco-editor").first()).toContainText(
-    "Python: total: int = 0",
+    'print("Olá, mundo!")',
   );
   await page.getByLabel("Linguagem").selectOption("rust");
   await expect(page.locator(".problem-description")).toContainText(
     "Em Rust, use i32",
   );
   await expect(page.locator(".monaco-editor").first()).toContainText(
-    "Rust: let total: i32 = 0",
+    'println!("Olá, mundo!")',
   );
 });
 
@@ -327,20 +323,15 @@ test("SQL uses its own schema and language", async ({ page }) => {
   );
 });
 
-test("tutor, ranking and sign-in expose honest unavailable states", async ({
+test("tutor stays hidden and profile is available without login", async ({
   page,
 }) => {
   await page.goto("/tutor");
-  await page
-    .getByRole("button", { name: "Como organizar uma rotina de estudos?" })
-    .click();
+  await expect(page).toHaveURL(/\/desafios$/);
+  await expect(page.getByRole("link", { name: /Tutor/ })).toHaveCount(0);
   await expect(
     page.getByRole("textbox", { name: "Sua mensagem ao tutor" }),
-  ).toHaveValue("Como organizar uma rotina de estudos?");
-  await page.getByRole("button", { name: "Enviar mensagem ao tutor" }).click();
-  await expect(page.getByRole("alert")).toContainText(
-    "Entre com sua conta GitHub",
-  );
+  ).toHaveCount(0);
   await page.goto("/ranking");
   const hero = page.locator(".ranking-hero");
   await expect(hero).toBeVisible();
@@ -359,10 +350,13 @@ test("tutor, ranking and sign-in expose honest unavailable states", async ({
   ).toBeVisible();
   await expect(page.locator(".ranking-table tbody tr")).toHaveCount(0);
   await page.goto("/perfil");
-  await page.getByRole("button", { name: "Continuar com GitHub" }).click();
-  await expect(page.getByRole("alert")).toContainText(
-    "O login com GitHub ainda não está configurado neste ambiente",
-  );
+  await expect(
+    page.getByRole("heading", { name: "Perfil e progresso" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Beta aberto · sem login obrigatório"),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /GitHub/ })).toHaveCount(0);
 });
 
 test("keyboard navigation and responsive pages stay within the viewport", async ({

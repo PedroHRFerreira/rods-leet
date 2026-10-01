@@ -62,7 +62,7 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
       ) {
         throw new GatewayError(
           "invalid_session",
-          "Não foi possível conferir seu acesso. Entre novamente.",
+          "Não foi possível iniciar sua sessão de estudo. Recarregue a página para tentar novamente.",
           502,
         );
       }

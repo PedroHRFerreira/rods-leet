@@ -67,7 +67,7 @@ export function guestDashboard(): Dashboard {
     recommendations: [
       {
         challengeId: "sum-two-integers",
-        reason: "Comece pelos inteiros e escreva sua primeira função.",
+        reason: "Comece pelos inteiros e execute seu primeiro programa.",
       },
       {
         challengeId: "balanced-brackets",
@@ -78,7 +78,7 @@ export function guestDashboard(): Dashboard {
         reason: "Explore consultas com PostgreSQL.",
       },
     ],
-    remoteRunsRemaining: 10,
+    remoteRunsRemaining: null,
     tutorMessagesRemaining: 2,
     executionStatus: "unconfigured",
   };
@@ -120,7 +120,7 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
     } catch {
       throw new GatewayError(
         "authentication_unavailable",
-        "Não foi possível conferir seu acesso. Tente entrar novamente.",
+        "Não foi possível iniciar sua sessão de estudo. Tente novamente.",
         503,
       );
     }
@@ -136,7 +136,7 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
     if (!current)
       throw new GatewayError(
         "authentication_required",
-        "Entre com sua conta GitHub para usar este recurso.",
+        "Não foi possível iniciar sua sessão de estudo. Recarregue a página para tentar novamente.",
         401,
       );
     if (!live)
