@@ -4,6 +4,12 @@ Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria d
 
 ## Beta aberto publicado — 30 de setembro de 2026
 
+### Revisão de manutenção — 1 de outubro de 2026
+
+Atualizadas somente as dependências indiretas de produção `fast-uri` de 3.1.7 para 3.1.8 e `ip-address` de 10.7.0 para 10.7.2. Auditoria de produção: zero vulnerabilidades; 280 testes e compilação aprovados após a atualização. As correções correspondem aos avisos dos mantenedores de [fast-uri](https://github.com/fastify/fast-uri/security/advisories/GHSA-hrr3-gc8f-f4qj) e [ip-address](https://github.com/beaugunderson/ip-address/security/advisories/GHSA-j6r3-76f7-8jcv). A auditoria completa ainda aponta dois alertas moderados e cinco altos em ferramentas de desenvolvimento; não foi aplicada atualização principal do Vitest nem mudança ampla de ferramentas.
+
+README, exemplos de ambiente e roteiro de operação agora descrevem o catálogo de 69 etapas, as perguntas antes do código, o acesso anônimo, o BFF no mesmo domínio e o contrato de função. O roteiro diferencia o executor Docker ativo das opções futuras de E2B e tutor. Executor e túnel foram verificados ativos; disponibilidade permanente e backup/restauração seguem sem comprovação nova.
+
 ### Perguntas antes do código — 1 de outubro de 2026
 
 A trilha de lógica começa por dez perguntas guiadas sem editor: valores, variáveis, números, textos, verdadeiro/falso, funções, parâmetros, return, export e classes. Só depois aparecem os seis modelos para pequenas edições de código. O catálogo tem 69 etapas (dez perguntas e 59 exercícios de código), com 29 etapas na lógica. IDs, rascunhos e conclusões dos exercícios existentes foram preservados.

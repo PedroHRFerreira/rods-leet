@@ -2,7 +2,9 @@
 
 ## Estado entregue e condições operacionais
 
-O repositório contém catálogo público, API autenticada, migrações, juiz privado, fila transacional, adaptador E2B, supervisor, adaptadores de dez linguagens, política SQL PostgreSQL 18 e tutor Workers AI. A execução remota nasce **desativada**, com crédito confirmado zero e sem runtimes homologados. Não há credenciais, infraestrutura contratada, cobrança automática ou resultado de execução simulado no caminho de produção.
+O beta publicado abre com uma sessão anônima automática. Seu catálogo contém dez perguntas guiadas e 59 exercícios de código. As perguntas são avaliadas pela API privada; os exercícios usam a fila Supabase e o executor Docker local, conectado por um Quick Tunnel HTTPS autorizado e protegido por token. O tutor está fora da navegação e o modo Hard permanece desativado. Evidências e limites atuais estão em [estado da implantação](deployment-status.md).
+
+Uma instalação nova começa com execução desativada e exige homologação antes da ativação. O adaptador E2B existe no repositório, mas não integra o ambiente ativo; as instruções de E2B abaixo servem para uma futura implantação explicitamente autorizada. Não há cobrança de provedor de execução no beta local.
 
 Os testes locais das funções e das regras de banco não homologam um template E2B. O requisito de cgroup v2 delegado precisa ser comprovado na VM do fornecedor antes de habilitar qualquer runtime. Se ele não estiver disponível, este executor falha fechado; será necessário ajustar a imagem/fornecedor mantendo a interface `CodeExecutionProvider`. Não substitua o supervisor por execução direta no host ou por limites informados pelo programa do aluno.
 
@@ -14,8 +16,9 @@ Modo Normal integra o beta. Hard permanece protegido por `private.settings.hard_
 2. Para serviços locais, execute `supabase start` e `supabase db reset`. PostgreSQL 17 armazena o produto; PostgreSQL 18.4 é instalado separadamente dentro do template de SQL.
 3. Configure segredos das Edge Functions a partir de `.env.example`, sem copiar chaves privadas para variáveis `VITE_`. `APP_ORIGIN` deve corresponder exatamente ao frontend. Gere `COORDINATOR_SECRET` com ao menos 32 bytes aleatórios.
 4. Publique o catálogo com `npx tsx scripts/seed-catalog.ts`, usando `SUPABASE_URL` e a chave de serviço somente nesse processo administrativo. Apenas definições públicas são gravadas. Preserve versões publicadas: mudanças de contrato requerem outro `versionId` e a manutenção do juiz antigo enquanto houver submissões pendentes.
-5. Rode `supabase functions serve --env-file <arquivo-privado>`. As funções verificam autenticação diretamente: API valida o Bearer no Supabase Auth `/user`; coordenador usa um segredo separado. `verify_jwt=false` não significa acesso anônimo ao produto.
+5. Rode `supabase functions serve --env-file <arquivo-privado>`. A API mantém `verify_jwt=true` e valida a identidade no Supabase Auth `/user`; o coordenador e a função de sessão mantêm `verify_jwt=false` e usam seus controles próprios. Preserve as definições de `supabase/config.toml` ao publicar.
 6. Para o beta aberto, habilite **Anonymous Sign-Ins** no Supabase Auth e aplique `202609300001_public_beta.sql`. O BFF cria automaticamente uma identidade anônima, mantém tokens cifrados no servidor e um cookie opaco de sessão de 30 dias. A API verifica a identidade real no Auth; dados continuam separados por usuário. O login não aparece na interface. Sessões GitHub existentes continuam válidas, sem exigir um novo login.
+7. Para as perguntas guiadas, aplique `202610010001_concept_quizzes.sql`, publique a API correspondente e a interface antes de sincronizar o catálogo ampliado. A avaliação das perguntas não cria jobs de execução. Consulte o histórico de migrações antes de aplicar; a migração já consta no ambiente do beta.
 
 As tabelas têm RLS e nenhum acesso direto de `anon`/`authenticated`. O esquema `private` não deve ser adicionado à lista de schemas expostos pelo PostgREST. As RPCs de administração/avaliação são concedidas apenas a `service_role`. O navegador nunca determina `user_id`, XP, prazo, saldo ou aceite.
 
@@ -48,7 +51,7 @@ O executor local mantém o BFF e a fila no Supabase. O navegador nunca acessa o 
 1. Construa `rods-leet-executor:local` com `executor/Dockerfile` e uma imagem Debian fixada por digest.
 2. Gere `LOCAL_EXECUTOR_TOKEN` aleatoriamente e salve o mesmo valor somente no serviço local e nos secrets da função `coordinator`.
 3. Inicie `npm run executor:serve`. O gateway escuta apenas em `127.0.0.1:8789`.
-4. Publique somente essa porta por um Cloudflare Tunnel nomeado. Não publique a porta do Docker nem habilite acesso direto por IP.
+4. Publique somente essa porta por um Cloudflare Tunnel. O beta usa um Quick Tunnel temporário, explicitamente autorizado; um túnel nomeado é uma opção futura. Não publique a porta do Docker nem habilite acesso direto por IP. Se reiniciar o Quick Tunnel, confira o novo endereço e atualize o secret do coordenador.
 5. Configure os secrets `EXECUTION_PROVIDER=local`, `LOCAL_EXECUTOR_URL=https://<host-do-tunnel>` e `LOCAL_EXECUTOR_TOKEN` no Supabase.
 6. Aplique a migração local, homologue cada runtime e só então altere `private.settings.execution_enabled` para `true`.
 
@@ -56,15 +59,15 @@ Cada job usa um contêiner descartável, sem rede, sistema-base somente leitura,
 
 O custo cobrado por provedor é `0` nessa modalidade. Cloudflare Tunnel não acrescenta cobrança ao fluxo, mas a máquina, energia e conexão locais continuam sob responsabilidade do operador. Se a máquina estiver desligada, executar e submeter permanecem enfileirados ou retornam indisponibilidade sem consumir tentativa nem XP.
 
-O contrato do beta aceita `executionMode=program`: compila/roda o arquivo de entrada normal de cada linguagem, recebe stdin e apresenta stdout/stderr. `function` mantém os desafios e rascunhos anteriores. Atualize a imagem do executor junto do coordenador; uma imagem antiga não implementa esse contrato. Para submissões, o programa recebe cada entrada oficial e deve imprimir somente o resultado esperado; logs podem ir para stderr. Executar usa a entrada de estudo e não avalia nem concede XP.
+A interface do beta usa a função do modelo. Executar chama essa função com a entrada do exemplo e mostra mensagens de console/print e o valor retornado, sem avaliar nem conceder XP. Submeter compara apenas o retorno com os resultados oficiais; as mensagens de estudo não interferem na resposta. O servidor mantém o contrato `program` por compatibilidade, sem oferecê-lo na interface. Atualize a imagem do executor junto do coordenador quando mudar esses contratos.
 
 Submeter requer confirmação na interface. Uma rejeição do código reduz o XP disponível em 15% do valor base por erro, até zero; a primeira aprovação concede a recompensa uma única vez e bloqueia novos envios oficiais. Estudo permanece disponível. As regras completas e atuais ficam em [regras do produto](product-rules.md).
 
 ## Publicação, tutor e recuperação
 
-Publique a aplicação estática em Cloudflare Pages: build `npm run build`, saída `dist`. Configure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL` e o retorno OAuth de produção. Publique funções com `supabase functions deploy api` e `supabase functions deploy coordinator`; segredos ficam no ambiente de funções. O primeiro deploy foi realizado em 5 de setembro de 2026; consulte [estado do ambiente](deployment-status.md) para o que está ativo e as verificações pendentes.
+Publique o frontend e as Pages Functions em Cloudflare Pages: build `npm run build`, saída `dist`. Configure no servidor Pages `APP_ORIGIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `BFF_SHARED_SECRET` e `BFF_ENCRYPTION_KEY`; os nomes estão em `.dev.vars.example`. O navegador usa o BFF no mesmo domínio. Para o site conectado, deixe `VITE_BFF_ENABLED` ausente ou `true`. Publique as funções `api`, `session` e `coordinator` preservando a configuração JWT de cada uma; seus segredos ficam no ambiente Supabase. Consulte [estado do ambiente](deployment-status.md) para a versão ativa.
 
-O tutor usa REST Workers AI a partir do Supabase, com token restrito a inferência. O modelo é `@cf/qwen/qwen3-30b-a3b-fp8`. Entrada incluindo instruções tem cap conservador inferior a 2.048 tokens; saída, 1.024. Cada inferência reserva 100 neurons, com teto de 8.000 por dia e duas chamadas por usuário. Verifique tarifas do modelo antes da ativação. Falta de configuração/cota produz uma dica editorial. Assistência em desafio ainda não resolvido usa o saldo de dicas e exige uma sessão ativa. Recomendações usam conclusões e os erros recentes por tópico.
+O tutor permanece fora da navegação, dos atalhos e da rota acessível. O adaptador Workers AI e a orientação editorial existem no servidor, mas não comprovam um tutor pronto. Sua ativação futura exige validação própria de qualidade, custos e limites.
 
 Cron acorda o coordenador a cada minuto e limpa detalhes de logs. O consumo da fila usa lease de 180 segundos; resultado, XP, progresso e archive pertencem à mesma transação. Uma falha externa pode executar o código mais de uma vez, mas somente o dono vigente do lease finaliza. Não existe promessa de execução externa exatamente uma vez.
 

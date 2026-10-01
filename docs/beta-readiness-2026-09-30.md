@@ -1,5 +1,15 @@
 # Validação do beta — 30 de setembro de 2026
 
+## Estado atual — 1 de outubro de 2026
+
+A auditoria inicial abaixo é histórica. O beta atual abre sem login, oculta o tutor e apresenta 69 etapas: dez perguntas guiadas antes de 59 exercícios de código. A trilha de lógica tem 29 etapas. A interface usa a função do modelo; execução mostra console/print e retorno, enquanto o envio oficial avalia o retorno. Os textos iniciais e a passagem entre perguntas e código foram revisados.
+
+O teste conectado mais recente aprovou as dez perguntas em um perfil anônimo novo, confirmou 197 XP após um erro, reenvios sem duplicar penalidade ou recompensa, recomendação de `literal-number` e execução real com console e retorno 7. As três variantes dos 59 exercícios já foram homologadas. As evidências e os limites estão em [estado da implantação](deployment-status.md).
+
+A revisão de manutenção corrigiu as dependências indiretas `fast-uri` e `ip-address`, sem mudar a versão do RODS. A auditoria de produção passou com zero vulnerabilidades; os 280 testes e a compilação passaram novamente. A auditoria completa ainda aponta alertas em ferramentas de desenvolvimento, incluindo uma correção do Vitest que exige mudança de versão principal; eles não fazem parte dessa atualização limitada. As instruções de configuração foram alinhadas ao BFF e à sessão anônima atuais.
+
+Executor e túnel foram conferidos ativos nesta revisão. As perguntas não dependem do executor; exercícios de código exigem este computador e os serviços ativos. Hospedagem permanente, backup externo e ensaio de restauração permanecem pendentes. Não há evidência nova de execução do workflow de backup nesta revisão. A personalização das skills RODS está em retomada pelo assistente interativo.
+
 ## Atualização após as correções solicitadas
 
 As observações da auditoria inicial abaixo são históricas. As seguintes mudanças estão implementadas, verificadas localmente e publicadas:
