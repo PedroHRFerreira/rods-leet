@@ -12,6 +12,7 @@ import {
   type ExecutionResult,
 } from "../_shared/execution.ts";
 import type { Row } from "../_shared/presenters.ts";
+import { functionDiagnostic } from "../../../judge/diagnostics.ts";
 
 export async function executorReady(): Promise<boolean> {
   const providerName = Deno.env.get("EXECUTION_PROVIDER") ?? "disabled";
@@ -66,6 +67,16 @@ export async function processOne(): Promise<void> {
       executionMode === "program" &&
       challenge.kind !== "sql";
     const studyExecution = s.kind === "run" && challenge.kind !== "sql";
+    const diagnosticFor = (stdout = "", stderr = "") =>
+      challenge.kind !== "sql" && executionMode === "function"
+        ? functionDiagnostic({
+            languageId: s.language_id,
+            functionName: challenge.functionName ?? "solve",
+            publicInput: challenge.examples[0]?.input,
+            stdout,
+            stderr,
+          })
+        : undefined;
     let provider: CodeExecutionProvider;
     if (providerName === "local") {
       provider = new LocalExecutionProvider(
@@ -115,9 +126,10 @@ export async function processOne(): Promise<void> {
       result = actual
         ? {
             message:
-              actual.termination === "ok"
+              diagnosticFor(actual.stdout, actual.stderr) ??
+              (actual.termination === "ok"
                 ? "Código executado. Confira a saída abaixo."
-                : "Seu programa encerrou com erro ou excedeu um limite.",
+                : "Seu programa encerrou com erro ou excedeu um limite."),
             stdout: actual.stdout,
             stderr: actual.stderr,
             metrics: actual.metrics,
@@ -129,6 +141,7 @@ export async function processOne(): Promise<void> {
         wallMs = 0,
         peakMemoryKiB = 0;
       const publicCases: Row[] = [];
+      let diagnostic: string | undefined;
       for (let index = 0; index < evaluation.cases.length; index++) {
         const test = evaluation.cases[index],
           actual = execution.cases[index];
@@ -138,6 +151,7 @@ export async function processOne(): Promise<void> {
         }
         let passed = false,
           value: unknown;
+        diagnostic = diagnosticFor(actual.stdout, actual.stderr);
         if (actual.termination !== "ok") verdict = actual.termination;
         else {
           try {
@@ -169,13 +183,14 @@ export async function processOne(): Promise<void> {
       }
       result = {
         message:
-          verdict === "accepted"
+          diagnostic ??
+          (verdict === "accepted"
             ? "Todos os testes obrigatórios passaram."
             : verdict === "wrong_answer"
               ? "A solução falhou em um caso obrigatório. Revise os casos de borda."
               : verdict === "infrastructure_error"
                 ? "Falha da infraestrutura. Sua tentativa foi preservada."
-                : "Seu programa excedeu um limite ou encerrou com erro.",
+                : "Seu programa excedeu um limite ou encerrou com erro."),
         publicCases,
         metrics: { cpuMs, wallMs, peakMemoryKiB },
       };
@@ -191,7 +206,14 @@ export async function processOne(): Promise<void> {
         infrastructure_error:
           "Falha da infraestrutura. Sua tentativa foi preservada.",
       };
-      result = { message: messages[verdict] ?? messages.infrastructure_error };
+      result = {
+        message:
+          (verdict === "runtime_error"
+            ? diagnosticFor("", execution.cases[0]?.stderr)
+            : undefined) ??
+          messages[verdict] ??
+          messages.infrastructure_error,
+      };
       if (verdict === "compile_error" && execution.compilation?.stderr) {
         const bytes = new TextEncoder()
           .encode(execution.compilation.stderr)

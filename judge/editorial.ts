@@ -4,6 +4,7 @@ import {
   shortestPathSource,
 } from "./editorial-sources.ts";
 import { sqlReferenceQueries } from "./sql.ts";
+import { firstStepsEditorial } from "./first-steps-editorial.ts";
 
 const maxSolutions: Record<string, { path: string; content: string }> = {
   typescript: {
@@ -277,6 +278,8 @@ const hints: Record<string, string[]> = {
 };
 
 export function getEditorial(challengeId: string, languageId: string) {
+  const firstStep = firstStepsEditorial(challengeId, languageId);
+  if (firstStep) return firstStep;
   if (challengeId === "find-max") {
     const solution = maxSolutions[languageId];
     if (!solution) throw new Error("Linguagem sem gabarito para este desafio.");

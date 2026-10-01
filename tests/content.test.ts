@@ -19,13 +19,13 @@ import {
 import { sqlFixtures } from "../judge/sql.ts";
 
 describe("published beta catalog", () => {
-  test("53 distinct complete challenges, 10 topics, difficulty coverage and language templates", () => {
-    expect(challenges).toHaveLength(53);
-    expect(new Set(challenges.map((c) => c.id)).size).toBe(53);
-    expect(new Set(challenges.map((c) => c.versionId)).size).toBe(53);
+  test("59 distinct complete challenges, 10 topics, difficulty coverage and language templates", () => {
+    expect(challenges).toHaveLength(59);
+    expect(new Set(challenges.map((c) => c.id)).size).toBe(59);
+    expect(new Set(challenges.map((c) => c.versionId)).size).toBe(59);
     expect(topics).toHaveLength(10);
     for (const [topic, count] of [
-      ["logic", 13],
+      ["logic", 19],
       ["algorithms", 15],
       ["data-structures", 15],
       ["sql", 10],
@@ -42,7 +42,11 @@ describe("published beta catalog", () => {
       expect(challenge.constraints.length).toBeGreaterThan(0);
       expect(challenge.executionAvailable).toBe(false);
       expect(challenge.languageIds).toHaveLength(
-        challenge.kind === "sql" || challenge.id === "shortest-path" ? 1 : 10,
+        challenge.kind === "sql" || challenge.id === "shortest-path"
+          ? 1
+          : challenge.tags?.includes("primeiros passos")
+            ? 3
+            : 10,
       );
       for (const language of challenge.languageIds)
         expect(
@@ -58,7 +62,7 @@ describe("published beta catalog", () => {
         ).toHaveLength(10);
         for (const language of challenge.languageIds)
           expect(challenge.descriptionsByLanguage?.[language]).toMatch(
-            /int|number|i32|Int/,
+            /int|number|i32|Int|números/,
           );
       }
       const serialized = JSON.stringify(challenge);
@@ -75,7 +79,13 @@ describe("published beta catalog", () => {
         (a, b) =>
           (a.learningPath?.position ?? 0) - (b.learningPath?.position ?? 0),
       );
-    expect(logic.slice(0, 3).map((challenge) => challenge.id)).toEqual([
+    expect(logic.slice(0, 9).map((challenge) => challenge.id)).toEqual([
+      "literal-number",
+      "literal-text",
+      "named-value",
+      "console-and-return",
+      "input-echo",
+      "function-double",
       "sum-two-integers",
       "variable-bonus",
       "is-even-integer",
@@ -84,6 +94,49 @@ describe("published beta catalog", () => {
       expect(challenge.estimatedMinutes).toBeGreaterThan(0);
       expect(challenge.tags?.length).toBeGreaterThan(0);
     }
+  });
+
+  test("first lessons offer runnable edits, native editorials and an unbroken progression", () => {
+    const lessons = challenges.filter((c) =>
+      c.tags?.includes("primeiros passos"),
+    );
+    expect(lessons).toHaveLength(6);
+    for (const [index, lesson] of lessons.entries()) {
+      expect(lesson.learningPath?.position).toBe(index + 1);
+      expect(lesson.learningPath?.total).toBe(19);
+      expect(lesson.prerequisites).toEqual(
+        index ? [lessons[index - 1].id] : [],
+      );
+      expect(lesson.learningPath?.nextChallengeId).toBe(
+        lessons[index + 1]?.id ?? "sum-two-integers",
+      );
+      expect(lesson.availableModes).toEqual(["normal"]);
+      expect(lesson.baseXp).toBe(30);
+      for (const language of lesson.languageIds) {
+        const starter = lesson.starterFilesByLanguage[language]![0];
+        expect(starter.content).not.toMatch(/throw|NotImplementedError/);
+        expect(lesson.descriptionsByLanguage?.[language]).toContain("return");
+        const editorial = getEditorial(lesson.id, language);
+        expect(editorial.files[0].path).toBe(starter.path);
+        expect(editorial.files[0].content).not.toBe(starter.content);
+      }
+      // These are trusted repository-authored starter files, never student code.
+      const compiled = ts.transpileModule(
+        lesson.starterFilesByLanguage.typescript![0].content,
+        { compilerOptions: { module: ts.ModuleKind.CommonJS } },
+      ).outputText;
+      const exports: Record<string, (input: unknown) => unknown> = {};
+      new Function("exports", compiled)(exports);
+      expect(exports.solve(lesson.examples[0].input)).not.toEqual(
+        lesson.examples[0].output,
+      );
+    }
+    const echo = getEvaluation("input-echo", "javascript");
+    expect(echo.cases.some((item) => item.input === -1_000_000)).toBe(true);
+    expect(echo.cases.some((item) => item.input === 1_000_000)).toBe(true);
+    expect(
+      echo.cases.some((item) => !echo.compare(item.input, item.expected, 4)),
+    ).toBe(true);
   });
 
   test.each(challenges.filter((c) => c.kind !== "sql"))(

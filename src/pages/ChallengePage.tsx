@@ -39,6 +39,7 @@ import {
 } from "../components/ui";
 import { challengeById, topics } from "../content/catalog";
 import { LearningResourceList } from "../components/LearningResourceList";
+import { FunctionGuide, modelFunctionName } from "../components/FunctionGuide";
 import { LANGUAGES, completionReward } from "../domain/rules";
 import type {
   Attempt,
@@ -123,13 +124,58 @@ function ChallengeWorkspace({
 }) {
   const [params, setParams] = useSearchParams();
   const requestedLanguage = params.get("language") as LanguageId | null;
+  const languageStorageKey = `codegamer:language:v1:${dashboard.profile.id}:${challenge.id}`;
+  let savedLanguage: LanguageId | null = null;
+  try {
+    savedLanguage = localStorage.getItem(
+      languageStorageKey,
+    ) as LanguageId | null;
+    if (!savedLanguage || !challenge.languageIds.includes(savedLanguage)) {
+      // Preserve a previously edited language when an older URL has no selection.
+      savedLanguage =
+        challenge.languageIds.find((id) => {
+          try {
+            const draft = JSON.parse(
+              localStorage.getItem(
+                `codegamer:editor:v1:${dashboard.profile.id}:${challenge.id}:${id}`,
+              ) ?? "null",
+            ) as EditorDraft | null;
+            return (
+              draft?.challengeId === challenge.id &&
+              draft.languageId === id &&
+              Array.isArray(draft.files) &&
+              draft.files.length > 0 &&
+              draft.files.every(
+                (file) =>
+                  typeof file.path === "string" &&
+                  typeof file.content === "string",
+              )
+            );
+          } catch {
+            return false;
+          }
+        }) ?? null;
+    }
+  } catch {
+    /* Storage is optional; the starter remains usable. */
+  }
   const language =
     requestedLanguage && challenge.languageIds.includes(requestedLanguage)
       ? requestedLanguage
-      : challenge.languageIds.includes("typescript")
-        ? "typescript"
-        : challenge.languageIds[0];
+      : savedLanguage && challenge.languageIds.includes(savedLanguage)
+        ? savedLanguage
+        : challenge.topicId === "logic" &&
+            challenge.languageIds.includes("javascript")
+          ? "javascript"
+          : challenge.languageIds.includes("typescript")
+            ? "typescript"
+            : challenge.languageIds[0];
   const setLanguage = (value: LanguageId) => {
+    try {
+      localStorage.setItem(languageStorageKey, value);
+    } catch {
+      /* Optional preference. */
+    }
     const next = new URLSearchParams(params);
     next.set("language", value);
     setParams(next, { replace: true });
@@ -497,10 +543,43 @@ function ChallengeWorkspace({
             {activePanel === "description" && (
               <>
                 <h2>Sua missão</h2>
-                <p className="problem-description">
-                  {challenge.descriptionsByLanguage?.[language] ??
-                    challenge.description}
-                </p>
+                {challenge.tags?.includes("primeiros passos") ? (
+                  <p className="problem-description">
+                    {challenge.description
+                      .split(/(?<=\.)\s+/)
+                      .slice(0, 2)
+                      .join(" ")}
+                  </p>
+                ) : (
+                  <div className="problem-description-paragraphs">
+                    {(
+                      challenge.descriptionsByLanguage?.[language] ??
+                      challenge.description
+                    )
+                      .split(/\n\s*\n/)
+                      .map((paragraph, index) => (
+                        <p className="problem-description" key={index}>
+                          {paragraph}
+                        </p>
+                      ))}
+                  </div>
+                )}
+                <FunctionGuide challenge={challenge} language={language} />
+                {challenge.tags?.includes("primeiros passos") && (
+                  <details className="guided-mission-details">
+                    <summary>Leia a explicação completa da missão</summary>
+                    {(
+                      challenge.descriptionsByLanguage?.[language] ??
+                      challenge.description
+                    )
+                      .split(/\n\s*\n/)
+                      .map((paragraph, index) => (
+                        <p className="problem-description" key={index}>
+                          {paragraph}
+                        </p>
+                      ))}
+                  </details>
+                )}
                 {challenge.learningPath && (
                   <aside className="learning-path-note">
                     <strong>
@@ -519,7 +598,9 @@ function ChallengeWorkspace({
                     {nextChallenge && (
                       <span>
                         Após aprovar, siga para{" "}
-                        <Link to={`/desafios/${nextChallenge.slug}`}>
+                        <Link
+                          to={`/desafios/${nextChallenge.slug}?language=${language}`}
+                        >
                           {nextChallenge.title}
                         </Link>
                         .
@@ -539,8 +620,15 @@ function ChallengeWorkspace({
                     {challenge.examples.map((example, index) => (
                       <div className="public-example" key={index}>
                         <strong>Exemplo {index + 1}</strong>
-                        <span>Entrada</span>
-                        <pre>{showJson(example.input)}</pre>
+                        {example.input === null &&
+                        challenge.tags?.includes("primeiros passos") ? (
+                          <span>Sem entrada neste passo</span>
+                        ) : (
+                          <>
+                            <span>Entrada</span>
+                            <pre>{showJson(example.input)}</pre>
+                          </>
+                        )}
                         <span>Saída esperada</span>
                         <pre className="example-output">
                           {showJson(example.output)}
@@ -557,50 +645,55 @@ function ChallengeWorkspace({
                   ))}
                 </ul>
                 {challenge.limits && (
-                  <div className="published-limits">
-                    <h3>Limites de execução</h3>
-                    <p className="published-limits-explanation">
-                      Cada caso tem seu próprio limite. A compilação acontece
-                      uma vez; o prazo total de segurança inclui compilação e
-                      todos os casos executados no trabalho.
-                    </p>
-                    <dl>
-                      <div>
-                        <dt>CPU por caso</dt>
-                        <dd>{challenge.limits.caseCpuMs / 1000} s</dd>
-                      </div>
-                      <div>
-                        <dt>Duração por caso</dt>
-                        <dd>{challenge.limits.caseWallMs / 1000} s</dd>
-                      </div>
-                      <div>
-                        <dt>Duração total</dt>
-                        <dd>{challenge.limits.jobWallMs / 1000} s</dd>
-                      </div>
-                      <div>
-                        <dt>Compilação</dt>
-                        <dd>{challenge.limits.compileTimeoutMs / 1000} s</dd>
-                      </div>
-                      <div>
-                        <dt>Memória</dt>
-                        <dd>{challenge.limits.memoryMiB} MiB</dd>
-                      </div>
-                      <div>
-                        <dt>Saída por caso / total</dt>
-                        <dd>
-                          {challenge.limits.caseOutputBytes / 1024} /{" "}
-                          {challenge.limits.jobOutputBytes / 1024} KiB
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>Arquivos / código</dt>
-                        <dd>
-                          {challenge.limits.maxFiles} /{" "}
-                          {challenge.limits.maxSourceBytes / 1024} KiB
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
+                  <details
+                    className="execution-limits-details"
+                    open={!challenge.tags?.includes("primeiros passos")}
+                  >
+                    <summary>Limites de execução</summary>
+                    <div className="published-limits">
+                      <p className="published-limits-explanation">
+                        Cada caso tem seu próprio limite. A compilação acontece
+                        uma vez; o prazo total de segurança inclui compilação e
+                        todos os casos executados no trabalho.
+                      </p>
+                      <dl>
+                        <div>
+                          <dt>CPU por caso</dt>
+                          <dd>{challenge.limits.caseCpuMs / 1000} s</dd>
+                        </div>
+                        <div>
+                          <dt>Duração por caso</dt>
+                          <dd>{challenge.limits.caseWallMs / 1000} s</dd>
+                        </div>
+                        <div>
+                          <dt>Duração total</dt>
+                          <dd>{challenge.limits.jobWallMs / 1000} s</dd>
+                        </div>
+                        <div>
+                          <dt>Compilação</dt>
+                          <dd>{challenge.limits.compileTimeoutMs / 1000} s</dd>
+                        </div>
+                        <div>
+                          <dt>Memória</dt>
+                          <dd>{challenge.limits.memoryMiB} MiB</dd>
+                        </div>
+                        <div>
+                          <dt>Saída por caso / total</dt>
+                          <dd>
+                            {challenge.limits.caseOutputBytes / 1024} /{" "}
+                            {challenge.limits.jobOutputBytes / 1024} KiB
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Arquivos / código</dt>
+                          <dd>
+                            {challenge.limits.maxFiles} /{" "}
+                            {challenge.limits.maxSourceBytes / 1024} KiB
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </details>
                 )}
                 <p className="problem-footnote">
                   Os testes oficiais incluem casos adicionais. Seus dados e
@@ -868,7 +961,7 @@ function ChallengeWorkspace({
           {nextChallenge && (
             <Link
               className="button button-primary"
-              to={`/desafios/${nextChallenge.slug}`}
+              to={`/desafios/${nextChallenge.slug}?language=${language}`}
             >
               Próximo desafio <ChevronRight size={16} />
             </Link>
@@ -1196,9 +1289,9 @@ function SourceWorkspace({
       {language !== "sql" && (
         <div className="program-controls">
           <p>
-            Complete a função do modelo e devolva a resposta com return. Você
-            pode usar console.log ou print para acompanhar a execução; essas
-            mensagens não alteram a resposta avaliada.
+            Complete <code>{modelFunctionName(challenge, language)}</code> e
+            devolva a resposta com <code>return</code>. A aplicação chama a
+            função automaticamente. Veja a orientação no enunciado.
           </p>
           <button
             type="button"

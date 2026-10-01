@@ -4,6 +4,20 @@ Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria d
 
 ## Beta aberto publicado — 30 de setembro de 2026
 
+### Início guiado e validação completa
+
+O catálogo agora tem 59 desafios e a trilha de lógica tem 19 etapas. Seis passos precedem Primeira soma: número, texto, variável, console/print, entrada e transformação dentro da função. Os modelos desses passos executam sem lançar “Não implementado” e pedem uma edição pequena. JavaScript é a escolha inicial na lógica; seleção explícita, preferências e rascunhos existentes são preservados. O mapa recomenda uma sequência, mas permite visitar qualquer etapa. Avançar pelo link do próximo desafio mantém a linguagem escolhida.
+
+A orientação explica a função fornecida, chamada automática, entrada e return. A função auxiliar `teste(a, b)` pode ser usada dentro de `solve(input)`; chamada manual com outro nome não substitui o ponto de entrada. Erros de função ausente e retorno indefinido agora trazem orientação acessível. Submissões não expõem diagnósticos dos casos privados.
+
+Todas as 177 variantes de código (três por desafio) passaram pelo executor isolado, com 981 casos públicos e privados. Os seis novos passos também passaram em Python e TypeScript: 44 casos adicionais, total de 1.025 execuções. A cobertura principal usa JavaScript, TypeScript em shortest-path e SQL; as variantes verificam formas de escrever a lógica canônica, sem alegar três algoritmos independentes nem cobertura de todas as linguagens. Veja [relatório por desafio](../judge/validation/catalog-report.md).
+
+A validação revelou dois defeitos de codificação SQL: leitura de texto como bytes e falha ao carregar dados acentuados. As conexões do preparo e da consulta usam UTF-8; todas as 30 variantes SQL passaram sem mudar o comparador. Imagem local corrigida: `sha256:2ef3a4758df9ed1cb5af52d0a9b5907b2d09dce5ee9ab20150a1ba81f280b3a4`.
+
+API e coordenador atualizados; 59 definições públicas sincronizadas. Nova sessão anônima no site confirmou erro orientado para a função da captura, execução da soma com função auxiliar e console, aprovação do primeiro passo com 30 XP, recomendação do próximo passo e aprovação SQL com 100 XP. Verificações locais: 253 testes, lint, tipos e build; suíte de navegador com 39 testes aprovados e um caso de tablet omitido no projeto mobile (o mesmo caso passou no projeto desktop). Os testes de rascunho TypeScript foram corrigidos para declarar sua linguagem após a introdução do padrão JavaScript.
+
+### Histórico da publicação inicial
+
 Esclarecimento posterior do usuário: a interface usa somente a função do modelo. Não oferece seletor de forma de execução. console/print aparecem na saída de estudo; o coordenador avalia o retorno da função separado dessas mensagens. Modelos de função voltam a ser o ponto inicial, sem substituir rascunhos existentes automaticamente. O contrato de programa continua no servidor por compatibilidade, sem opção na interface.
 
 Interface de função publicada no commit `7a805a3`, Pages `8bb993f8-e13f-4913-abc8-4f79a3fb7d89`. Executar chama a função com o primeiro exemplo público e mostra as mensagens e o retorno, sem avaliar a resposta. Submeter verifica os casos oficiais pelo retorno, ignorando as mensagens de diagnóstico. Teste real em nova sessão anônima confirmou `diagnostico` seguido de `5`, rejeição do retorno incorreto, aprovação com 85 XP após um erro e nova execução com retorno `7` após a aprovação, sem XP adicional. Seis testes focados do coordenador e leitura da saída passaram; editor verificado em desktop e celular.

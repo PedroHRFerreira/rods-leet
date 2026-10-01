@@ -231,6 +231,82 @@
   color: var(--arena-muted);
   margin: 0;
 }
+.problem-description-paragraphs {
+  display: grid;
+  gap: 12px;
+}
+.function-guide {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--arena-border);
+  border-radius: 8px;
+  background: var(--panel-hover);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--arena-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.problem-body .function-guide h3 {
+  margin: 0 0 12px;
+  color: var(--text);
+}
+.function-guide p {
+  margin: 10px 0;
+}
+.function-guide code {
+  color: var(--text);
+  font-size: 12px;
+  user-select: text;
+}
+.function-guide-task {
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+  margin-bottom: 18px;
+}
+.function-guide-task strong {
+  color: var(--accent);
+}
+.function-guide-task small {
+  display: block;
+  line-height: 1.6;
+}
+.function-guide-code {
+  margin: 12px 0;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--arena-border);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+  line-height: 1.75;
+}
+.function-guide-contract,
+.guided-mission-details,
+.execution-limits-details {
+  margin: 16px 0;
+  color: var(--arena-muted);
+  font-size: 13px;
+}
+.function-guide-contract summary,
+.guided-mission-details summary,
+.execution-limits-details summary {
+  min-height: 44px;
+  padding: 10px 0;
+  color: var(--text);
+  cursor: pointer;
+}
+.function-guide-contract summary:focus-visible,
+.guided-mission-details summary:focus-visible,
+.execution-limits-details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+.guided-mission-details[open] .problem-description {
+  margin-top: 10px;
+}
 .learning-path-note {
   display: grid;
   gap: 0.35rem;

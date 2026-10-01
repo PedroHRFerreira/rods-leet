@@ -23,6 +23,7 @@ import {
   formatNumber,
 } from "../components/ui";
 import "../dashboard.css";
+import { nextLearningChallenge } from "../domain/learning-path";
 
 function formatExample(value: unknown) {
   const compact = JSON.stringify(value);
@@ -56,15 +57,20 @@ export default function DashboardPage() {
     );
   const data = dashboard.data;
   const completed = new Set(data.completedChallengeIds);
+  const guidedNext = nextLearningChallenge(catalog.data, completed);
   const next =
+    guidedNext ??
     catalog.data.find(
       (item) => item.id === data.recommendations[0]?.challengeId,
     ) ??
     catalog.data.find((item) => !completed.has(item.id)) ??
     catalog.data[0];
-  const reason =
-    data.recommendations[0]?.reason ??
-    "Um bom ponto de partida para praticar os fundamentos.";
+  const reason = guidedNext
+    ? guidedNext.learningPath?.position === 1
+      ? "Comece do zero: altere um valor no modelo pronto e veja sua primeira resposta."
+      : `Próximo passo da sua rota: ${guidedNext.title}. Cada etapa prepara você para a seguinte.`
+    : (data.recommendations[0]?.reason ??
+      "Um bom ponto de partida para praticar os fundamentos.");
   const name =
     gateway.mode === "demo" ? null : data.profile.displayName.split(" ")[0];
   const acceptedDates = new Set(data.activityDays ?? []);

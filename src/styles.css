@@ -1320,6 +1320,12 @@ textarea::placeholder {
   background: #090d13;
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
 }
+[data-theme="light"] .constellation-detail {
+  background: var(--panel);
+}
+[data-theme="light"] .constellation-detail-path {
+  background: var(--panel-hover);
+}
 .constellation-flow,
 .constellation-mini-flow {
   position: relative;

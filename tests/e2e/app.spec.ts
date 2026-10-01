@@ -34,10 +34,10 @@ test("dashboard, navigation, theme and not-found page", async ({ page }) => {
     "rgb(0, 0, 0)",
   );
   await page.getByRole("link", { name: "Abrir desafio", exact: true }).click();
-  await expect(page).toHaveURL(/\/desafios\/sum-two-integers/);
+  await expect(page).toHaveURL(/\/desafios\/literal-number(?:\?|$)/);
   await expect(
     page.getByRole("heading", {
-      name: "Primeira soma",
+      name: "Seu primeiro número",
       exact: true,
     }),
   ).toBeVisible();
@@ -48,11 +48,11 @@ test("dashboard, navigation, theme and not-found page", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test("catalog filters all 53 challenges and ten learning tracks", async ({
+test("catalog filters all 59 challenges and ten learning tracks", async ({
   page,
 }, testInfo) => {
   await page.goto("/desafios");
-  await expect(page.locator(".catalog-challenge-card")).toHaveCount(53);
+  await expect(page.locator(".catalog-challenge-card")).toHaveCount(59);
   await page
     .getByRole("group", { name: "Filtrar por trilha" })
     .getByRole("button", { name: /^SQL/ })
@@ -67,7 +67,7 @@ test("catalog filters all 53 challenges and ten learning tracks", async ({
     page.getByRole("heading", { name: "Ainda não encontramos esse desafio" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Ver todos os desafios" }).click();
-  await expect(page.locator(".catalog-challenge-card")).toHaveCount(53);
+  await expect(page.locator(".catalog-challenge-card")).toHaveCount(59);
   await page.goto("/trilhas");
   await expect(
     page.getByRole("heading", { name: "Trilhas de aprendizado" }),
@@ -77,20 +77,20 @@ test("catalog filters all 53 challenges and ten learning tracks", async ({
   ).toBeVisible();
   await expect(
     page.locator(".constellation-flow .react-flow__node"),
-  ).toHaveCount(13);
+  ).toHaveCount(19);
   await expect(
     page.locator(".constellation-flow .skill-node.cluster-core"),
-  ).toHaveCount(3);
+  ).toHaveCount(6);
   await expect(
     page.locator(".constellation-flow .skill-node.cluster-patterns"),
-  ).toHaveCount(4);
+  ).toHaveCount(7);
   await expect(
     page.locator(".constellation-flow .skill-node.cluster-reasoning"),
   ).toHaveCount(4);
   await expect(
     page.locator(".constellation-flow .skill-node.cluster-mastery"),
   ).toHaveCount(2);
-  await expect(page.getByText("Progresso: 0 de 13")).toBeVisible();
+  await expect(page.getByText("Progresso: 0 de 19")).toBeVisible();
   if (testInfo.project.name !== "mobile") {
     await expect(
       page.locator(".constellation-flow .react-flow__edge"),
@@ -98,7 +98,7 @@ test("catalog filters all 53 challenges and ten learning tracks", async ({
     await page.getByRole("button", { name: "Ver mapa completo" }).click();
     await expect(
       page.locator(".constellation-flow .react-flow__edge"),
-    ).toHaveCount(12);
+    ).toHaveCount(18);
   }
   await expect(page.locator(".track-card")).toHaveCount(3);
   await expect(page.locator(".upcoming-track")).toHaveCount(6);
@@ -118,14 +118,19 @@ test("logic constellation opens node details and uses a guided mobile route", as
           .locator(".constellation-stage-list button")
           .filter({ hasText: "Bônus na variável" })
       : page.getByRole("button", {
-          name: /Nó 2: Bônus na variável/,
+          name: /Nó 8: Bônus na variável/,
         });
   await node.focus();
   await page.keyboard.press("Enter");
   await expect(map).toContainText("Bônus na variável");
-  await expect(map).toContainText("Pré-requisito");
+  await expect(map).toContainText("Etapa anterior sugerida");
   await expect(map).toContainText("Primeira soma");
-  await expect(map.getByRole("link", { name: "Abrir desafio" })).toBeVisible();
+  const lessonLink = map.getByRole("link", { name: "Abrir desafio" });
+  await expect(lessonLink).toBeVisible();
+  await expect(lessonLink).toHaveAttribute("href", "/desafios/variable-bonus");
+  await lessonLink.click();
+  await expect(page).toHaveURL(/variable-bonus(?:\?|$)/);
+  await page.goto("/trilhas");
   if (testInfo.project.name === "mobile") {
     await expect(page.locator(".constellation-stage-list")).toBeVisible();
     await expect(page.locator(".constellation-workspace")).toBeHidden();
@@ -161,7 +166,7 @@ test("fundamentals challenge adapts its wording and starter code to the selected
   await expect(page.getByText(/Executar não reduz seu XP/)).toBeVisible();
   await expect(page.getByText("Objetivo de aprendizado")).toHaveCount(0);
   await expect(page.locator(".problem-description")).toContainText(
-    "Em Python, inteiros usam o tipo int",
+    "A entrada é um dicionário com dois números",
   );
   await expect(page.locator(".monaco-editor").first()).toContainText(
     "def solve(input):",
@@ -178,7 +183,7 @@ test("fundamentals challenge adapts its wording and starter code to the selected
 test("Monaco loads and drafts survive refresh without grading locally", async ({
   page,
 }) => {
-  await page.goto("/desafios/find-max");
+  await page.goto("/desafios/find-max?language=typescript");
   await expect(
     page.getByRole("heading", {
       name: "Maior pontuação da equipe",
@@ -258,7 +263,7 @@ test("two tabs preserve both drafts until an explicit choice", async ({
   page,
   context,
 }) => {
-  await page.goto("/desafios/find-max");
+  await page.goto("/desafios/find-max?language=typescript");
   await page
     .getByRole("button", { name: "Editor simples", exact: true })
     .click();
@@ -273,7 +278,7 @@ test("two tabs preserve both drafts until an explicit choice", async ({
     )
     .toContain("texto da primeira aba");
   const second = await context.newPage();
-  await second.goto("/desafios/find-max");
+  await second.goto("/desafios/find-max?language=typescript");
   await second
     .getByRole("button", { name: "Editor simples", exact: true })
     .click();

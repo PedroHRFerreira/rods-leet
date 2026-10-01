@@ -66,8 +66,9 @@ export function guestDashboard(): Dashboard {
     recentSubmissions: [],
     recommendations: [
       {
-        challengeId: "sum-two-integers",
-        reason: "Comece pelos inteiros e execute seu primeiro programa.",
+        challengeId: "literal-number",
+        reason:
+          "Comece do zero: altere um valor no modelo pronto e veja sua primeira resposta.",
       },
       {
         challengeId: "balanced-brackets",

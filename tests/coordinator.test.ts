@@ -18,6 +18,7 @@ vi.mock("../supabase/functions/_shared/execution.ts", () => ({
 }));
 import { processOne } from "../supabase/functions/coordinator/index";
 import { challenges } from "../src/content/catalog";
+import { getEvaluation } from "../judge/index";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -28,6 +29,7 @@ function setup(
   kind: "run" | "submission",
   stdout: string,
   executionMode = "program",
+  languageId = "javascript",
 ) {
   vi.stubGlobal("Deno", { env: { get: () => "local" } });
   const challenge = challenges.find((c) => c.id === "sum-two-integers")!;
@@ -35,7 +37,7 @@ function setup(
     submission: {
       id: "submission",
       challenge_version_id: challenge.versionId,
-      language_id: "javascript",
+      language_id: languageId,
       execution_mode: executionMode,
       kind,
       files: [{ path: "solution.js", content: "console.log(42)" }],
@@ -69,6 +71,85 @@ it("runs the function with the first example and shows logs without grading its 
       p_result: expect.objectContaining({ stdout: "debug\n42\n" }),
     }),
   );
+});
+it.each(["run", "submission"] as const)(
+  "provides actionable missing-function guidance for a %s without exposing raw errors",
+  async (kind) => {
+    setup(kind, "", "function");
+    mocks.execute.mockResolvedValue({
+      termination: "ok",
+      cases: [
+        {
+          termination: "runtime_error",
+          stdout: "",
+          stderr:
+            "TypeError: student.solve is not a function\nSECRET_CASE_FROM_RUNTIME",
+          metrics,
+        },
+      ],
+    });
+    await processOne();
+    const result = mocks.rpc.mock.calls.at(-1)![1];
+    expect(result.p_verdict).toBe("runtime_error");
+    expect(result.p_result.message).toContain("export function solve(input)");
+    if (kind === "run") expect(result.p_result.stderr).toContain("TypeError");
+    else
+      expect(JSON.stringify(result.p_result)).not.toContain(
+        "SECRET_CASE_FROM_RUNTIME",
+      );
+  },
+);
+
+it("explains the Python function name on a practice error", async () => {
+  setup("run", "", "function", "python");
+  mocks.execute.mockResolvedValue({
+    termination: "ok",
+    cases: [
+      {
+        termination: "runtime_error",
+        stdout: "",
+        stderr: "AttributeError: module 'solution' has no attribute 'solve'",
+        metrics,
+      },
+    ],
+  });
+  await processOne();
+  expect(mocks.rpc.mock.calls.at(-1)![1].p_result.message).toContain(
+    "def solve(input):",
+  );
+});
+
+it("explains an undefined return but keeps practice free and preserves stdout", async () => {
+  setup("run", "debug\nundefined\n", "function");
+  await processOne();
+  const result = mocks.rpc.mock.calls.at(-1)![1];
+  expect(result.p_verdict).toBe("accepted");
+  expect(result.p_result.message).toContain("sem devolver uma resposta");
+  expect(result.p_result.stdout).toBe("debug\nundefined\n");
+});
+
+it("accepts official function returns with logs and keeps logs outside the returned value", async () => {
+  setup("submission", "", "function");
+  const evaluation = getEvaluation("sum-two-integers", "javascript");
+  mocks.execute.mockResolvedValue({
+    termination: "ok",
+    cases: evaluation.cases.map((test) => ({
+      termination: "ok",
+      stdout: `debug\n${JSON.stringify(test.expected)}\n`,
+      stderr: "",
+      metrics,
+    })),
+  });
+  await processOne();
+  expect(mocks.rpc.mock.calls.at(-1)![1].p_verdict).toBe("accepted");
+});
+
+it("reports a wrong official function result without treating valid JSON as a missing return", async () => {
+  setup("submission", "0\n", "function");
+  await processOne();
+  const result = mocks.rpc.mock.calls.at(-1)![1];
+  expect(result.p_verdict).toBe("wrong_answer");
+  expect(result.p_result.message).not.toContain("sem devolver");
 });
 it("returns free program output without treating a different answer as a rejection", async () => {
   setup("run", "Hello from my program\n");

@@ -62,9 +62,9 @@ function setup(
 }
 
 describe("public exploration and server authority", () => {
-  test("real 53-challenge catalog, empty ranking and zero progress do not require a server", async () => {
+  test("real 59-challenge catalog, empty ranking and zero progress do not require a server", async () => {
     const gateway = createGateway();
-    expect(await gateway.listChallenges()).toHaveLength(53);
+    expect(await gateway.listChallenges()).toHaveLength(59);
     expect(await gateway.listChallenges({ topicId: "sql" })).toHaveLength(10);
     expect(await gateway.listChallenges({ mode: "hard" })).toHaveLength(0);
     expect(await gateway.getDashboard()).toMatchObject({
@@ -73,7 +73,7 @@ describe("public exploration and server authority", () => {
       profile: { authenticated: false },
     });
     expect((await gateway.getDashboard()).recommendations[0]?.challengeId).toBe(
-      "sum-two-integers",
+      "literal-number",
     );
     expect(await gateway.getRanking()).toEqual([]);
     await expect(

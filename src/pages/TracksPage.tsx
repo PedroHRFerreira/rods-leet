@@ -27,6 +27,7 @@ import {
 import { topics } from "../content/catalog";
 import {
   learningPathStates,
+  learningPathPositions,
   type LearningPathNodeState,
 } from "../domain/learning-path";
 import { useGateway } from "../lib/gateway-context";
@@ -109,31 +110,27 @@ function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
           {data.state === "completed" ? <Check size={16} /> : data.index}
         </span>
         <span className="skill-node-glyph" aria-hidden="true">
-          {data.index === 1
-            ? "+"
-            : data.index === 2
-              ? "="
-              : data.index === 3
-                ? "%"
-                : data.index === 4
-                  ? "⌁"
-                  : data.index === 5
-                    ? "Σ"
-                    : data.index === 6
-                      ? "Aa"
-                      : data.index === 7
-                        ? "↔"
-                        : data.index === 8
-                          ? "ƒ"
-                          : data.index === 9
-                            ? "◌"
-                            : data.index === 10
-                              ? "∑"
-                              : data.index === 11
-                                ? "∩"
-                                : data.index === 12
-                                  ? "Ⅻ"
-                                  : "()"}
+          {[
+            "7",
+            "Aa",
+            "=",
+            "›_",
+            "→",
+            "ƒ",
+            "+",
+            "=",
+            "%",
+            "⌁",
+            "Σ",
+            "Aa",
+            "↔",
+            "ƒ",
+            "◌",
+            "∑",
+            "∩",
+            "Ⅻ",
+            "()",
+          ][data.index - 1] ?? "ƒ"}
         </span>
         <span className="skill-node-label">
           <strong>{data.title}</strong>
@@ -154,26 +151,10 @@ function SkillNode({ data, selected }: NodeProps<ConstellationNode>) {
 }
 
 const constellationNodeTypes = { skill: SkillNode };
-const constellationPositions = [
-  [430, 180],
-  [100, 130],
-  [110, 285],
-  [260, 60],
-  [290, 210],
-  [620, 70],
-  [760, 140],
-  [790, 265],
-  [850, 375],
-  [640, 425],
-  [470, 345],
-  [660, 330],
-  [860, 440],
-] as const;
-
 function clusterFor(position: number): ConstellationCluster {
-  if (position < 3) return "core";
-  if (position < 7) return "patterns";
-  if (position < 11) return "reasoning";
+  if (position < 6) return "core";
+  if (position < 13) return "patterns";
+  if (position < 17) return "reasoning";
   return "mastery";
 }
 
@@ -188,7 +169,7 @@ function stateLabel(state: LearningPathNodeState) {
   if (state === "completed") return "Concluído";
   if (state === "current") return "Seu desafio atual";
   if (state === "available") return "Disponível";
-  return "Disponível após a etapa anterior";
+  return "Mais adiante na rota · disponível para explorar";
 }
 
 function LogicLearningMap({
@@ -213,7 +194,7 @@ function LogicLearningMap({
   const selectedIndex = challenges.findIndex(({ id }) => id === selected.id);
   const selectedState =
     states.get(selected.id) ?? ("locked" as LearningPathNodeState);
-  const canOpen = selectedState !== "locked";
+  const constellationPositions = learningPathPositions(challenges.length);
   const completedCount = challenges.filter((challenge) =>
     completed.has(challenge.id),
   ).length;
@@ -291,7 +272,7 @@ function LogicLearningMap({
             <CircleDot size={13} /> Atual
           </span>
           <span className="locked">
-            <LockKeyhole size={13} /> Bloqueado
+            <Route size={13} /> Mais adiante
           </span>
         </div>
         <div className="constellation-route-context">
@@ -325,7 +306,7 @@ function LogicLearningMap({
             nodeTypes={constellationNodeTypes}
             fitView
             fitViewOptions={{ padding: 0.16 }}
-            minZoom={0.5}
+            minZoom={0.25}
             maxZoom={1.25}
             nodesDraggable={false}
             nodesConnectable={false}
@@ -356,7 +337,7 @@ function LogicLearningMap({
           <p>{selected.description}</p>
           <div className="constellation-detail-path">
             <span>
-              {prerequisite ? "Pré-requisito" : "Ponto de partida"}
+              {prerequisite ? "Etapa anterior sugerida" : "Ponto de partida"}
               <strong>
                 {prerequisite ? prerequisite.title : "Você começa por aqui"}
               </strong>
@@ -389,22 +370,15 @@ function LogicLearningMap({
               <code key={tag}>{tag}</code>
             ))}
           </div>
-          {canOpen ? (
-            <Link
-              className="button button-primary"
-              to={`/desafios/${selected.slug}`}
-            >
-              {selectedState === "completed"
-                ? "Praticar novamente"
-                : "Abrir desafio"}{" "}
-              <ArrowRight size={16} />
-            </Link>
-          ) : (
-            <p className="logic-detail-locked">
-              Conclua “{challenges[selectedIndex - 1]?.title}” nesta rota para
-              destacar este nó.
-            </p>
-          )}
+          <Link
+            className="button button-primary"
+            to={`/desafios/${selected.slug}`}
+          >
+            {selectedState === "completed"
+              ? "Praticar novamente"
+              : "Abrir desafio"}{" "}
+            <ArrowRight size={16} />
+          </Link>
         </article>
       </div>
       <div
@@ -474,7 +448,7 @@ function LogicLearningMap({
             <p>{selected.description}</p>
             <div className="constellation-detail-path">
               <span>
-                {prerequisite ? "Pré-requisito" : "Ponto de partida"}
+                {prerequisite ? "Etapa anterior sugerida" : "Ponto de partida"}
                 <strong>
                   {prerequisite ? prerequisite.title : "Você começa por aqui"}
                 </strong>
@@ -487,18 +461,15 @@ function LogicLearningMap({
               )}
             </div>
           </div>
-          {canOpen ? (
-            <Link
-              className="button button-primary"
-              to={`/desafios/${selected.slug}`}
-            >
-              Abrir desafio <ArrowRight size={16} />
-            </Link>
-          ) : (
-            <p className="logic-detail-locked">
-              Siga a ordem da rota para liberar este passo.
-            </p>
-          )}
+          <Link
+            className="button button-primary"
+            to={`/desafios/${selected.slug}`}
+          >
+            {selectedState === "completed"
+              ? "Praticar novamente"
+              : "Abrir desafio"}
+            <ArrowRight size={16} />
+          </Link>
         </article>
       </div>
     </section>
@@ -556,15 +527,13 @@ export default function TracksPage() {
           <span className="eyebrow">POR ONDE COMEÇAR</span>
           <h2>Uma base sólida faz a diferença.</h2>
           <p>
-            Comece por lógica, avance para algoritmos e explore estruturas de
-            dados. SQL tem sua própria trilha.
+            Comece com valores, variáveis e mensagens. O modelo pronto ensina
+            entrada, função e retorno antes dos desafios de lógica. Depois,
+            explore algoritmos, estruturas de dados e SQL.
           </p>
         </div>
-        <Link
-          to="/desafios/sum-two-integers"
-          className="button button-secondary"
-        >
-          Começar pelos inteiros <ArrowRight size={17} />
+        <Link to="/desafios/literal-number" className="button button-secondary">
+          Começar do zero <ArrowRight size={17} />
         </Link>
       </section>
       <div className="section-heading tracks-section-heading">

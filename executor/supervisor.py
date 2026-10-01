@@ -173,7 +173,8 @@ def main():
         if request['languageId']=='sql':
             # Only trusted generated fixtures can reach this privileged connection.
             import psycopg
-            with psycopg.connect('host=/run/postgresql dbname=codegamer user=root') as database:
+            # SQL_ASCII seed databases still need UTF-8 for accented fixtures.
+            with psycopg.connect('host=/run/postgresql dbname=codegamer user=root',client_encoding='UTF8') as database:
                 database.execute('DROP SCHEMA IF EXISTS challenge CASCADE; CREATE SCHEMA challenge AUTHORIZATION root; SET search_path=challenge,pg_catalog',prepare=False)
                 database.execute(case['input']['schema'],prepare=False)
                 database.execute(case['input']['seedSql'],prepare=False)

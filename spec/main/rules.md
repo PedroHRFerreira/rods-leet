@@ -12,3 +12,9 @@
 - Primeira aprovação de um desafio concede XP uma única vez e conduz ao próximo desafio; novas execuções para estudo continuam disponíveis.
 - Valores esperados fixos servem para comparar a saída real do código; nunca simular execução nem aprovação.
 - Esclarecimento posterior: usar somente a função do modelo na interface, sem seletor “Forma de executar”. console/print exibem diagnóstico; a submissão avalia o retorno da função. Preservar os rascunhos ao simplificar a interface.
+
+# Aprendizado para iniciantes
+
+- A trilha de lógica começa antes de funções e return: ensinar valores, variáveis, mensagens e entrada com passos pequenos e modelos guiados, mantendo uma progressão clara entre desafios.
+- Ensinar explicitamente o contrato da função fornecida antes de exigir seu uso e oferecer erros que expliquem a correção em linguagem acessível.
+- Validar pelo menos três formas de solução por desafio no executor isolado e registrar a cobertura real de linguagens e casos.

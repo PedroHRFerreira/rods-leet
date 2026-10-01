@@ -11,8 +11,9 @@ def main():
     control=json.load(sys.stdin)
     allowed=set(control.get('allowedRelations',[]))
     if not allowed:raise ValueError('relations_unavailable')
+    # UTF-8 prevents SQL_ASCII connections from exposing text as bytes.
     # Peer mapping permits UID student to connect only as cg_student.
-    with psycopg.connect('host=/run/postgresql dbname=codegamer user=cg_student',connect_timeout=2) as connection:
+    with psycopg.connect('host=/run/postgresql dbname=codegamer user=cg_student',connect_timeout=2,client_encoding='UTF8') as connection:
         validate_query(query,allowed)
         connection.execute('BEGIN READ ONLY')
         connection.execute("SET LOCAL search_path=challenge,pg_catalog")

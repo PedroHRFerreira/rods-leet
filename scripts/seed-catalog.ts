@@ -27,6 +27,4 @@ const response = await fetch(
   },
 );
 if (!response.ok) throw new Error(`Catalog seed failed (${response.status})`);
-console.log(
-  `Published ${challenges.length} public challenge definitions. Execution remains disabled.`,
-);
+console.log(`Published ${challenges.length} public challenge definitions.`);

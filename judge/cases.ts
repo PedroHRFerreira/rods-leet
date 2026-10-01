@@ -1,5 +1,11 @@
 /** Private adversarial fixtures. This module must never enter the frontend bundle. */
 export const hiddenInputs: Record<string, unknown[]> = {
+  "literal-number": [null],
+  "literal-text": [null],
+  "named-value": [null],
+  "console-and-return": [null],
+  "input-echo": [0, 1, -1, -1_000_000, 1_000_000],
+  "function-double": [0, 1, -1, -1_000_000, 1_000_000],
   "sum-two-integers": [
     { a: 0, b: 0 },
     { a: -1, b: -1 },

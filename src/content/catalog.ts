@@ -13,6 +13,7 @@ import {
   shortestPathTemplates,
 } from "./templates.ts";
 import { learningResourcesFor } from "./learning-resources.ts";
+import { firstStepChallenges } from "./first-steps.ts";
 
 export type { PublicChallenge, Topic } from "./types.ts";
 
@@ -164,9 +165,15 @@ const logic: PublicChallenge[] = [
       "O(1)",
       "O(1)",
     ),
-    descriptionsByLanguage: beginnerDescriptions(
-      "Receba a e b e retorne a soma deles.",
-    ),
+    descriptionsByLanguage: {
+      ...beginnerDescriptions("Receba a e b e retorne a soma deles."),
+      javascript:
+        "A entrada é um objeto com dois números: {a, b}. Dentro de solve(input), leia o primeiro com input.a e o segundo com input.b. Calcule a soma e devolva com return. Preserve export e o nome solve: a aplicação chama essa função sozinha com cada entrada. Uma função chamada teste(a, b) não segue o modelo, e chamar teste(2, 3) manualmente não fornece uma resposta para as outras entradas.",
+      typescript:
+        "A entrada é um objeto com dois números: {a, b}. Dentro de solve(input), leia os valores com input.a e input.b. A anotação de tipo do modelo explica que os dois são number. Calcule a soma e devolva com return. Preserve export, o nome solve e a assinatura fornecida: a aplicação chama a função sozinha para cada entrada.",
+      python:
+        'A entrada é um dicionário com dois números: {"a": 2, "b": 3}. Dentro de solve(input), leia os valores com input["a"] e input["b"]. Calcule a soma e devolva com return. Preserve def solve(input): e a indentação: a aplicação chama a função sozinha para cada entrada. Não precisa usar input() nem chamar solve manualmente.',
+    },
     languageIds: [...allProgrammingLanguages],
     starterFilesByLanguage: beginnerTemplates(),
   },
@@ -342,6 +349,7 @@ const logic: PublicChallenge[] = [
 
 // The sequence guides newcomers without blocking free navigation in the
 // catalog. Prerequisites remain informational during the beta.
+logic.unshift(...firstStepChallenges(logic[0]));
 for (let index = 0; index < logic.length; index++) {
   const previous = logic[index - 1];
   const next = logic[index + 1];

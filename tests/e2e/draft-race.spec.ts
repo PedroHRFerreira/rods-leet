@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("reload before debounce preserves pending code against a newer remote draft", async ({
   page,
 }) => {
-  await page.route("**/desafios/find-max", async (route) => {
+  await page.route(/\/desafios\/find-max(?:\?.*)?$/, async (route) => {
     if (!route.request().isNavigationRequest()) {
       await route.continue();
       return;
@@ -27,7 +27,7 @@ test("reload before debounce preserves pending code against a newer remote draft
         }),
       );
   });
-  await page.goto("/desafios/find-max");
+  await page.goto("/desafios/find-max?language=typescript");
   await page
     .getByRole("button", { name: "Editor simples", exact: true })
     .click();
