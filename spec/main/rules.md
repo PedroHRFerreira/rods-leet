@@ -11,3 +11,4 @@
 - Submeter exige confirmação no padrão visual do projeto. Rejeição permite corrigir e tentar novamente, reduzindo a recompensa em 15% do XP base por erro, de forma linear até zero; falhas de infraestrutura não contam.
 - Primeira aprovação de um desafio concede XP uma única vez e conduz ao próximo desafio; novas execuções para estudo continuam disponíveis.
 - Valores esperados fixos servem para comparar a saída real do código; nunca simular execução nem aprovação.
+- Esclarecimento posterior: usar somente a função do modelo na interface, sem seletor “Forma de executar”. console/print exibem diagnóstico; a submissão avalia o retorno da função. Preservar os rascunhos ao simplificar a interface.

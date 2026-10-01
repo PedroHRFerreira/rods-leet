@@ -136,16 +136,16 @@ const ex = (
 const beginnerDescriptions = (
   goal: string,
 ): Partial<Record<(typeof allProgrammingLanguages)[number], string>> => ({
-  python: `Em Python, inteiros usam o tipo int. ${goal} Declare valores com =. No programa livre, leia a entrada e mostre o resultado com print; no formato função, devolva com return.`,
-  javascript: `Em JavaScript, números inteiros usam o tipo number. ${goal} Use const para valores que não serão reatribuídos. No programa livre, leia a entrada e mostre o resultado com console.log; no formato função, devolva com return.`,
-  typescript: `Em TypeScript, inteiros usam o tipo number. ${goal} Use const/let e uma anotação como : number se quiser. No programa livre, leia a entrada e mostre o resultado com console.log; no formato função, devolva com return.`,
-  java: `Em Java, use o tipo primitivo int. ${goal} Declare com int nome = valor;. No programa livre, leia a entrada e mostre o resultado com System.out.println; no formato função, retorne a resposta do método.`,
-  csharp: `Em C#, use o tipo int. ${goal} Declare com int nome = valor;. No programa livre, leia a entrada e mostre o resultado com Console.WriteLine; no formato função, retorne a resposta do método.`,
-  cpp: `Em C++, use o tipo int. ${goal} Declare com int nome = valor;. No programa livre, leia a entrada e mostre o resultado com std::cout; no formato função, retorne a resposta.`,
-  c: `Em C, use o tipo int. ${goal} Declare com int nome = valor;. No programa livre, leia a entrada e mostre o resultado com printf; no formato função, retorne a resposta.`,
-  go: `Em Go, inteiros simples usam int. ${goal} Declare com := ou var. No programa livre, leia a entrada e mostre o resultado com fmt.Println; no formato função, devolva com return.`,
-  rust: `Em Rust, use i32 para estes inteiros. ${goal} Declare com let. No programa livre, leia a entrada e mostre o resultado com println!; no formato função, devolva a expressão final ou use return.`,
-  kotlin: `Em Kotlin, use Int. ${goal} Declare com val ou var. No programa livre, leia a entrada e mostre o resultado com println; no formato função, devolva o resultado.`,
+  python: `Em Python, inteiros usam o tipo int. ${goal} Declare valores com =. Na função do modelo, devolva com return.`,
+  javascript: `Em JavaScript, números inteiros usam o tipo number. ${goal} Use const para valores que não serão reatribuídos. Na função do modelo, devolva com return.`,
+  typescript: `Em TypeScript, inteiros usam o tipo number. ${goal} Use const/let e uma anotação como : number se quiser. Na função do modelo, devolva com return.`,
+  java: `Em Java, use o tipo primitivo int. ${goal} Declare com int nome = valor;. Na função do modelo, retorne a resposta do método.`,
+  csharp: `Em C#, use o tipo int. ${goal} Declare com int nome = valor;. Na função do modelo, retorne a resposta do método.`,
+  cpp: `Em C++, use o tipo int. ${goal} Declare com int nome = valor;. Na função do modelo, retorne a resposta.`,
+  c: `Em C, use o tipo int. ${goal} Declare com int nome = valor;. Na função do modelo, retorne a resposta.`,
+  go: `Em Go, inteiros simples usam int. ${goal} Declare com := ou var. Na função do modelo, devolva com return.`,
+  rust: `Em Rust, use i32 para estes inteiros. ${goal} Declare com let. Na função do modelo, devolva a expressão final ou use return.`,
+  kotlin: `Em Kotlin, use Int. ${goal} Declare com val ou var. Na função do modelo, devolva o resultado.`,
 });
 
 const logic: PublicChallenge[] = [

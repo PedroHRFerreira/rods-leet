@@ -1,5 +1,9 @@
 import { challenges } from "../../../src/content/catalog.ts";
-import { getEvaluation, parseProgramOutput } from "../../../judge/index.ts";
+import {
+  getEvaluation,
+  parseProgramOutput,
+  parseFunctionOutput,
+} from "../../../judge/index.ts";
 import { Database, env, secretsMatch } from "../_shared/db.ts";
 import {
   E2BExecutionProvider,
@@ -136,7 +140,9 @@ export async function processOne(): Promise<void> {
             value =
               executionMode === "program" && challenge.kind !== "sql"
                 ? parseProgramOutput(actual.stdout)
-                : JSON.parse(actual.stdout);
+                : challenge.kind === "sql"
+                  ? JSON.parse(actual.stdout)
+                  : parseFunctionOutput(actual.stdout);
             passed = evaluation.compare(test.input, test.expected, value);
           } catch {
             passed = false;

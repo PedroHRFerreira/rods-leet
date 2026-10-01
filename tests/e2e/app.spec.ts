@@ -164,14 +164,14 @@ test("fundamentals challenge adapts its wording and starter code to the selected
     "Em Python, inteiros usam o tipo int",
   );
   await expect(page.locator(".monaco-editor").first()).toContainText(
-    'print("Olá, mundo!")',
+    "def solve(input):",
   );
   await page.getByLabel("Linguagem").selectOption("rust");
   await expect(page.locator(".problem-description")).toContainText(
     "Em Rust, use i32",
   );
   await expect(page.locator(".monaco-editor").first()).toContainText(
-    'println!("Olá, mundo!")',
+    "pub fn solve",
   );
 });
 

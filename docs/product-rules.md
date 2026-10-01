@@ -6,7 +6,7 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 
 - Todos os testes obrigatórios devem passar. Testes do aluno, tutor e diagnósticos de crescimento não decidem aprovação.
 - `easy`, `medium`, `hard` são dificuldades. `normal`, `hard` são modos independentes.
-- Executar compila/roda o código para estudo e mostra saída padrão, erros e falhas reais, sem conceder XP. Programas podem usar console/print sem assinatura obrigatória; soluções em formato de função também continuam aceitas. Programas recebem a entrada do caso em stdin e imprimem o resultado.
+- A interface usa somente a função do modelo, conforme esclarecimento posterior do usuário. Executar chama essa função com as entradas do desafio e mostra saída padrão, erros e falhas reais, sem conceder XP. console/print são mensagens de estudo; Submeter avalia o resultado retornado pela função, sem reprovar por essas mensagens. Não exibir seletor de forma de execução. Preservar rascunhos existentes e pedir confirmação antes de recarregar o modelo.
 - Submeter exige confirmação visual e compara os resultados reais com os resultados esperados dos casos obrigatórios. Respostas esperadas fixas não são aprovação simulada.
 - Rejeição atribuível ao código não desconta XP já conquistado. Ela reduz a recompensa futura desse desafio em 15% do XP base por erro acumulado, linearmente até zero. Falhas da plataforma não contam. É possível corrigir e tentar novamente.
 - Primeira aprovação por usuário e desafio: XP base no Normal, três vezes a base no Hard quando habilitado. Linguagem, modo, versão e nova sessão não reiniciam a recompensa. Após aprovar, avançar ao próximo desafio; não aceitar outra submissão oficial do mesmo desafio, mas continuar permitindo execuções de estudo.

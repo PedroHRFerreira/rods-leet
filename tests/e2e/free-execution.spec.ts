@@ -120,25 +120,23 @@ test("free output, submission confirmation, retries, reward and next step", asyn
     await route.fulfill({ json: body });
   });
   await page.goto(`${baseURL}/desafios/sum-two-integers?language=python`);
-  await expect(page.getByLabel("Forma de executar")).toHaveValue("program");
+  await expect(page.getByLabel("Forma de executar")).toHaveCount(0);
   await page
     .getByRole("button", { name: "Editor simples", exact: true })
     .click();
   const editor = page.getByRole("textbox", { name: /Código de/ });
-  await editor.fill("print(2 + 3)");
-  await page.getByLabel("Forma de executar").selectOption("function");
-  await expect(editor).toHaveValue("print(2 + 3)");
+  await editor.fill(
+    'def solve(entrada):\n    print(entrada)\n    return entrada["a"] + entrada["b"]',
+  );
+  await expect(editor).toHaveValue(
+    'def solve(entrada):\n    print(entrada)\n    return entrada["a"] + entrada["b"]',
+  );
   await page
-    .getByRole("button", { name: "Carregar modelo desta forma" })
+    .getByRole("button", { name: "Recarregar modelo da função" })
     .click();
   await page.getByRole("button", { name: "Manter meu código" }).click();
-  await expect(editor).toHaveValue("print(2 + 3)");
-  await page.getByLabel("Forma de executar").selectOption("program");
-  await page
-    .getByRole("button", { name: "Usar entrada do primeiro exemplo" })
-    .click();
-  await expect(page.getByLabel("Entrada para experimentar")).not.toHaveValue(
-    "",
+  await expect(editor).toHaveValue(
+    'def solve(entrada):\n    print(entrada)\n    return entrada["a"] + entrada["b"]',
   );
   await page
     .getByRole("button", { name: "Executar código", exact: true })
@@ -161,7 +159,9 @@ test("free output, submission confirmation, retries, reward and next step", asyn
   );
   expect(requests).toHaveLength(2);
   await page.getByRole("button", { name: "Continuar editando" }).click();
-  await expect(editor).toHaveValue("print(2 + 3)");
+  await expect(editor).toHaveValue(
+    'def solve(entrada):\n    print(entrada)\n    return entrada["a"] + entrada["b"]',
+  );
   await page
     .getByRole("button", { name: "Submeter solução", exact: true })
     .click();
@@ -199,7 +199,7 @@ test("free output, submission confirmation, retries, reward and next step", asyn
   await expect(
     page.getByRole("button", { name: "Executar código", exact: true }),
   ).toBeEnabled();
-  expect(requests.every((input) => input.executionMode === "program")).toBe(
+  expect(requests.every((input) => input.executionMode === "function")).toBe(
     true,
   );
   expect(

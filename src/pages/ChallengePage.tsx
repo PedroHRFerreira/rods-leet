@@ -38,7 +38,6 @@ import {
   TopicIcon,
 } from "../components/ui";
 import { challengeById, topics } from "../content/catalog";
-import { programStarterFiles } from "../content/program-templates";
 import { LearningResourceList } from "../components/LearningResourceList";
 import { LANGUAGES, completionReward } from "../domain/rules";
 import type {
@@ -950,40 +949,14 @@ function SourceWorkspace({
     } catch {
       /* A malformed draft never replaces the starter. */
     }
-    const starter =
-      language === "sql"
-        ? (challenge.starterFilesByLanguage[language] ?? [])
-        : programStarterFiles(language);
-    return starter.map((file) => ({ ...file }));
+    return (challenge.starterFilesByLanguage[language] ?? []).map((file) => ({
+      ...file,
+    }));
   });
-  const [executionMode, setExecutionMode] = useState<"function" | "program">(
-    () => {
-      if (language === "sql") return "function";
-      try {
-        return localStorage.getItem(`${storageKey}:mode`) === "program"
-          ? "program"
-          : initialDraft.current
-            ? "function"
-            : "program";
-      } catch {
-        return initialDraft.current ? "function" : "program";
-      }
-    },
-  );
-  const [stdin, setStdin] = useState("");
+  const executionMode = "function" as const;
+  const stdin = "";
   const [confirmSubmission, setConfirmSubmission] = useState(false);
   const [confirmStarter, setConfirmStarter] = useState(false);
-  const updateMode = useCallback(
-    (mode: "function" | "program") => {
-      setExecutionMode(mode);
-      try {
-        localStorage.setItem(`${storageKey}:mode`, mode);
-      } catch {
-        /* Mode remains selected during this visit. */
-      }
-    },
-    [storageKey],
-  );
   const [activeFile, setActiveFile] = useState(files[0]?.path ?? "solution");
   const [saveState, setSaveState] = useState("Salvo neste dispositivo");
   const [otherTab, setOtherTab] = useState(false);
@@ -1074,12 +1047,6 @@ function SourceWorkspace({
         if (!remote) return;
         const loaded = { ...remote, localDirty: false };
         setFiles(remote.files);
-        try {
-          if (!localStorage.getItem(`${storageKey}:mode`))
-            updateMode("function");
-        } catch {
-          updateMode("function");
-        }
         setActiveFile(remote.files[0]?.path ?? "solution");
         initialDraft.current = loaded;
         try {
@@ -1107,7 +1074,7 @@ function SourceWorkspace({
       if (saveTimer.current) clearTimeout(saveTimer.current);
       window.removeEventListener("storage", onStorage);
     };
-  }, [challenge.id, gateway, language, storageKey, synchronize, updateMode]);
+  }, [challenge.id, gateway, language, storageKey, synchronize]);
   function updateCode(content: string) {
     saveFiles(
       files.map((file) =>
@@ -1228,66 +1195,19 @@ function SourceWorkspace({
       </div>
       {language !== "sql" && (
         <div className="program-controls">
-          <label>
-            Forma de executar{" "}
-            <select
-              aria-label="Forma de executar"
-              value={executionMode}
-              onChange={(event) =>
-                updateMode(event.target.value as "function" | "program")
-              }
-              disabled={busy}
-            >
-              <option value="program">Programa livre · entrada e saída</option>
-              <option value="function">Função do modelo</option>
-            </select>
-          </label>
+          <p>
+            Complete a função do modelo e devolva a resposta com return. Você
+            pode usar console.log ou print para acompanhar a execução; essas
+            mensagens não alteram a resposta avaliada.
+          </p>
           <button
             type="button"
             className="text-link"
             onClick={() => setConfirmStarter(true)}
             disabled={busy}
           >
-            Carregar modelo desta forma
+            Recarregar modelo da função
           </button>
-          <p>
-            Alterar a forma de executar mantém seu código. Use o modelo se
-            quiser começar novamente.
-          </p>
-          <p>
-            {executionMode === "program"
-              ? "Use console.log, print ou a saída padrão da sua linguagem. Ao submeter, cada entrada chega como JSON em uma linha: leia os valores e imprima somente o resultado esperado. Para objetos e listas, imprima JSON. Mensagens de diagnóstico devem ir para a saída de erros, pois a saída completa é comparada."
-              : "Implemente a função indicada no modelo. O resultado retornado pela função será comparado com a resposta esperada."}
-          </p>
-          {executionMode === "program" && (
-            <>
-              <label htmlFor="program-stdin">Entrada para experimentar</label>
-              <textarea
-                id="program-stdin"
-                aria-label="Entrada para experimentar"
-                value={stdin}
-                onChange={(event) => {
-                  if (
-                    new TextEncoder().encode(event.target.value).byteLength <=
-                    65536
-                  )
-                    setStdin(event.target.value);
-                }}
-                placeholder="Digite aqui a entrada que seu programa vai ler"
-                rows={3}
-              />
-              <button
-                className="text-link"
-                onClick={() =>
-                  setStdin(
-                    JSON.stringify(challenge.examples[0]?.input ?? null) + "\n",
-                  )
-                }
-              >
-                Usar entrada do primeiro exemplo
-              </button>
-            </>
-          )}
         </div>
       )}
       <div
@@ -1423,12 +1343,9 @@ function SourceWorkspace({
           <button
             className="button button-primary"
             onClick={() => {
-              const starter =
-                executionMode === "program"
-                  ? programStarterFiles(language)
-                  : (challenge.starterFilesByLanguage[language] ?? []).map(
-                      (file) => ({ ...file }),
-                    );
+              const starter = (
+                challenge.starterFilesByLanguage[language] ?? []
+              ).map((file) => ({ ...file }));
               saveFiles(starter);
               setActiveFile(starter[0]?.path ?? "solution");
               setConfirmStarter(false);

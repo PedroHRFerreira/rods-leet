@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { getEvaluation, parseProgramOutput } from "../judge/index";
+import {
+  getEvaluation,
+  parseProgramOutput,
+  parseFunctionOutput,
+} from "../judge/index";
+
+it("grades the function return while preserving console and print diagnostics", () => {
+  expect(parseFunctionOutput("entrada: 2 e 3\n5\n")).toBe(5);
+  expect(
+    parseFunctionOutput('debug\n{"result":9,"inputUnchanged":true}\n'),
+  ).toEqual({ result: 9, inputUnchanged: true });
+  expect(() => parseFunctionOutput("5\nundefined\n")).toThrow();
+});
 
 describe("standalone program judging", () => {
   it("reads actual stdout without manufacturing an expected result", () => {

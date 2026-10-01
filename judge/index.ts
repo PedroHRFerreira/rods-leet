@@ -91,3 +91,8 @@ export function getEvaluation(
     },
   };
 }
+/** Adapters print the function return on the final line, after learner logs. */
+export function parseFunctionOutput(stdout: string): unknown {
+  const lines = stdout.trimEnd().split(/\r?\n/);
+  return JSON.parse(lines[lines.length - 1]);
+}
