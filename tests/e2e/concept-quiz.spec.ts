@@ -48,6 +48,7 @@ async function setup(
   const paths: string[] = [];
   let xp = 0;
   let dropped = false;
+  let identity = "quiz-learner";
   const correct: Record<string, string> = {
     "concept-values": "b",
     "concept-variables": "a",
@@ -83,12 +84,12 @@ async function setup(
     paths.push(`${request.method()} ${path}`);
     let body: unknown;
     if (path === "/api/session")
-      body = { user: { id: "quiz-learner" }, csrf: "test" };
+      body = { user: { id: identity }, csrf: "test" };
     else if (path === "/api/dashboard")
       body = {
         ...guestDashboard(),
         profile: {
-          id: "quiz-learner",
+          id: identity,
           anonymous: true,
           authenticated: true,
           displayName: "Visitante",
@@ -151,7 +152,15 @@ async function setup(
     }
     await route.fulfill({ json: body });
   });
-  return { correct, completed, answers, paths };
+  return {
+    correct,
+    completed,
+    answers,
+    paths,
+    setIdentity: (value: string) => {
+      identity = value;
+    },
+  };
 }
 
 async function confirm(page: import("@playwright/test").Page) {
@@ -196,6 +205,10 @@ test("concepts start without an editor and lead through ten questions to code", 
       await expect(
         page.getByRole("heading", { name: "Ainda não foi desta vez" }),
       ).toBeVisible();
+      await page.screenshot({
+        path: `/tmp/rods-concept-wrong-${info.project.name}.png`,
+        fullPage: true,
+      });
       await expect(page.locator(".concept-quiz-reward")).toContainText("17 XP");
       await page.getByRole("button", { name: "Tentar outra resposta" }).click();
     }
@@ -218,6 +231,19 @@ test("concepts start without an editor and lead through ten questions to code", 
         path: `/tmp/rods-concept-success-${info.project.name}.png`,
         fullPage: true,
       });
+      await page
+        .getByRole("button", { name: "Ativar tema claro", exact: true })
+        .click();
+      await expect(
+        page.locator(".result-reaction--success[data-play='true']"),
+      ).toHaveCount(1);
+      await page.screenshot({
+        path: `/tmp/rods-concept-success-light-${info.project.name}.png`,
+        fullPage: true,
+      });
+      await page
+        .getByRole("button", { name: "Ativar tema escuro", exact: true })
+        .click();
       await page.reload();
       await expect(
         page.getByRole("region", { name: "Etapa concluída" }),
@@ -247,6 +273,7 @@ test("a lost response retries the same answer without allowing a second choice",
   await expect(page.getByRole("alert")).toContainText(
     "Vamos confirmar seu envio",
   );
+  await expect(page.locator(".result-reaction")).toHaveCount(0);
   await expect(page.getByRole("radio").nth(1)).toBeDisabled();
   await page.screenshot({
     path: `/tmp/rods-concept-network-error-${info.project.name}.png`,
@@ -261,4 +288,149 @@ test("a lost response retries the same answer without allowing a second choice",
   await expect(page.locator(".concept-quiz-reward")).toContainText("17 XP");
   expect(state.answers).toHaveLength(2);
   expect(state.answers[0]).toEqual(state.answers[1]);
+});
+
+const skipLabel = "Não pedir confirmação novamente neste navegador";
+
+test("confirmation preference is saved only on send, persists, and can be re-enabled from profile", async ({
+  page,
+}) => {
+  const state = await setup(page);
+  await page.goto(`${baseURL}/desafios/concept-values`);
+  await page.getByRole("radio").nth(0).check();
+  await page
+    .getByRole("button", { name: "Confirmar resposta", exact: true })
+    .click();
+  await page.getByRole("checkbox", { name: skipLabel, exact: true }).check();
+  await page
+    .getByRole("button", { name: "Revisar resposta", exact: true })
+    .click();
+  expect(state.answers).toHaveLength(0);
+  await page
+    .getByRole("button", { name: "Confirmar resposta", exact: true })
+    .click();
+  await expect(
+    page.getByRole("checkbox", { name: skipLabel, exact: true }),
+  ).not.toBeChecked();
+  await page.getByRole("checkbox", { name: skipLabel, exact: true }).check();
+  await page
+    .getByRole("button", { name: "Confirmar envio", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Ainda não foi desta vez" }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".result-reaction--encouragement[data-play='true']"),
+  ).toHaveCount(1);
+  await page.getByRole("button", { name: "Tentar outra resposta" }).click();
+  await page.getByRole("radio").nth(1).check();
+  await page
+    .getByRole("button", { name: "Confirmar resposta", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Resposta certa!" }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  expect(state.answers).toHaveLength(2);
+  await page.getByRole("link", { name: "Próximo passo", exact: true }).click();
+  await page.reload();
+  await page.getByRole("radio").nth(0).check();
+  await page
+    .getByRole("button", { name: "Confirmar resposta", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Resposta certa!" }),
+  ).toBeVisible();
+  expect(state.answers).toHaveLength(3);
+  await page.goto(`${baseURL}/perfil`);
+  const quizPreference = page.getByRole("checkbox", {
+    name: "Pedir confirmação nas perguntas",
+    exact: true,
+  });
+  const codePreference = page.getByRole("checkbox", {
+    name: "Pedir confirmação no código",
+    exact: true,
+  });
+  await expect(quizPreference).not.toBeChecked();
+  await expect(codePreference).toBeChecked();
+  await quizPreference.check();
+  await page.goto(`${baseURL}/desafios/concept-numbers`);
+  await page.getByRole("radio").nth(2).check();
+  await page
+    .getByRole("button", { name: "Confirmar resposta", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(state.answers).toHaveLength(3);
+});
+
+test("browser preferences stay separate for quiz, code and learner identity", async ({
+  page,
+}) => {
+  const state = await setup(page);
+  await page.goto(`${baseURL}/perfil`);
+  const quizPreference = page.getByRole("checkbox", {
+    name: "Pedir confirmação nas perguntas",
+    exact: true,
+  });
+  const codePreference = page.getByRole("checkbox", {
+    name: "Pedir confirmação no código",
+    exact: true,
+  });
+  await quizPreference.uncheck();
+  await expect(codePreference).toBeChecked();
+  await page.reload();
+  await expect(quizPreference).not.toBeChecked();
+  await expect(codePreference).toBeChecked();
+  state.setIdentity("another-learner");
+  await page.reload();
+  await expect(quizPreference).toBeChecked();
+  await expect(codePreference).toBeChecked();
+  await codePreference.uncheck();
+  await expect(quizPreference).toBeChecked();
+  state.setIdentity("quiz-learner");
+  await page.reload();
+  await expect(quizPreference).not.toBeChecked();
+  await expect(codePreference).toBeChecked();
+});
+
+test("confirmed progress updates once and reduced motion suppresses the visual animation", async ({
+  page,
+}, info) => {
+  await setup(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`${baseURL}/desafios/concept-values`);
+  const progress = page.getByRole("progressbar", {
+    name: /Módulo de conceitos/,
+  });
+  await expect(progress).toHaveAttribute("aria-valuenow", "0");
+  await expect(progress).toHaveAttribute("aria-valuemax", "10");
+  await page.getByRole("radio").nth(1).check();
+  await confirm(page);
+  await expect(
+    page.getByRole("heading", { name: "Resposta certa!" }),
+  ).toBeVisible();
+  await expect(progress).toHaveAttribute("aria-valuenow", "1");
+  await expect(page.locator(".learning-progress")).toContainText(
+    "Faltam 9 etapas",
+  );
+  const reaction = page.locator(".result-reaction--success[data-play='true']");
+  await expect(reaction).toHaveCount(1);
+  await expect(reaction).toHaveAttribute("aria-hidden", "true");
+  expect(
+    await reaction
+      .locator("svg")
+      .evaluate((element) => getComputedStyle(element).animationName),
+  ).toBe("none");
+  await page.screenshot({
+    path: `/tmp/rods-quiz-reduced-motion-${info.project.name}.png`,
+    fullPage: true,
+  });
+  await page.reload();
+  await expect(
+    page.getByRole("region", { name: "Etapa concluída" }),
+  ).toBeVisible();
+  await expect(page.locator(".result-reaction[data-play='true']")).toHaveCount(
+    0,
+  );
+  await expect(progress).toHaveAttribute("aria-valuenow", "1");
 });

@@ -9,7 +9,7 @@ import {
   Send,
   Zap,
 } from "lucide-react";
-import { challengeById } from "../content/catalog";
+import { challengeById, challenges } from "../content/catalog";
 import { completionReward } from "../domain/rules";
 import { useGateway } from "../lib/gateway-context";
 import type {
@@ -21,15 +21,19 @@ import type {
 } from "../lib/contracts";
 import { GatewayError } from "../lib/contracts";
 import { PageHeading } from "../components/ui";
+import { LearningProgress } from "../components/LearningProgress";
+import { useSubmissionConfirmation } from "../lib/useSubmissionConfirmation";
 import {
   QuizConfirmation,
   QuizFeedback,
 } from "../components/ConceptQuizFeedback";
 
 const errorText = (error: unknown) =>
-  error instanceof Error
-    ? error.message
-    : "Não conseguimos confirmar seu envio. Tente novamente.";
+  error instanceof GatewayError && error.code === "network_error"
+    ? "Não foi possível conectar para conferir sua resposta. Tente novamente."
+    : error instanceof Error
+      ? error.message
+      : "Não conseguimos confirmar seu envio. Tente novamente.";
 
 type PendingAnswer = { input: QuizSubmissionInput; key: string };
 
@@ -42,6 +46,14 @@ export default function ConceptQuizPage({
 }) {
   const gateway = useGateway();
   const queryClient = useQueryClient();
+  const { skipConfirmation, setSkipConfirmation } = useSubmissionConfirmation(
+    dashboard.profile.id,
+    "quiz",
+  );
+  const catalog = useQuery({
+    queryKey: ["challenges"],
+    queryFn: () => gateway.listChallenges(),
+  });
   const [params] = useSearchParams();
   const openingKey = useRef(crypto.randomUUID());
   const pendingAnswer = useRef<PendingAnswer | null>(null);
@@ -72,7 +84,10 @@ export default function ConceptQuizPage({
   const approved =
     completed ||
     attempt.data?.status === "accepted" ||
-    result?.verdict === "accepted";
+    (result?.status === "completed" && result.verdict === "accepted");
+  const completedIds = approved
+    ? [...new Set([...dashboard.completedChallengeIds, challenge.id])]
+    : dashboard.completedChallengeIds;
   const reward =
     approved || attempt.data?.practiceOnly
       ? 0
@@ -121,10 +136,14 @@ export default function ConceptQuizPage({
         queryClient.setQueryData<Attempt>(attemptKey, {
           ...cachedAttempt,
           status:
-            answer.verdict === "accepted" ? "accepted" : cachedAttempt.status,
+            answer.status === "completed" && answer.verdict === "accepted"
+              ? "accepted"
+              : cachedAttempt.status,
           rejectedCount:
             cachedAttempt.rejectedCount +
-            (answer.verdict === "wrong_answer" ? 1 : 0),
+            (answer.status === "completed" && answer.verdict === "wrong_answer"
+              ? 1
+              : 0),
         });
       }
       await Promise.allSettled([
@@ -178,7 +197,7 @@ export default function ConceptQuizPage({
       >
         <div className="concept-quiz-reward">
           <Zap size={20} aria-hidden="true" />
-          <strong>{reward} XP</strong>
+          <strong>{approved ? "Concluído" : `${reward} XP`}</strong>
           <span>
             {approved ? "Etapa concluída" : "Ao acertar esta pergunta"}
           </span>
@@ -186,10 +205,15 @@ export default function ConceptQuizPage({
       </PageHeading>
       {challenge.learningPath && (
         <p className="concept-quiz-progress">
-          Lógica · passo {challenge.learningPath.position} de{" "}
+          Etapa atual da trilha de lógica: {challenge.learningPath.position} de{" "}
           {challenge.learningPath.total}
         </p>
       )}
+      <LearningProgress
+        challenge={challenge}
+        catalog={catalog.data ?? challenges}
+        completedIds={completedIds}
+      />
       <section
         className="concept-quiz-lesson panel"
         aria-labelledby="quiz-lesson-title"
@@ -217,7 +241,12 @@ export default function ConceptQuizPage({
               esta etapa. Pode reler a explicação e seguir quando quiser.
             </p>
           )}
-          <QuizFeedback result={result} error={error} retry={retry} />
+          <QuizFeedback
+            result={result}
+            identity={dashboard.profile.id}
+            error={error}
+            retry={retry}
+          />
           <Link className="button button-primary" to={nextUrl}>
             {nextChallenge ? "Próximo passo" : "Ver minha trilha"}
             <ArrowRight size={18} />
@@ -233,8 +262,10 @@ export default function ConceptQuizPage({
           className="concept-quiz-question panel"
           onSubmit={(event) => {
             event.preventDefault();
-            if (selected && attempt.data && !busy && !unconfirmed)
-              setConfirmationOpen(true);
+            if (selected && attempt.data && !busy && !unconfirmed) {
+              if (skipConfirmation) void sendAnswer();
+              else setConfirmationOpen(true);
+            }
           }}
         >
           <fieldset disabled={busy || unconfirmed || !attempt.data}>
@@ -266,6 +297,7 @@ export default function ConceptQuizPage({
           {attempt.isPending && <p role="status">Preparando sua pergunta…</p>}
           <QuizFeedback
             result={result}
+            identity={dashboard.profile.id}
             error={error ?? (attempt.isError ? errorText(attempt.error) : null)}
             retry={retry}
           />
@@ -288,7 +320,11 @@ export default function ConceptQuizPage({
       <QuizConfirmation
         open={confirmationOpen}
         onClose={() => setConfirmationOpen(false)}
-        onConfirm={() => void sendAnswer()}
+        onConfirm={(skip) => {
+          if (sending.current || approved) return;
+          if (skip) setSkipConfirmation(true);
+          void sendAnswer();
+        }}
         reward={reward}
         busy={busy}
       />

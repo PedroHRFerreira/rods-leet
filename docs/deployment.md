@@ -61,7 +61,7 @@ O custo cobrado por provedor é `0` nessa modalidade. Cloudflare Tunnel não acr
 
 A interface do beta usa a função do modelo. Executar chama essa função com a entrada do exemplo e mostra mensagens de console/print e o valor retornado, sem avaliar nem conceder XP. Submeter compara apenas o retorno com os resultados oficiais; as mensagens de estudo não interferem na resposta. O servidor mantém o contrato `program` por compatibilidade, sem oferecê-lo na interface. Atualize a imagem do executor junto do coordenador quando mudar esses contratos.
 
-Submeter requer confirmação na interface. Uma rejeição do código reduz o XP disponível em 15% do valor base por erro, até zero; a primeira aprovação concede a recompensa uma única vez e bloqueia novos envios oficiais. Estudo permanece disponível. As regras completas e atuais ficam em [regras do produto](product-rules.md).
+Submeter pede confirmação inicialmente; o usuário pode dispensá-la para perguntas ou código neste navegador e reativá-la no perfil. Uma rejeição do código reduz o XP disponível em 15% do valor base por erro, até zero; a primeira aprovação concede a recompensa uma única vez e bloqueia novos envios oficiais. Estudo permanece disponível. As regras completas e atuais ficam em [regras do produto](product-rules.md).
 
 ## Publicação, tutor e recuperação
 

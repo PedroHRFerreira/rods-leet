@@ -39,6 +39,9 @@ import {
 } from "../components/ui";
 import { challengeById, topics } from "../content/catalog";
 import { LearningResourceList } from "../components/LearningResourceList";
+import { LearningProgress } from "../components/LearningProgress";
+import { ResultReaction } from "../components/ResultReaction";
+import { useSubmissionConfirmation } from "../lib/useSubmissionConfirmation";
 import {
   FunctionGuide,
   firstStepTask,
@@ -216,7 +219,9 @@ function ChallengeWorkspace({
     }
   });
   const [submission, setSubmission] = useState<PublicSubmission | null>(null);
+  const freshSubmissionIds = useRef(new Set<string>());
   const [busy, setBusy] = useState<string | null>(null);
+  const executing = useRef(false);
   const [error, setError] = useState("");
   const [hints, setHints] = useState<string[]>([]);
   const [solution, setSolution] = useState<SolutionResult | null>(null);
@@ -225,6 +230,12 @@ function ChallengeWorkspace({
   >("description");
   const gateway = useGateway();
   const queryClient = useQueryClient();
+  const catalogQuery = useQuery({
+    queryKey: ["challenges"],
+    queryFn: () => gateway.listChallenges(),
+    retry: false,
+  });
+  const catalog = catalogQuery.data ?? [...challengeById.values()];
   const execution = useQuery({
     queryKey: ["execution-status"],
     queryFn: () => gateway.getExecutionStatus(),
@@ -248,9 +259,11 @@ function ChallengeWorkspace({
     ? challengeById.get(challenge.prerequisites[0])
     : undefined;
   const guidedNextChallenge = challenge.learningPath?.nextChallengeId
-    ? challengeById.get(challenge.learningPath.nextChallengeId)
+    ? catalog.find(
+        (item) => item.id === challenge.learningPath?.nextChallengeId,
+      )
     : undefined;
-  const remainingChallenges = [...challengeById.values()].filter(
+  const remainingChallenges = catalog.filter(
     (item) =>
       item.id !== challenge.id &&
       !dashboard.completedChallengeIds.includes(item.id),
@@ -263,7 +276,13 @@ function ChallengeWorkspace({
   const approved =
     completed ||
     attempt?.status === "accepted" ||
-    (submissionKind === "submit" && submission?.verdict === "accepted");
+    (submissionKind === "submit" &&
+      submission?.status === "completed" &&
+      submission.verdict === "accepted");
+  const completedIds =
+    approved && !completed
+      ? [...dashboard.completedChallengeIds, challenge.id]
+      : dashboard.completedChallengeIds;
   const potentialXp =
     completed || attempt?.practiceOnly
       ? 0
@@ -296,7 +315,9 @@ function ChallengeWorkspace({
   const official = useQuery({
     queryKey: ["submission", submissionId],
     queryFn: () => gateway.getSubmission(submissionId!),
-    enabled: Boolean(submissionId),
+    enabled:
+      Boolean(submissionId) &&
+      !(submission?.id === submissionId && submission.status === "completed"),
     refetchInterval: (query) =>
       query.state.data?.status === "completed" ? false : 1500,
     retry: 2,
@@ -374,11 +395,13 @@ function ChallengeWorkspace({
     executionMode: "function" | "program",
     stdin: string,
   ) {
+    if (executing.current || inFlight) return;
     if (kind === "submit" && approved) return;
     if (executionStatus !== "ready") {
       setError(executionMessage);
       return;
     }
+    executing.current = true;
     setBusy(kind);
     setError("");
     try {
@@ -395,12 +418,17 @@ function ChallengeWorkspace({
       const next = await gateway[kind](input, keyFor(operation));
       actionKeys.current.delete(operation);
       if (kind === "submit") pendingApproval.current = next.id;
+      freshSubmissionIds.current.add(next.id);
+      if (next.status === "completed") {
+        queryClient.setQueryData(["submission", next.id], next);
+      }
       setSubmission(next);
       setSubmissionId(next.id);
       setSubmissionKind(kind);
     } catch (cause) {
       setError(errorText(cause));
     } finally {
+      executing.current = false;
       setBusy(null);
     }
   }
@@ -460,7 +488,7 @@ function ChallengeWorkspace({
               <TopicIcon topicId={challenge.topicId} size={14} />
               {topic?.title}
             </span>
-            {completed && (
+            {approved && (
               <span className="arena-completed">
                 <CheckCircle2 size={14} />
                 Concluído
@@ -471,16 +499,21 @@ function ChallengeWorkspace({
         </div>
         <div className="arena-xp">
           <Zap size={18} fill="currentColor" />
-          <strong>{potentialXp} XP</strong>
+          <strong>{approved ? "Concluído" : `${potentialXp} XP`}</strong>
           <small>
-            {completed
-              ? "Primeira recompensa já recebida"
+            {approved
+              ? "Desafio aprovado"
               : attempt?.practiceOnly
                 ? "Prática sem XP"
                 : "na primeira aprovação"}
           </small>
         </div>
       </div>
+      <LearningProgress
+        challenge={challenge}
+        catalog={catalog}
+        completedIds={completedIds}
+      />
       <div className="arena-mode-row">
         <div className="arena-modes">
           <span
@@ -933,11 +966,23 @@ function ChallengeWorkspace({
               </div>
             )}
             {submission ? (
-              <SubmissionResult
-                submission={submission}
-                hard={attempt?.mode === "hard"}
-                kind={submissionKind}
-              />
+              <>
+                <ResultReaction
+                  submission={submission}
+                  identity={dashboard.profile.id}
+                  kind={submissionKind}
+                  animate={
+                    freshSubmissionIds.current.has(submission.id) &&
+                    !approval &&
+                    submission.verdict !== "accepted"
+                  }
+                />
+                <SubmissionResult
+                  submission={submission}
+                  hard={attempt?.mode === "hard"}
+                  kind={submissionKind}
+                />
+              </>
             ) : (
               <div className="results-empty">
                 <span>
@@ -962,6 +1007,14 @@ function ChallengeWorkspace({
         onClose={() => setApproval(null)}
         title="Desafio aprovado!"
       >
+        {approval && (
+          <ResultReaction
+            submission={approval}
+            identity={dashboard.profile.id}
+            kind="submit"
+            animate={freshSubmissionIds.current.has(approval.id)}
+          />
+        )}
         <p>
           Parabéns, seu resultado está correto. Você recebeu{" "}
           {approval?.xpAwarded ?? 0} XP. Pode continuar executando seu código
@@ -1065,6 +1118,15 @@ function SourceWorkspace({
   const executionMode = "function" as const;
   const stdin = "";
   const [confirmSubmission, setConfirmSubmission] = useState(false);
+  const [rememberConfirmation, setRememberConfirmation] = useState(false);
+  const { skipConfirmation, setSkipConfirmation } = useSubmissionConfirmation(
+    userId,
+    "code",
+  );
+  const closeConfirmation = () => {
+    setConfirmSubmission(false);
+    setRememberConfirmation(false);
+  };
   const [confirmStarter, setConfirmStarter] = useState(false);
   const [activeFile, setActiveFile] = useState(files[0]?.path ?? "solution");
   const [saveState, setSaveState] = useState("Salvo neste dispositivo");
@@ -1430,7 +1492,14 @@ function SourceWorkspace({
                 ? undefined
                 : executionMessage
           }
-          onClick={() => setConfirmSubmission(true)}
+          onClick={() => {
+            if (skipConfirmation)
+              void onExecute(files, "submit", executionMode, stdin);
+            else {
+              setRememberConfirmation(false);
+              setConfirmSubmission(true);
+            }
+          }}
         >
           <Send size={15} />
           {executionAction === "submit"
@@ -1475,7 +1544,7 @@ function SourceWorkspace({
       </ChallengeDialog>
       <ChallengeDialog
         open={confirmSubmission}
-        onClose={() => setConfirmSubmission(false)}
+        onClose={closeConfirmation}
         title="Submeter esta solução?"
       >
         <p>
@@ -1483,17 +1552,26 @@ function SourceWorkspace({
           errar, pode tentar novamente. Cada erro reduz a recompensa em 15% do
           XP inicial do desafio, até chegar a zero.
         </p>
+        <label className="confirmation-preference">
+          <input
+            type="checkbox"
+            checked={rememberConfirmation}
+            onChange={(event) => setRememberConfirmation(event.target.checked)}
+          />
+          Não pedir confirmação novamente neste navegador
+        </label>
         <div className="challenge-dialog-actions">
           <button
             className="button button-secondary"
-            onClick={() => setConfirmSubmission(false)}
+            onClick={closeConfirmation}
           >
             Continuar editando
           </button>
           <button
             className="button button-primary"
             onClick={() => {
-              setConfirmSubmission(false);
+              if (rememberConfirmation) setSkipConfirmation(true);
+              closeConfirmation();
               void onExecute(files, "submit", executionMode, stdin);
             }}
           >

@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useGateway } from "../lib/gateway-context";
+import { useSubmissionConfirmation } from "../lib/useSubmissionConfirmation";
 import {
   ErrorState,
   formatNumber,
@@ -19,6 +20,36 @@ import {
   ProgressBar,
 } from "../components/ui";
 import "../editor.css";
+
+function SubmissionPreferences({ identity }: { identity: string }) {
+  const quiz = useSubmissionConfirmation(identity, "quiz");
+  const code = useSubmissionConfirmation(identity, "code");
+  return (
+    <section className="panel account-panel submission-preferences">
+      <h2>Confirmação de respostas</h2>
+      <p>
+        Escolha quando revisar o envio. A preferência vale para seu perfil neste
+        navegador.
+      </p>
+      <label>
+        <input
+          type="checkbox"
+          checked={!quiz.skipConfirmation}
+          onChange={(event) => quiz.setSkipConfirmation(!event.target.checked)}
+        />
+        Pedir confirmação nas perguntas
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={!code.skipConfirmation}
+          onChange={(event) => code.setSkipConfirmation(!event.target.checked)}
+        />
+        Pedir confirmação no código
+      </label>
+    </section>
+  );
+}
 
 export default function ProfilePage() {
   const gateway = useGateway();
@@ -147,6 +178,7 @@ export default function ProfilePage() {
               recuperação de perfil anônimo entre dispositivos.
             </p>
           </section>
+          <SubmissionPreferences identity={data.profile.id} />
           <section className="panel profile-practice">
             <div>
               <span className="eyebrow">PRÓXIMO PASSO</span>

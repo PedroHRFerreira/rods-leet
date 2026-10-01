@@ -1,11 +1,12 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, Trophy, XCircle } from "lucide-react";
 import type { PublicSubmission } from "../lib/contracts";
+import { ResultReaction } from "./ResultReaction";
 
 export interface QuizConfirmationProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (skipConfirmation: boolean) => void;
   reward: number;
   busy: boolean;
 }
@@ -21,10 +22,12 @@ export function QuizConfirmation({
   const cancelButton = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+  const [skipConfirmation, setSkipConfirmation] = useState(false);
 
   useEffect(() => {
     const element = dialog.current;
     if (!open || !element) return;
+    setSkipConfirmation(false);
     const previousFocus = document.activeElement;
     if (!element.open) element.showModal();
     if (cancelButton.current && !cancelButton.current.disabled) {
@@ -68,13 +71,13 @@ export function QuizConfirmation({
       }}
       onKeyDown={(event) => {
         if (event.key !== "Tab") return;
-        const buttons = Array.from(
-          event.currentTarget.querySelectorAll<HTMLButtonElement>(
-            "button:not(:disabled)",
+        const controls = Array.from(
+          event.currentTarget.querySelectorAll<HTMLElement>(
+            "button:not(:disabled), input:not(:disabled)",
           ),
         );
-        const first = buttons[0];
-        const last = buttons.at(-1);
+        const first = controls[0];
+        const last = controls.at(-1);
         if (!first || !last) {
           event.preventDefault();
           event.currentTarget.focus();
@@ -95,6 +98,15 @@ export function QuizConfirmation({
           XP inicial desta pergunta.
         </p>
       </div>
+      <label className="challenge-confirmation-preference">
+        <input
+          type="checkbox"
+          checked={skipConfirmation}
+          disabled={busy}
+          onChange={(event) => setSkipConfirmation(event.target.checked)}
+        />
+        <span>Não pedir confirmação novamente neste navegador</span>
+      </label>
       <div className="challenge-dialog-actions">
         <button
           ref={cancelButton}
@@ -109,7 +121,7 @@ export function QuizConfirmation({
           type="button"
           className="button button-primary"
           disabled={busy}
-          onClick={onConfirm}
+          onClick={() => onConfirm(skipConfirmation)}
         >
           {busy ? "Enviando…" : "Confirmar envio"}
         </button>
@@ -120,12 +132,23 @@ export function QuizConfirmation({
 
 export interface QuizFeedbackProps {
   result: PublicSubmission | null;
+  identity: string;
   error: string | null;
   retry: () => void;
 }
 
-export function QuizFeedback({ result, error, retry }: QuizFeedbackProps) {
-  if (error || result?.verdict === "infrastructure_error") {
+export function QuizFeedback({
+  result,
+  identity,
+  error,
+  retry,
+}: QuizFeedbackProps) {
+  const technicalFailure =
+    result?.verdict === "infrastructure_error" ||
+    (result?.status === "completed" &&
+      result.verdict !== "accepted" &&
+      result.verdict !== "wrong_answer");
+  if (error || technicalFailure) {
     return (
       <div className="submission-result quiz-feedback" role="alert">
         <h3>
@@ -164,6 +187,7 @@ export function QuizFeedback({ result, error, retry }: QuizFeedbackProps) {
       className={`submission-result quiz-feedback ${accepted ? "is-accepted" : ""}`}
       role="status"
     >
+      <ResultReaction submission={result} identity={identity} kind="submit" />
       <h3>
         {accepted ? <CheckCircle2 size={21} /> : <XCircle size={21} />}
         {accepted ? "Resposta certa!" : "Ainda não foi desta vez"}

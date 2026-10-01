@@ -53,6 +53,7 @@ test("free output, submission confirmation, retries, reward and next step", asyn
   let accepted = false;
   const requests: SubmissionInput[] = [];
   const evaluations = new Map<string, PublicSubmission>();
+  let resultReads = 0;
   const attempt = () => ({
     id: "attempt-free",
     userId: "beta-visitor",
@@ -100,7 +101,7 @@ test("free output, submission confirmation, retries, reward and next step", asyn
       requests.push(input);
       const run = path.endsWith("runs");
       if (!run) {
-        if (rejections === 0) rejections++;
+        if (rejections < 2) rejections++;
         else accepted = true;
       }
       const result: PublicSubmission = {
@@ -108,18 +109,23 @@ test("free output, submission confirmation, retries, reward and next step", asyn
         attemptId: "attempt-free",
         status: "completed",
         verdict: run || accepted ? "accepted" : "wrong_answer",
-        xpAwarded: accepted && !run ? Math.floor(challenge.baseXp * 0.85) : 0,
+        xpAwarded: accepted && !run ? Math.floor(challenge.baseXp * 0.7) : 0,
         stdout: run ? "5\n" : undefined,
         stderr: run ? "Aviso de teste\n" : undefined,
       };
       evaluations.set(result.id, result);
       body = result;
-    } else if (path.startsWith("/api/submissions/"))
+    } else if (path.startsWith("/api/submissions/")) {
+      resultReads++;
       body = evaluations.get(path.split("/").at(-1)!);
+    } else if (path === "/api/challenges") body = challenges;
     else body = [];
     await route.fulfill({ json: body });
   });
   await page.goto(`${baseURL}/desafios/sum-two-integers?language=python`);
+  await expect(page.locator(".learning-progress-heading")).toContainText(
+    "0 de",
+  );
   await expect(page.getByLabel("Forma de executar")).toHaveCount(0);
   await page
     .getByRole("button", { name: "Editor simples", exact: true })
@@ -144,6 +150,7 @@ test("free output, submission confirmation, retries, reward and next step", asyn
   await expect(page.getByText("Saída do seu código")).toBeVisible();
   await expect(page.locator(".program-output").first()).toContainText("5");
   await expect(page.getByText("Erros e avisos")).toBeVisible();
+  await expect(page.locator(".result-reaction")).toHaveCount(0);
   await page
     .locator(".arena-work-column")
     .screenshot({ path: `/tmp/rods-free-editor-${testInfo.project.name}.png` });
@@ -158,6 +165,11 @@ test("free output, submission confirmation, retries, reward and next step", asyn
     "Submeter esta solução?",
   );
   expect(requests).toHaveLength(2);
+  await page
+    .getByRole("checkbox", {
+      name: "Não pedir confirmação novamente neste navegador",
+    })
+    .check();
   await page.getByRole("button", { name: "Continuar editando" }).click();
   await expect(editor).toHaveValue(
     'def solve(entrada):\n    print(entrada)\n    return entrada["a"] + entrada["b"]',
@@ -165,10 +177,26 @@ test("free output, submission confirmation, retries, reward and next step", asyn
   await page
     .getByRole("button", { name: "Submeter solução", exact: true })
     .click();
+  await expect(
+    page.getByRole("checkbox", {
+      name: "Não pedir confirmação novamente neste navegador",
+    }),
+  ).not.toBeChecked();
+  await page
+    .getByRole("checkbox", {
+      name: "Não pedir confirmação novamente neste navegador",
+    })
+    .check();
   await page.getByRole("button", { name: "Confirmar submissão" }).click();
   await expect(
     page.getByText("Resposta incorreta", { exact: true }),
   ).toBeVisible();
+  await expect(
+    page.locator(
+      ".results-panel .result-reaction--encouragement[data-play='true']",
+    ),
+  ).toBeVisible();
+  expect(resultReads).toBe(0);
   await expect(page.locator(".arena-xp strong")).toHaveText(
     `${Math.floor(challenge.baseXp * 0.85)} XP`,
   );
@@ -178,16 +206,46 @@ test("free output, submission confirmation, retries, reward and next step", asyn
   await expect(
     page.getByRole("button", { name: "Submeter solução", exact: true }),
   ).toBeEnabled();
+  await page.reload();
+  await expect(
+    page.getByText("Resposta incorreta", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".result-reaction")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Submeter solução", exact: true })
+    .dblclick();
+  await expect.poll(() => requests.length).toBe(4);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator(".arena-xp strong")).toHaveText(
+    `${Math.floor(challenge.baseXp * 0.7)} XP`,
+  );
+  await page.goto(`${baseURL}/perfil`);
+  await expect(
+    page.getByRole("checkbox", { name: "Pedir confirmação no código" }),
+  ).not.toBeChecked();
+  await page
+    .getByRole("checkbox", { name: "Pedir confirmação no código" })
+    .check();
+  await page.goto(`${baseURL}/desafios/sum-two-integers?language=python`);
   await page
     .getByRole("button", { name: "Submeter solução", exact: true })
     .click();
   await page.getByRole("button", { name: "Confirmar submissão" }).click();
   await expect(page.getByRole("dialog")).toContainText("Desafio aprovado!");
+  await expect(
+    page
+      .getByRole("dialog")
+      .locator(".result-reaction--success[data-play='true']"),
+  ).toBeVisible();
+  await expect(page.locator(".arena-xp strong")).toHaveText("Concluído");
+  await expect(page.locator(".learning-progress-heading")).toContainText(
+    "1 de",
+  );
   await page.getByRole("dialog").screenshot({
     path: `/tmp/rods-free-approved-${testInfo.project.name}.png`,
   });
   await expect(page.getByRole("dialog")).toContainText(
-    `${Math.floor(challenge.baseXp * 0.85)} XP`,
+    `${Math.floor(challenge.baseXp * 0.7)} XP`,
   );
   await expect(
     page.getByRole("link", { name: "Próximo desafio", exact: true }),
