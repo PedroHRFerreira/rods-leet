@@ -54,7 +54,7 @@ O procedimento de migrations, catálogo, ambientes, segredos, templates, orçame
 
 O frontend nunca decide aprovação nem concede XP. Uma ação recebe uma chave de idempotência. Exercícios de código usam a fila e o executor isolado; perguntas são avaliadas diretamente pela API privada. Resultado, conclusão e XP são registrados no banco. Gabaritos e expectativas ocultas não são enviados no catálogo público.
 
-Rascunhos ficam separados por conta, desafio e linguagem. A versão local é preservada quando a rede falha. Um conflito de revisão pausa a sincronização; substituir a versão remota exige a escolha explícita “Manter esta versão”. Nenhuma solução do aluno é executada no navegador ou no processo da API.
+Rascunhos ficam separados por conta, desafio e linguagem. A versão local é preservada quando a rede falha. Um conflito de revisão pausa a sincronização; substituir a versão remota exige a escolha explícita “Manter esta versão”. JavaScript e TypeScript podem testar o primeiro exemplo público no navegador, em QuickJS/Wasm isolado, sem aprovação ou XP. As demais linguagens usam o executor remoto; todas as submissões oficiais continuam no servidor. O processo da API nunca executa código do aluno. Veja [operação da prática no navegador](docs/browser-practice-operations.md).
 
 ## Estado de entrega
 

@@ -45,7 +45,10 @@ test.beforeAll(async ({ playwright }, info) => {
 });
 test.afterAll(() => server?.kill());
 const challenge = challenges.find((item) => item.id === "sum-two-integers")!;
-async function setup(page: Page) {
+async function setup(
+  page: Page,
+  executionStatus: "ready" | "offline" = "ready",
+) {
   const remote: Array<{ path: string; body: unknown }> = [];
   await page.addInitScript(() =>
     localStorage.setItem("rods-leet-welcome-v1", "seen"),
@@ -69,7 +72,8 @@ async function setup(page: Page) {
     else if (path === "/api/challenges") body = challenges;
     else if (path.startsWith("/api/challenges/"))
       body = { ...challenge, executionAvailable: true };
-    else if (path === "/api/execution-status") body = { status: "ready" };
+    else if (path === "/api/execution-status")
+      body = { status: executionStatus };
     else if (path.startsWith("/api/attempts"))
       body = {
         id: "local-attempt",
@@ -112,6 +116,69 @@ async function run(page: Page) {
     .getByRole("button", { name: "Executar código", exact: true })
     .click();
 }
+
+test("offline executor explains disabled submissions and preserves other languages", async ({
+  page,
+}, info) => {
+  const remote = await setup(page, "offline");
+  const editor = await openEditor(page);
+  await expect(
+    page.getByText("Submissão indisponível.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Submeter solução", exact: true }),
+  ).toBeDisabled();
+  await editor.fill(
+    "export function solve(input) { return input.a + input.b; }",
+  );
+  await run(page);
+  await expect(page.locator(".local-practice-result")).toBeVisible();
+  expect(remote).toHaveLength(0);
+  for (const width of [320, 390, 800, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(
+      page.getByText("Submissão indisponível.", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Submeter solução", exact: true }),
+    ).toBeDisabled();
+    if (process.env.RODS_VISUAL_CAPTURE === "true") {
+      await page.locator(".code-actions").scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: `/tmp/rods-executor-offline-${info.project.name}-${width}.png`,
+      });
+    }
+  }
+  await page
+    .getByRole("button", { name: "Ativar tema claro", exact: true })
+    .click();
+  await expect(
+    page.getByText("Submissão indisponível.", { exact: true }),
+  ).toBeVisible();
+  if (process.env.RODS_VISUAL_CAPTURE === "true") {
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.locator(".code-actions").scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: `/tmp/rods-executor-offline-light-${info.project.name}-${width}.png`,
+      });
+    }
+  }
+  const languages = page.getByLabel("Linguagem", { exact: true });
+  for (const language of challenge.languageIds) {
+    await languages.selectOption(language);
+    await expect(
+      page.getByRole("button", { name: "Submeter solução", exact: true }),
+    ).toBeDisabled();
+    if (language !== "javascript" && language !== "typescript")
+      await expect(
+        page.getByRole("button", {
+          name: "Execução indisponível",
+          exact: true,
+        }),
+      ).toBeDisabled();
+  }
+});
 
 test("JS and TS run in real isolated workers without server runs, XP or completion", async ({
   page,

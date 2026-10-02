@@ -1,5 +1,9 @@
 # Rods Leet — ambiente de testes
 
+## Último estado confirmado — 2 de outubro de 2026
+
+O executor foi recuperado nesta máquina e reconectado ao projeto Supabase existente. Em produção, uma nova sessão visitante executou Python e submeteu `sum-two-integers`: aprovação oficial e 100 XP confirmados. As dez linguagens de programação continuam no seletor; JavaScript e TypeScript também mantêm a prática no navegador. Todas as linguagens de programação e SQL passaram pela homologação local da imagem recuperada. Veja o [registro da recuperação](executor-recovery-2026-10-02.md) para evidências, limites e dependência deste computador/Docker. Os registros de indisponibilidade abaixo descrevem o estado anterior à reconexão.
+
 Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria de 30 de setembro e a preparação local do beta aberto, consulte [validação do beta](beta-readiness-2026-09-30.md) e [escopo da atualização](rods/specs/2026-09-30-open-beta-design.md). A configuração histórica abaixo não comprova disponibilidade atual.
 
 ## Beta aberto publicado — 30 de setembro de 2026

@@ -1640,6 +1640,12 @@ function SourceWorkspace({
               : "Submeter solução"}
         </button>
       </div>
+      {!approved && executionStatus !== "ready" && (
+        <p className="submission-guidance" role="status">
+          <strong>Submissão indisponível. </strong>
+          {executionMessage}
+        </p>
+      )}
       <ChallengeDialog
         open={confirmStarter}
         onClose={() => setConfirmStarter(false)}
