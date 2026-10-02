@@ -65,6 +65,10 @@ Submeter pede confirmação inicialmente; o usuário pode dispensá-la para perg
 
 ## Publicação, tutor e recuperação
 
+### Prática no navegador
+
+Executar em JavaScript/TypeScript usa o primeiro exemplo público em QuickJS/Wasm isolado, sem instalação e sem XP. Submeter continua remoto. Linguagens e workspaces locais incompatíveis mantêm o servidor como alternativa, sujeito à disponibilidade do executor. Runtimes, limites, CSP e rollback estão em [operação da prática local](browser-practice-operations.md). A verificação de navegador agora constrói o pacote de produção antes de testar seus workers.
+
 Publique o frontend e as Pages Functions em Cloudflare Pages: build `npm run build`, saída `dist`. Configure no servidor Pages `APP_ORIGIN`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `BFF_SHARED_SECRET` e `BFF_ENCRYPTION_KEY`; os nomes estão em `.dev.vars.example`. O navegador usa o BFF no mesmo domínio. Para o site conectado, deixe `VITE_BFF_ENABLED` ausente ou `true`. Publique as funções `api`, `session` e `coordinator` preservando a configuração JWT de cada uma; seus segredos ficam no ambiente Supabase. Consulte [estado do ambiente](deployment-status.md) para a versão ativa.
 
 O tutor permanece fora da navegação, dos atalhos e da rota acessível. O adaptador Workers AI e a orientação editorial existem no servidor, mas não comprovam um tutor pronto. Sua ativação futura exige validação própria de qualidade, custos e limites.

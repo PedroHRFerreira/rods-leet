@@ -13,7 +13,7 @@
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "npm run build && playwright test",
     "typecheck:bff": "tsc -p tsconfig.bff.json",
     "build:bff": "wrangler pages functions build --outdir=dist/_worker.js",
     "lint": "eslint . --max-warnings=0",
@@ -24,6 +24,7 @@
     "executor:homologate": "node executor/homologate-local.mjs"
   },
   "dependencies": {
+    "@jitl/quickjs-singlefile-browser-release-sync": "0.32.0",
     "@monaco-editor/react": "^4.7.0",
     "@pedrohrferreira/rods-sdk": "^0.1.16",
     "@supabase/supabase-js": "^2.57.0",
@@ -31,6 +32,7 @@
     "@xyflow/react": "^12.11.6",
     "lucide-react": "^0.468.0",
     "monaco-editor": "^0.52.2",
+    "quickjs-emscripten-core": "0.32.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.2",

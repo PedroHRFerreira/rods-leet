@@ -12,13 +12,16 @@ export interface SolutionVariant {
 /** Syntax variants exercise the same canonical algorithm; they are not independent proofs. */
 export function solutionVariants(
   challenge: PublicChallenge,
+  requestedLanguage?: "javascript" | "typescript",
 ): SolutionVariant[] {
   const languageId =
     challenge.kind === "sql"
       ? "sql"
-      : challenge.id === "shortest-path"
-        ? "typescript"
-        : "javascript";
+      : requestedLanguage
+        ? requestedLanguage
+        : challenge.id === "shortest-path"
+          ? "typescript"
+          : "javascript";
   const editorial = getEditorial(challenge.id, languageId);
   if (languageId === "sql") {
     const query = editorial.files[0].content.trim().replace(/;$/, "");

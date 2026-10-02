@@ -29,7 +29,7 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 - Até 20 arquivos de texto e 256 KiB, com paths relativos dentro de áreas declaradas pelo manifesto; proibir travessia, links e arquivos de configuração não autorizados.
 - Execuções de estudo sem cota diária por usuário. Manter quatro globais simultâneas, uma por usuário e no máximo uma criação de sandbox por segundo; esses controles operacionais não mudam a quantidade de tentativas de estudo.
 - Sandbox: 90 segundos absolutos; compilação até 45 segundos; por caso, 2 segundos CPU e 5 segundos de duração, com perfil homologado por runtime. Limites de saída 64 KiB por caso/256 KiB por job.
-- Código arbitrário executa apenas no provedor isolado configurado. Demonstração local não executa código nem finge aprovação/XP.
+- Esclarecimento posterior aprovado: prática com exemplos públicos pode executar no navegador em runtime isolado e validado, sem instalação e sem aprovação/XP. Linguagens ou ambientes locais incompatíveis usam o provedor isolado configurado como alternativa. Avaliação oficial e casos privados permanecem exclusivamente no servidor. Demonstração nunca finge aprovação/XP.
 - Reserva prévia de custo máximo; teto US$1/dia e 80% dos créditos gratuitos confirmados. Sem saldo confirmado, bloquear execução. Não cadastrar pagamento nem habilitar upgrade automático.
 - Coordenador deve reservar orçamento e finalizar resultado/progresso em transações protegidas. As funções puras de domínio modelam as regras; não substituem locks, RLS ou autorização do servidor.
 - PostgreSQL 18 é modalidade separada; SELECT em base sintética descartável com parser compatível, papel restrito, readonly e watchdog. Nunca executar SQL do aluno na base do produto.

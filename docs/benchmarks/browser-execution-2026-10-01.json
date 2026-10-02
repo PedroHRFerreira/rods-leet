@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-01",
+  "method": "Chromium isolated known-code Workers, no product integration or security certification; throttling is emulation on this host; 20 warm calls after first",
+  "results": [
+    {
+      "profile": "desktop",
+      "language": "js",
+      "firstMs": 8.5,
+      "warmMedianMs": 0,
+      "warmP95Ms": 0.10000000009313226,
+      "calls": 21,
+      "encodedResponseBytes": 0,
+      "remoteRequests": 0
+    },
+    {
+      "profile": "desktop",
+      "language": "sql",
+      "firstMs": 3019.600000000093,
+      "warmMedianMs": 0.6000000000931323,
+      "warmP95Ms": 0.7999999998137355,
+      "calls": 21,
+      "encodedResponseBytes": 5328192,
+      "remoteRequests": 11
+    },
+    {
+      "profile": "cpu4x-network1.6Mbps",
+      "language": "js",
+      "firstMs": 165.70000000018626,
+      "warmMedianMs": 0.10000000009313226,
+      "warmP95Ms": 0.7999999998137355,
+      "calls": 21,
+      "encodedResponseBytes": 0,
+      "remoteRequests": 0
+    },
+    {
+      "profile": "cpu4x-network1.6Mbps",
+      "language": "sql",
+      "firstMs": 29536.69999999972,
+      "warmMedianMs": 0.8000000002793968,
+      "warmP95Ms": 1.3000000002793968,
+      "calls": 21,
+      "encodedResponseBytes": 5328173,
+      "remoteRequests": 11
+    },
+    {
+      "profile": "desktop",
+      "language": "python",
+      "firstMs": 2430.6999999997206,
+      "warmMedianMs": 0.39999999990686774,
+      "warmP95Ms": 0.599999999627471,
+      "calls": 21,
+      "encodedResponseBytes": 6398721,
+      "remoteRequests": 6
+    },
+    {
+      "profile": "cpu4x-network1.6Mbps",
+      "language": "python",
+      "firstMs": 34326.10000000009,
+      "warmMedianMs": 0.8999999999068677,
+      "warmP95Ms": 1,
+      "calls": 21,
+      "encodedResponseBytes": 6398721,
+      "remoteRequests": 6
+    }
+  ],
+  "runtimeVersions": {
+    "python": "Pyodide 314.0.7 / Python 3.14",
+    "sql": "PGlite 0.5.8",
+    "javascript": "Chromium native Worker"
+  },
+  "limitations": [
+    "Known arithmetic only; not complete challenge coverage or sandbox certification.",
+    "One cold sample per profile/runtime, 20 warm calls; no confidence interval.",
+    "CPU/network throttling emulates conditions on this host, not a physical mobile device.",
+    "No healthy remote execution baseline was available; no speedup percentage measured.",
+    "Python assets served locally with gzip; SQL modules/assets fetched from jsDelivr; transfer values describe this harness, not an optimized product bundle.",
+    "Initial Python classic-worker attempts failed; corrected to module worker required by current distribution."
+  ],
+  "productionExecutionStatus": {
+    "endpoint": "https://rods-leet.pages.dev/api/execution-status",
+    "httpStatus": 200,
+    "status": "offline",
+    "officialSubmissionsSent": 0
+  }
+}

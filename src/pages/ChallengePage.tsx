@@ -60,6 +60,12 @@ import type {
   SourceFile,
 } from "../lib/contracts";
 import { GatewayError } from "../lib/contracts";
+import type { LocalPracticeResult as PracticeResult } from "../domain/local-practice";
+import {
+  localPracticeAvailable,
+  runLocalPractice,
+} from "../lib/local-practice-client";
+import LocalPracticeResult from "../components/LocalPracticeResult";
 import "../editor.css";
 
 const CodeEditor = lazy(() => import("../components/CodeEditor"));
@@ -223,6 +229,13 @@ function ChallengeWorkspace({
   const freshSubmissionIds = useRef(new Set<string>());
   const [busy, setBusy] = useState<string | null>(null);
   const executing = useRef(false);
+  const localController = useRef<AbortController | null>(null);
+  const executionGeneration = useRef(0);
+  const [localResult, setLocalResult] = useState<PracticeResult | null>(null);
+  const [localPhase, setLocalPhase] = useState<"loading" | "running" | null>(
+    null,
+  );
+  const [localFallback, setLocalFallback] = useState("");
   const [error, setError] = useState("");
   const [hints, setHints] = useState<string[]>([]);
   const [solution, setSolution] = useState<SolutionResult | null>(null);
@@ -254,7 +267,11 @@ function ChallengeWorkspace({
         ? "O serviço está ocupado. Tente novamente em instantes. Seu código está salvo."
         : "A execução remota está indisponível agora. Seu rascunho continua salvo e nenhuma tentativa será consumida.";
   const actionKeys = useRef(new Map<string, string>());
-  const openingKey = useRef(crypto.randomUUID());
+  const studyAvailable =
+    localPracticeAvailable(language) && challenge.examples.length > 0;
+  const studyMessage = studyAvailable
+    ? "Executar testa o primeiro exemplo público neste navegador, sem aprovação nem XP. Submeter envia a solução para a avaliação oficial."
+    : executionMessage;
   const topic = topics.find((item) => item.id === challenge.topicId);
   const prerequisite = challenge.prerequisites?.[0]
     ? challengeById.get(challenge.prerequisites[0])
@@ -296,23 +313,17 @@ function ChallengeWorkspace({
   const [approval, setApproval] = useState<PublicSubmission | null>(null);
   const pendingApproval = useRef<string | null>(null);
   useEffect(() => {
-    if (!dashboard.profile.authenticated) return;
-    let active = true;
-    void gateway
-      .startAttempt(
-        { challengeVersionId: challenge.versionId, mode: "normal" },
-        openingKey.current,
-      )
-      .then((next) => {
-        if (active) setAttempt(next);
-      })
-      .catch((cause) => {
-        if (active) setError(errorText(cause));
-      });
+    setLocalResult(null);
+    setLocalPhase(null);
+    setLocalFallback("");
+    setBusy(null);
     return () => {
-      active = false;
+      executionGeneration.current += 1;
+      localController.current?.abort();
+      localController.current = null;
+      executing.current = false;
     };
-  }, [challenge.versionId, dashboard.profile.authenticated, gateway]);
+  }, [language, challenge.id]);
   const official = useQuery({
     queryKey: ["submission", submissionId],
     queryFn: () => gateway.getSubmission(submissionId!),
@@ -400,7 +411,7 @@ function ChallengeWorkspace({
     actionKeys.current.set(operation, key);
     return key;
   }
-  async function ensureAttempt() {
+  async function ensureAttempt(generation?: number) {
     if (attempt?.status === "active" || attempt?.status === "accepted")
       return attempt;
     const next = await gateway.startAttempt(
@@ -408,7 +419,8 @@ function ChallengeWorkspace({
       keyFor("attempt"),
     );
     actionKeys.current.delete("attempt");
-    setAttempt(next);
+    if (generation === undefined || generation === executionGeneration.current)
+      setAttempt(next);
     return next;
   }
   async function execute(
@@ -419,25 +431,67 @@ function ChallengeWorkspace({
   ) {
     if (executing.current || inFlight) return;
     if (kind === "submit" && approved) return;
-    if (executionStatus !== "ready") {
+    const useLocal =
+      kind === "run" && executionMode === "function" && studyAvailable;
+    if (!useLocal && executionStatus !== "ready") {
       setError(executionMessage);
       return;
     }
     executing.current = true;
+    const generation = ++executionGeneration.current;
+    const controller = new AbortController();
+    localController.current = controller;
+    const currentExecution = () =>
+      generation === executionGeneration.current && !controller.signal.aborted;
+    const snapshot = files.map((file) => ({ ...file }));
     setBusy(kind);
     setError("");
+    setLocalFallback("");
+    setLocalResult(null);
     try {
-      const current = await ensureAttempt();
+      if (useLocal) {
+        setLocalPhase("loading");
+        const outcome = await runLocalPractice(
+          {
+            languageId: language,
+            files: snapshot,
+            functionName: modelFunctionName(challenge, language),
+            input: challenge.examples[0].input,
+          },
+          {
+            signal: controller.signal,
+            onPhase: (phase) => {
+              if (currentExecution()) setLocalPhase(phase);
+            },
+          },
+        );
+        if (!currentExecution()) return;
+        setLocalPhase(null);
+        if (outcome.kind === "executed") {
+          setLocalResult(outcome.result);
+          return;
+        }
+        setLocalFallback(
+          `Prática no navegador indisponível: ${outcome.message} ${executionStatus === "ready" ? "O teste será executado pelo servidor." : "Tente executar pelo servidor quando o serviço estiver disponível."}`,
+        );
+      }
+      if (executionStatus !== "ready") {
+        setError(executionMessage);
+        return;
+      }
+      const current = await ensureAttempt(generation);
+      if (!currentExecution()) return;
       const input = {
         challengeVersionId: challenge.versionId,
         attemptId: current.id,
         languageId: language,
         executionMode,
         ...(kind === "run" ? { stdin } : {}),
-        files: files.map((file) => ({ ...file })),
+        files: snapshot,
       };
       const operation = `${kind}:${JSON.stringify(input)}`;
       const next = await gateway[kind](input, keyFor(operation));
+      if (!currentExecution()) return;
       actionKeys.current.delete(operation);
       if (kind === "submit") pendingApproval.current = next.id;
       freshSubmissionIds.current.add(next.id);
@@ -448,10 +502,14 @@ function ChallengeWorkspace({
       setSubmissionId(next.id);
       setSubmissionKind(kind);
     } catch (cause) {
-      setError(errorText(cause));
+      if (currentExecution()) setError(errorText(cause));
     } finally {
-      executing.current = false;
-      setBusy(null);
+      if (currentExecution()) {
+        executing.current = false;
+        localController.current = null;
+        setLocalPhase(null);
+        setBusy(null);
+      }
     }
   }
   async function hint() {
@@ -942,6 +1000,16 @@ function ChallengeWorkspace({
             language={language}
             userId={dashboard.profile.id}
             onLanguage={(next) => {
+              if (next !== language && localController.current) {
+                executionGeneration.current += 1;
+                localController.current.abort();
+                localController.current = null;
+                executing.current = false;
+                setBusy(null);
+                setLocalPhase(null);
+                setLocalResult(null);
+                setLocalFallback("");
+              }
               setLanguage(next);
               setSolution(null);
             }}
@@ -965,6 +1033,9 @@ function ChallengeWorkspace({
             }
             executionStatus={executionStatus}
             executionMessage={executionMessage}
+            studyAvailable={studyAvailable}
+            studyMessage={studyMessage}
+            localPhase={localPhase}
             onExecute={execute}
             approved={approved}
             potentialXp={potentialXp}
@@ -993,7 +1064,16 @@ function ChallengeWorkspace({
                 </button>
               </div>
             )}
-            {submission ? (
+            {localFallback && (
+              <div className="arena-alert" role="status">
+                <AlertCircle size={16} />
+                <span>{localFallback}</span>
+              </div>
+            )}
+            {(localResult || localPhase) && (
+              <LocalPracticeResult result={localResult} phase={localPhase} />
+            )}
+            {!localResult && !localPhase && submission ? (
               <>
                 <ResultReaction
                   submission={submission}
@@ -1011,7 +1091,7 @@ function ChallengeWorkspace({
                   kind={submissionKind}
                 />
               </>
-            ) : (
+            ) : !localResult && !localPhase ? (
               <div className="results-empty">
                 <span>
                   <Terminal size={24} />
@@ -1022,10 +1102,10 @@ function ChallengeWorkspace({
                   quando estiver pronta para a avaliação oficial.
                 </p>
               </div>
-            )}
+            ) : null}
             <div className="results-note">
               <ShieldCheck size={13} />
-              <span>{executionMessage}</span>
+              <span>{studyMessage}</span>
             </div>
           </section>
         </div>
@@ -1089,6 +1169,9 @@ function SourceWorkspace({
   executionPhase,
   executionStatus,
   executionMessage,
+  studyAvailable: languageStudyAvailable,
+  studyMessage,
+  localPhase,
   hard,
   approved,
   potentialXp,
@@ -1110,6 +1193,9 @@ function SourceWorkspace({
   executionPhase: "sending" | "queued" | "running" | null;
   executionStatus: "ready" | "busy" | "offline";
   executionMessage: string;
+  studyAvailable: boolean;
+  studyMessage: string;
+  localPhase: "loading" | "running" | null;
   hard?: boolean;
 }) {
   const gateway = useGateway();
@@ -1144,6 +1230,7 @@ function SourceWorkspace({
     }));
   });
   const executionMode = "function" as const;
+  const studyAvailable = languageStudyAvailable && executionMode === "function";
   const stdin = "";
   const [confirmSubmission, setConfirmSubmission] = useState(false);
   const [rememberConfirmation, setRememberConfirmation] = useState(false);
@@ -1382,7 +1469,7 @@ function SourceWorkspace({
             aria-label="Linguagem"
             value={language}
             onChange={(event) => onLanguage(event.target.value as LanguageId)}
-            disabled={busy}
+            disabled={busy && !localPhase}
           >
             {challenge.languageIds.map((id) => (
               <option key={id} value={id}>
@@ -1489,25 +1576,39 @@ function SourceWorkspace({
       <div className="code-actions">
         <span>
           <Clock3 size={13} />
-          Execução isolada
+          {studyAvailable ? "Prática no navegador" : "Execução isolada"}
         </span>
         <button
           type="button"
           className="button button-secondary"
-          disabled={busy || !file || executionStatus !== "ready"}
-          title={executionStatus === "ready" ? undefined : executionMessage}
+          disabled={
+            busy || !file || (!studyAvailable && executionStatus !== "ready")
+          }
+          title={
+            studyAvailable
+              ? studyMessage
+              : executionStatus === "ready"
+                ? undefined
+                : executionMessage
+          }
           onClick={() => void onExecute(files, "run", executionMode, stdin)}
         >
           <Play size={15} />
           {executionAction === "run"
-            ? executionPhase === "sending"
-              ? "Enviando…"
-              : "Executando…"
-            : executionStatus === "busy"
-              ? "Executor ocupado"
-              : executionStatus === "offline"
-                ? "Execução indisponível"
-                : "Executar código"}
+            ? localPhase === "loading"
+              ? "Preparando…"
+              : localPhase === "running"
+                ? "Executando…"
+                : executionPhase === "sending"
+                  ? "Enviando…"
+                  : "Executando…"
+            : studyAvailable
+              ? "Executar código"
+              : executionStatus === "busy"
+                ? "Executor ocupado"
+                : executionStatus === "offline"
+                  ? "Execução indisponível"
+                  : "Executar código"}
         </button>
         <button
           type="button"

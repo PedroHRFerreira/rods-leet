@@ -21,3 +21,5 @@
 - Ensinar explicitamente o contrato da função fornecida antes de exigir seu uso e oferecer erros que expliquem a correção em linguagem acessível.
 - Validar pelo menos três formas de solução por desafio no executor isolado e registrar a cobertura real de linguagens e casos.
 - Esclarecimento posterior: antes dos exercícios de código, usar perguntas simples de múltipla escolha, sem editor, para ensinar valores, variáveis, tipos, funções, parâmetros, return, export e classes. Apresentar uma explicação curta e feedback após a resposta; somente depois pedir código. Para perguntas, validar todas as alternativas no avaliador; a exigência de três códigos se aplica aos exercícios de programação.
+
+- Execução de estudo deve aproveitar o dispositivo do visitante sem instalação, somente pelo navegador, após validar isolamento e compatibilidade de cada runtime. Linguagens ou ambientes locais ainda não validados usam o servidor como alternativa. Aprovação, XP, conclusão e casos privados permanecem exclusivamente no servidor. O objetivo cobre todas as linguagens; não declarar cobertura local antes da validação real.

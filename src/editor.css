@@ -2806,6 +2806,63 @@
   max-height: 320px;
   overflow: auto;
 }
+.local-practice-result {
+  min-width: 0;
+  max-width: 100%;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.local-practice-result h3 {
+  color: var(--text);
+  align-items: flex-start;
+  line-height: 1.5;
+}
+.local-practice-result h3 svg {
+  flex: 0 0 auto;
+}
+.local-practice-result[role="alert"] h3 {
+  color: var(--danger);
+}
+.local-practice-result .local-practice-meta {
+  display: inline-flex;
+  max-width: 100%;
+  margin: 0 0 14px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.local-practice-output {
+  min-width: 0;
+  max-width: 100%;
+}
+.local-practice-output pre {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  tab-size: 2;
+}
+@media (max-width: 480px) {
+  .local-practice-result {
+    padding: 16px 12px;
+  }
+  .local-practice-output pre {
+    padding: 10px;
+  }
+}
 .challenge-dialog {
   width: min(560px, calc(100% - 32px));
   max-height: calc(100dvh - 32px);
