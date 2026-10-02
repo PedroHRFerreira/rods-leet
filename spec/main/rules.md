@@ -15,6 +15,8 @@
 
 # Aprendizado para iniciantes
 
+- Notificações de feedback do produto devem ser recebidas em devpedrohr@gmail.com, usando Gmail. Credenciais ficam nos segredos do servidor; o visitante não escolhe o destinatário.
+
 - A trilha de lógica começa antes de funções e return: ensinar valores, variáveis, mensagens e entrada com passos pequenos e modelos guiados, mantendo uma progressão clara entre desafios.
 - Ensinar explicitamente o contrato da função fornecida antes de exigir seu uso e oferecer erros que expliquem a correção em linguagem acessível.
 - Validar pelo menos três formas de solução por desafio no executor isolado e registrar a cobertura real de linguagens e casos.

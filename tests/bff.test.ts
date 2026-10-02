@@ -148,6 +148,7 @@ describe("BFF security boundary", () => {
     "/api/challenges?search=a&search=b",
     "/api/dashboard?user=other",
     "/api/private",
+    "/api/feedback",
     "/api/challenges/x/solution-access",
   ])("rejects unlisted proxy path/query %s", (path) => {
     expect(() => allowedApi(new Request(url(path)))).toThrow();
@@ -169,6 +170,7 @@ describe("BFF security boundary", () => {
     ["POST", "/api/runs"],
     ["POST", "/api/submissions"],
     ["POST", "/api/quiz-submissions"],
+    ["POST", "/api/feedback"],
     ["POST", "/api/attempts/00000000-0000-0000-0000-000000000001/hints"],
     ["POST", "/api/challenges/find-max/solution-access"],
     ["POST", "/api/tutor/messages"],

@@ -17,6 +17,7 @@ import {
   Flame,
   LayoutDashboard,
   Menu,
+  MessageSquare,
   Moon,
   Search,
   Sun,
@@ -37,6 +38,7 @@ const navigation = [
     icon: BookOpen,
   },
   { to: "/ranking", label: "Ranking", icon: Trophy },
+  { to: "/feedback", label: "Feedback", icon: MessageSquare },
 ];
 
 export default function Shell({ children }: { children?: ReactNode }) {

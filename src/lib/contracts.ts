@@ -270,12 +270,28 @@ export interface DraftInput {
   updatedAt: string;
   revision?: number;
 }
+export type FeedbackCategory = "suggestion" | "criticism" | "praise";
+export interface ProductFeedbackInput {
+  category: FeedbackCategory;
+  message: string;
+  contactEmail?: string;
+  challengeId?: string;
+}
+/** Issued only after the server durably stores the feedback. */
+export interface ProductFeedbackReceipt {
+  protocol: string;
+  createdAt: string;
+}
 export interface AppGateway {
   readonly mode: "demo" | "live";
   listChallenges(filters?: ChallengeFilters): Promise<PublicChallenge[]>;
   getChallenge(idOrSlug: string): Promise<PublicChallenge>;
   getDashboard(): Promise<Dashboard>;
   getRanking(): Promise<RankingEntry[]>;
+  createFeedback(
+    input: ProductFeedbackInput,
+    idempotencyKey: string,
+  ): Promise<ProductFeedbackReceipt>;
   startAttempt(
     input: StartAttemptInput,
     idempotencyKey: string,

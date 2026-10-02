@@ -126,6 +126,7 @@ async function setup(
         evaluations.set(key, {
           id: `result-${key}`,
           attemptId: `attempt-${id}`,
+          submittedAt: new Date().toISOString(),
           status: "completed",
           verdict: accepted ? "accepted" : "wrong_answer",
           xpAwarded: reward,

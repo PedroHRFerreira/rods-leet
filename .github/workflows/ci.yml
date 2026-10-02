@@ -30,7 +30,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.9.6
-      - run: deno check --config supabase/functions/deno.json supabase/functions/api/index.ts supabase/functions/coordinator/index.ts supabase/functions/session/index.ts
+      - run: deno check --config supabase/functions/deno.json supabase/functions/api/index.ts supabase/functions/coordinator/index.ts supabase/functions/session/index.ts supabase/functions/feedback-mail/index.ts
       - run: deno test --allow-env --config supabase/functions/deno.json supabase/functions/_shared/tests.ts supabase/functions/_shared/bff_test.ts
       - run: deno run --allow-run=docker --config supabase/functions/deno.json scripts/test-sql-references.ts
       - uses: actions/setup-python@v5

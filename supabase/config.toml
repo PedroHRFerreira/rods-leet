@@ -29,3 +29,7 @@ verify_jwt = false
 
 [functions.session]
 verify_jwt = false
+
+[functions.feedback-mail]
+verify_jwt = false
+# Internal cron uses the existing coordinator secret, never a browser endpoint.

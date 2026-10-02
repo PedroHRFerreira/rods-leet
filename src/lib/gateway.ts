@@ -11,6 +11,8 @@ import type {
   UserProfile,
 } from "./contracts";
 import { GatewayError } from "./contracts";
+import { parsePublicSubmission } from "./submission-validation";
+import { validateProductFeedback } from "../domain/product-feedback";
 
 export interface GatewaySession {
   user: { id: string };
@@ -386,11 +388,68 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
     },
     startAttempt: (input, key) => request("/attempts", "POST", input, key),
     getAttempt: (id) => request(`/attempts/${encodeURIComponent(id)}`),
-    run: (input, key) => request("/runs", "POST", input, key),
-    submit: (input, key) => request("/submissions", "POST", input, key),
-    submitQuiz: (input, key) =>
-      request("/quiz-submissions", "POST", input, key),
-    getSubmission: (id) => request(`/submissions/${encodeURIComponent(id)}`),
+    run: async (input, key) =>
+      parsePublicSubmission(await request("/runs", "POST", input, key), {
+        attemptId: input.attemptId,
+      }),
+    submit: async (input, key) =>
+      parsePublicSubmission(await request("/submissions", "POST", input, key), {
+        attemptId: input.attemptId,
+      }),
+    async submitQuiz(input, key) {
+      const result = parsePublicSubmission(
+        await request("/quiz-submissions", "POST", input, key),
+        { attemptId: input.attemptId },
+      );
+      if (
+        result.status !== "completed" ||
+        !["accepted", "wrong_answer", "infrastructure_error"].includes(
+          result.verdict ?? "",
+        )
+      ) {
+        throw new GatewayError(
+          "invalid_response",
+          "Não foi possível confirmar o resultado da resposta. Tente novamente.",
+          502,
+        );
+      }
+      return result;
+    },
+    getSubmission: async (id) =>
+      parsePublicSubmission(
+        await request(`/submissions/${encodeURIComponent(id)}`),
+        { id },
+      ),
+    async createFeedback(input, key) {
+      const validated = validateProductFeedback(input);
+      if (!validated.ok)
+        throw new GatewayError("invalid_feedback", validated.error);
+      const receipt = await request<unknown>(
+        "/feedback",
+        "POST",
+        validated.input,
+        key,
+      );
+      if (
+        !receipt ||
+        typeof receipt !== "object" ||
+        !("protocol" in receipt) ||
+        typeof receipt.protocol !== "string" ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+          receipt.protocol,
+        ) ||
+        !("createdAt" in receipt) ||
+        typeof receipt.createdAt !== "string" ||
+        !Number.isFinite(Date.parse(receipt.createdAt))
+      ) {
+        throw new GatewayError(
+          "invalid_response",
+          "Não foi possível confirmar o recebimento. Tente novamente.",
+          502,
+        );
+      }
+      return { protocol: receipt.protocol, createdAt: receipt.createdAt };
+    },
     requestHint: (id, key) =>
       request(`/attempts/${encodeURIComponent(id)}/hints`, "POST", {}, key),
     getSolution: (id, languageId, key) =>

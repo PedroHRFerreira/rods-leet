@@ -107,6 +107,7 @@ test("free output, submission confirmation, retries, reward and next step", asyn
       const result: PublicSubmission = {
         id: `evaluation-${requests.length}`,
         attemptId: "attempt-free",
+        submittedAt: new Date().toISOString(),
         status: "completed",
         verdict: run || accepted ? "accepted" : "wrong_answer",
         xpAwarded: accepted && !run ? Math.floor(challenge.baseXp * 0.7) : 0,

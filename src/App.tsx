@@ -10,6 +10,7 @@ import TracksPage from "./pages/TracksPage";
 const ChallengePage = lazy(() => import("./pages/ChallengePage"));
 const RankingPage = lazy(() => import("./pages/RankingPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 
 class PageBoundary extends Component<
   { children: ReactNode },
@@ -71,6 +72,7 @@ export default function App() {
             <Route path="tutor" element={<Navigate to="/desafios" replace />} />
             <Route path="ranking" element={<RankingPage />} />
             <Route path="perfil" element={<ProfilePage />} />
+            <Route path="feedback" element={<FeedbackPage />} />
             <Route path="auth/callback" element={<AuthCallback />} />
             <Route
               path="*"

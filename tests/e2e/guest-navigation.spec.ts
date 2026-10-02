@@ -27,7 +27,7 @@ test("beta navigation has no tutor or login entry points", async ({ page }) => {
   );
 });
 
-test("mobile shortcuts keep all four available destinations", async ({
+test("mobile shortcuts keep all five available destinations accessible", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -36,7 +36,16 @@ test("mobile shortcuts keep all four available destinations", async ({
     name: "Atalhos de navegação",
   });
   await expect(shortcuts).toBeVisible();
-  await expect(shortcuts.getByRole("link")).toHaveCount(4);
+  await expect(shortcuts.getByRole("link")).toHaveCount(5);
   await shortcuts.getByRole("link", { name: "Trilhas", exact: true }).click();
   await expect(page).toHaveURL(/\/trilhas$/);
+  await shortcuts.getByRole("link", { name: "Feedback", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Envie seu feedback" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("O envio de feedback precisa de uma sessão conectada.", {
+      exact: false,
+    }),
+  ).toBeVisible();
 });

@@ -126,7 +126,15 @@ describe("public exploration and server authority", () => {
   });
   test("official mutations forward auth, snapshot and original idempotency key", async () => {
     const { gateway, fetchMock } = setup(() =>
-      respond({ id: "server-submission", status: "queued" }, 202),
+      respond(
+        {
+          id: "server-submission",
+          attemptId: "a1",
+          submittedAt: "2026-10-01T20:00:00Z",
+          status: "queued",
+        },
+        202,
+      ),
     );
     const input = {
       challengeVersionId: "v1",
@@ -190,6 +198,77 @@ describe("public exploration and server authority", () => {
       "/api/tutor/conversations?challengeId=find-max&languageId=python",
       "/api/tutor/conversations/clear",
     ]);
+  });
+});
+
+describe("validated server receipts", () => {
+  test("rejects a success for another attempt without exposing it to the page", async () => {
+    const { gateway } = setup(() =>
+      respond({
+        id: "s1",
+        attemptId: "other",
+        status: "completed",
+        verdict: "accepted",
+        xpAwarded: 20,
+        submittedAt: "2026-10-01T20:00:00Z",
+      }),
+    );
+    await expect(
+      gateway.submitQuiz(
+        { attemptId: "a1", challengeVersionId: "v1", optionId: "b" },
+        "k1",
+      ),
+    ).rejects.toMatchObject({ code: "invalid_response" });
+  });
+  test("feedback retry forwards the same body and key, and requires a receipt", async () => {
+    let calls = 0;
+    const { gateway, fetchMock } = setup(() => {
+      calls++;
+      if (calls === 1) throw new TypeError("response lost");
+      return respond({
+        protocol: "00000000-0000-4000-8000-000000000001",
+        createdAt: "2026-10-01T20:00:00Z",
+      });
+    });
+    const input = {
+      category: "suggestion" as const,
+      message: "Uma sugestão para o produto.",
+    };
+    await expect(
+      gateway.createFeedback(input, "stable-key"),
+    ).rejects.toMatchObject({ code: "network_error" });
+    await expect(
+      gateway.createFeedback(input, "stable-key"),
+    ).resolves.toMatchObject({
+      protocol: "00000000-0000-4000-8000-000000000001",
+    });
+    expect(fetchMock.mock.calls.map(([, init]) => init?.body)).toEqual([
+      JSON.stringify(input),
+      JSON.stringify(input),
+    ]);
+    expect(
+      fetchMock.mock.calls.map(([, init]) =>
+        new Headers(init?.headers).get("Idempotency-Key"),
+      ),
+    ).toEqual(["stable-key", "stable-key"]);
+    const invalid = setup(() => respond({ received: true }));
+    await expect(
+      invalid.gateway.createFeedback(input, "key"),
+    ).rejects.toMatchObject({ code: "invalid_response" });
+  });
+  test("feedback validation prevents sending client identity or attachments", async () => {
+    const { gateway, fetchMock } = setup(() => respond({}));
+    await expect(
+      gateway.createFeedback(
+        {
+          category: "praise",
+          message: "Gostei das perguntas iniciais.",
+          userId: "someone",
+        } as never,
+        "key",
+      ),
+    ).rejects.toMatchObject({ code: "invalid_feedback" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

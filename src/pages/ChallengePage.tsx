@@ -21,6 +21,7 @@ import {
   FileCode2,
   Lightbulb,
   LockKeyhole,
+  MessageSquare,
   Play,
   Send,
   ShieldCheck,
@@ -354,6 +355,20 @@ function ChallengeWorkspace({
     if (!official.data) return;
     setSubmission(official.data);
     if (official.data.status === "completed") {
+      if (submissionKind === "submit" && official.data.verdict === "accepted") {
+        queryClient.setQueryData<Dashboard>(["dashboard"], (current) => {
+          if (!current || current.profile.id !== dashboard.profile.id)
+            return current;
+          const completedChallengeIds = [
+            ...new Set([...current.completedChallengeIds, challenge.id]),
+          ];
+          return {
+            ...current,
+            completedChallengeIds,
+            completedCount: completedChallengeIds.length,
+          };
+        });
+      }
       if (
         official.data.verdict === "accepted" &&
         pendingApproval.current === official.data.id
@@ -368,7 +383,14 @@ function ChallengeWorkspace({
         .then(setAttempt)
         .catch(() => {});
     }
-  }, [official.data, gateway, queryClient]);
+  }, [
+    official.data,
+    gateway,
+    queryClient,
+    submissionKind,
+    dashboard.profile.id,
+    challenge.id,
+  ]);
   const inFlight =
     submission?.status === "queued" ||
     submission?.status === "running" ||
@@ -479,6 +501,12 @@ function ChallengeWorkspace({
         </Link>
         <ChevronRight size={13} />
         <span>{topic?.title}</span>
+        <Link
+          className="text-link"
+          to={`/feedback?challengeId=${encodeURIComponent(challenge.id)}`}
+        >
+          <MessageSquare size={15} /> Enviar feedback
+        </Link>
       </div>
       <div className="arena-heading">
         <div>

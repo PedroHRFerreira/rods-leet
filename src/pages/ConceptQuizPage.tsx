@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
+  MessageSquare,
   Send,
   Zap,
 } from "lucide-react";
@@ -131,6 +132,29 @@ export default function ConceptQuizPage({
       pendingAnswer.current = null;
       setUnconfirmed(false);
       setResult(answer);
+      if (answer.status === "completed" && answer.verdict === "accepted") {
+        queryClient.setQueryData<Dashboard>(
+          ["dashboard"],
+          (currentDashboard) => {
+            if (
+              !currentDashboard ||
+              currentDashboard.profile.id !== dashboard.profile.id
+            )
+              return currentDashboard;
+            const completedChallengeIds = [
+              ...new Set([
+                ...currentDashboard.completedChallengeIds,
+                challenge.id,
+              ]),
+            ];
+            return {
+              ...currentDashboard,
+              completedChallengeIds,
+              completedCount: completedChallengeIds.length,
+            };
+          },
+        );
+      }
       const cachedAttempt = queryClient.getQueryData<Attempt>(attemptKey);
       if (cachedAttempt) {
         queryClient.setQueryData<Attempt>(attemptKey, {
@@ -187,9 +211,17 @@ export default function ConceptQuizPage({
 
   return (
     <div className="concept-quiz-page">
-      <Link to="/desafios" className="back-link">
-        <ArrowLeft size={16} /> Todos os desafios
-      </Link>
+      <div className="concept-quiz-links">
+        <Link to="/desafios" className="back-link">
+          <ArrowLeft size={16} /> Todos os desafios
+        </Link>
+        <Link
+          className="text-link"
+          to={`/feedback?challengeId=${encodeURIComponent(challenge.id)}`}
+        >
+          <MessageSquare size={16} /> Enviar feedback
+        </Link>
+      </div>
       <PageHeading
         eyebrow="Primeiros conceitos"
         title={challenge.title}

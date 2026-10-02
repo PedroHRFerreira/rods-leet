@@ -21,6 +21,8 @@ import { WorkersAiTutor } from "../_shared/tutor.ts";
 import { recommend } from "../_shared/recommendations.ts";
 import { executorStatus } from "../coordinator/index.ts";
 import { evaluateConceptQuiz } from "../../../judge/concept-quiz.ts";
+import { validateProductFeedback } from "../../../src/domain/product-feedback.ts";
+import type { ProductFeedbackReceipt } from "../../../src/lib/contracts.ts";
 
 const errorMessages: Record<string, string> = {
   github_account_required: "Entre com sua conta GitHub para continuar.",
@@ -45,6 +47,10 @@ const errorMessages: Record<string, string> = {
     "Este rascunho foi atualizado em outra aba. Recarregue antes de salvar.",
   invalid_option: "Escolha uma das respostas desta pergunta.",
   quiz_required: "Esta ação está disponível apenas para perguntas.",
+  feedback_hourly_limit:
+    "Você enviou três mensagens na última hora. Tente novamente mais tarde.",
+  feedback_daily_limit:
+    "Você enviou dez mensagens hoje. Tente novamente amanhã.",
 };
 
 export async function handler(request: Request): Promise<Response> {
@@ -88,10 +94,16 @@ export async function handler(request: Request): Promise<Response> {
       `api:${request.method === "GET" ? "read" : "write"}:${user.id}`,
       request.method === "GET" ? 60 : 20,
     );
+    // Consume bounded feedback once: cancelling an oversized clone would wait on
+    // the unread original stream and could leave a rejected request hanging.
+    const feedbackBody =
+      request.method === "POST" && path === "/feedback"
+        ? await readJson(request, 24_000)
+        : undefined;
     if (["POST", "PUT"].includes(request.method) && path !== "/drafts") {
-      const copy = request.clone();
       // Bounded parse before hashing, including calls whose contract has an empty body.
-      const body = copy.body ? await readJson(copy) : {};
+      const copy = feedbackBody !== undefined ? undefined : request.clone();
+      const body = feedbackBody ?? (copy?.body ? await readJson(copy) : {});
       await db.rpc("bind_request", {
         p_user: user.id,
         p_key: idempotencyKey(request),
@@ -105,6 +117,39 @@ export async function handler(request: Request): Promise<Response> {
       p_name: user.name,
       p_github_login: user.githubLogin,
     });
+    if (request.method === "POST" && path === "/feedback") {
+      const validated = validateProductFeedback(feedbackBody);
+      if (!validated.ok)
+        throw new ApiError("invalid_feedback", 400, validated.error);
+      const input = validated.input;
+      const receipt = await db.rpc<ProductFeedbackReceipt>(
+        "submit_product_feedback",
+        {
+          p_user: user.id,
+          p_category: input.category,
+          p_message: input.message,
+          p_contact_email: input.contactEmail ?? null,
+          p_challenge: input.challengeId ?? null,
+          p_key: idempotencyKey(request),
+        },
+      );
+      // Only a durable database receipt can confirm delivery to the UI.
+      if (
+        !receipt ||
+        typeof receipt.protocol !== "string" ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+          receipt.protocol,
+        ) ||
+        typeof receipt.createdAt !== "string" ||
+        !Number.isFinite(Date.parse(receipt.createdAt))
+      ) {
+        throw new ApiError("database_error", 500);
+      }
+      return json(
+        { protocol: receipt.protocol, createdAt: receipt.createdAt },
+        201,
+      );
+    }
     const context = await db.rpc<Row>("user_context", { p_user: user.id });
     if (request.method === "GET" && path === "/execution-status") {
       return json({
@@ -736,6 +781,8 @@ export async function handler(request: Request): Promise<Response> {
   } catch (error) {
     const e =
       error instanceof ApiError ? error : new ApiError("internal_error", 500);
+    if (["feedback_hourly_limit", "feedback_daily_limit"].includes(e.code))
+      e.status = 429;
     if (e.status >= 500) {
       console.error(
         JSON.stringify({
