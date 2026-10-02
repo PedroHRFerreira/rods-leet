@@ -122,3 +122,15 @@ Migração `202609050003_security.sql` aplicada: armazenamento privado de sessõ
 Ao finalizar o rollout, `BFF_REQUIRED=true` deve estar ativo na API. O caminho assinado omite o prefixo `/functions/v1`, removido pelo gateway Supabase. API também valida JWT GitHub e propriedade dos dados. O registro da publicação e dos workflows deve ser conferido no commit implantado; implementação local não substitui essa verificação.
 
 ESLint e Prettier integram o workflow. O tutor remoto continua indisponível; o fallback editorial permanece ativo e não gera cobrança.
+
+## Prática no navegador — 02/10/2026
+
+Commit `eca1c10c022028f8da3246d6c1617f380103f5f3` enviado à `main`; publicação direta Pages `68462606`, conferida em https://rods-leet.pages.dev. JavaScript e TypeScript executam o primeiro exemplo público em QuickJS/Wasm isolado, sem instalação. As outras nove linguagens mantêm o servidor como alternativa; projetos multifile e ambientes incompatíveis também permanecem remotos. Operação e limites: [prática no navegador](browser-practice-operations.md).
+
+Validação local: 466 testes unitários aprovados (464 da suíte completa e dois da rota do loader), 71 testes Chromium aprovados e uma verificação de tablet ignorada no projeto mobile. Diagnósticos longos TypeScript também passaram nos dois perfis após o ajuste final. Tipos frontend/BFF, lint, formatação completa e builds frontend/BFF passaram. Auditoria de dependências de produção: nenhuma vulnerabilidade. O build mantém avisos de tamanho de Monaco e do compilador TS carregado sob demanda. Casos públicos dos 49 desafios de programação conferidos com três variantes JS/TS; variantes multifile são testadas como incompatíveis antes de conferir a versão combinada de um arquivo. Essa cobertura não habilita projetos multifile nem transforma prática em aprovação.
+
+Chromium no domínio real, com nova sessão anônima, confirmou retorno e console em JS e TS, progresso ainda zero e nenhuma requisição de criação de tentativa/execução/submissão oficial. Headers da página preservam a CSP original; somente o loader do Worker permite Wasm, com rede bloqueada. Uma observação de primeiro teste levou 864 ms em JS e 1.339 ms em TS, incluindo carregamento; não é benchmark comparativo nem garantia por dispositivo.
+
+**Pendência operacional confirmada:** `/api/execution-status` retornou `offline`. Neste ambiente não foram encontrados os serviços de usuário rods-leet-executor/rods-leet-tunnel nem contêineres ativos. A prática JS/TS local funcionou mesmo assim. Submissões oficiais e prática das demais linguagens dependem de recuperar o executor existente; não foram simuladas ou declaradas funcionais. Feedback por e-mail permanece adiado e desativado.
+
+Pipeline completo do código publicado aprovado: [Verify Rods Leet — run 37001168524](https://github.com/PedroHRFerreira/rods-leet/actions/runs/37001168524), incluindo verificações frontend/BFF, navegador, Deno, SQL, executor e banco local. Essa aprovação não comprova disponibilidade do executor remoto, que permanece offline na consulta acima.

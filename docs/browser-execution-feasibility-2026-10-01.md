@@ -87,3 +87,7 @@ A prioridade recomendada para homologação é JavaScript/TypeScript, Python e P
 - [MDN: CSP e execução WebAssembly](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src) e [capacidades dos Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers).
 
 Esta avaliação não aprova uma arquitetura definitiva, não altera as regras de execução vigentes e não ativa nenhuma linguagem local no site.
+
+## Atualização posterior — 02/10/2026
+
+O usuário autorizou a continuidade e o piloto JavaScript/TypeScript foi implementado e publicado em QuickJS/Wasm isolado. Consulte [operação](browser-practice-operations.md) e [evidências da publicação](deployment-status.md). Os tempos da tabela acima continuam sendo do protótipo de 01/10: o JavaScript nativo medido não é o runtime QuickJS do produto. As nove linguagens restantes continuam remotas até validação individual.

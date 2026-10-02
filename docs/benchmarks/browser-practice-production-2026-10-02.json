@@ -1,0 +1,38 @@
+{
+  "site": "https://rods-leet.pages.dev",
+  "checks": [
+    {
+      "language": "javascript",
+      "passed": true,
+      "firstPracticeWallMs": 864
+    },
+    {
+      "language": "typescript",
+      "passed": true,
+      "firstPracticeWallMs": 1339
+    }
+  ],
+  "officialRequests": 0,
+  "executionStatus": "offline",
+  "date": "2026-10-02",
+  "commit": "eca1c10c022028f8da3246d6c1617f380103f5f3",
+  "deployment": "https://68462606.rods-leet.pages.dev",
+  "measurementNote": "Single first-practice observation per language in a new anonymous Chromium session; includes runtime loading, not a benchmark or a comparison with healthy server execution.",
+  "publicCatalogCoverage": {
+    "programmingChallenges": 49,
+    "languages": ["javascript", "typescript"],
+    "syntaxVariantsPerChallenge": 3,
+    "multifileWorkspaces": "remote fallback"
+  },
+  "validation": {
+    "unitTestsPassed": 466,
+    "browserTestsPassed": 71,
+    "browserTestsSkipped": 1,
+    "additionalTypeScriptErrorChecksPassed": 2
+  },
+  "ci": {
+    "url": "https://github.com/PedroHRFerreira/rods-leet/actions/runs/37001168524",
+    "status": "success",
+    "commit": "eca1c10c022028f8da3246d6c1617f380103f5f3"
+  }
+}
