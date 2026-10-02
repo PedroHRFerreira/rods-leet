@@ -4,6 +4,14 @@ Registro histórico da publicação de 7 de setembro de 2026. Para a auditoria d
 
 ## Beta aberto publicado — 30 de setembro de 2026
 
+### Feedback de texto publicado — 1 de outubro de 2026
+
+Entrega em `00a0b19`, Pages `be4b4404-da8f-4c74-bb9e-1edae06ee628`. Rota `/feedback` com sugestões, críticas e elogios, contato opcional e contexto escolhido explicitamente. Migrações `202610010002` a `202610010004` aplicadas; API versão 37 publicada com autenticação preservada. Mensagens ficam no banco com protocolo persistido e triagem administrativa restrita.
+
+Homologação no domínio oficial com novas sessões de teste: recebimento 201, repetição sem duplicidade com o mesmo protocolo, conflito 409, entrada inválida 400 e proteção CSRF 403. Registros criados exclusivamente para QA conferidos e removidos. Recibo validado em 320, 390, 800 e 1280 px. Validação local: 344 testes unitários, cinco testes Deno e 59 cenários de navegador cobertos, tipos, lint, formatação, builds e invariantes SQL aprovados.
+
+O usuário adiou o e-mail. `private.settings.feedback_mail_enabled=false` confirmado em produção; nenhuma notificação enviada. Código, fila e função estão preparados para `devpedrohr@gmail.com`, sem credencial Gmail cadastrada. Mídia, atendimento ao visitante, retenção automática e prática local seguem documentados como pendências em [operação de feedback](product-feedback-operations.md). A indisponibilidade do executor de código descrita na inspeção anterior não foi alterada por esta publicação.
+
 ### Confirmação, reações e progresso — 1 de outubro de 2026
 
 Primeira entrega da auditoria de experiência publicada em `3de1888`, Pages `e5329402-02bf-4469-95b6-52c4c2397511`. A opção de dispensar confirmação é persistida neste navegador por identidade e por tipo (pergunta/código), somente ao confirmar; pode ser reativada no perfil. Resultados oficiais recebem uma reação breve, com movimento reduzido respeitado e sem repetição após reload. O progresso mostra etapas realmente concluídas e restantes do módulo ou trilha, separado da posição editorial. Avaliação, XP e testes privados continuam no servidor; feedback com mídia e prática local permanecem entregas posteriores.

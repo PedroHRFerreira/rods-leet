@@ -1,6 +1,6 @@
 # Recebimento e triagem de feedback de texto
 
-Implementação de 1 de outubro de 2026, dentro da estrutura existente. Publicação autorizada pelo usuário. Migrações `202610010002_product_feedback.sql`, `202610010003_feedback_notifications.sql` e `202610010004_feedback_mail_activation.sql` aplicadas em produção; API atualizada. A publicação do BFF/frontend completa o recebimento. A função `feedback-mail` fica para a retomada do e-mail. A presença do formulário não comprova entrega de e-mail.
+Implementação de 1 de outubro de 2026, dentro da estrutura existente. Publicação autorizada pelo usuário. Migrações `202610010002_product_feedback.sql`, `202610010003_feedback_notifications.sql` e `202610010004_feedback_mail_activation.sql` aplicadas em produção; API atualizada. BFF/frontend publicados no commit `00a0b19`; recebimento homologado no domínio oficial. A função `feedback-mail` já foi publicada na tentativa inicial, porém credencial, homologação e ativação ficam para a retomada do e-mail. A presença do formulário não comprova entrega de e-mail.
 
 ## Contrato e proteção
 
