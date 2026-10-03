@@ -1,4 +1,9 @@
-import type { ShopItem, ShopOffer, ShopState } from "../lib/contracts";
+import type {
+  ShopItem,
+  ShopOffer,
+  ShopState,
+  StudyMission,
+} from "../lib/contracts";
 
 export const ECONOMY_RULES = Object.freeze({
   completionCoins: 10,
@@ -6,117 +11,147 @@ export const ECONOMY_RULES = Object.freeze({
   hintPrice: 30,
   streak7Coins: 50,
   streak30Coins: 200,
+  dailyMissionTarget: 3,
+  dailyMissionCoins: 20,
+  weeklyMissionTarget: 7,
+  weeklyMissionCoins: 75,
 });
 
-export const SHOP_ITEMS: readonly ShopItem[] = [
-  {
-    id: "hint-extra",
-    name: "Dica extra",
-    description: "Uma dica adicional. O uso mantém a redução de XP do desafio.",
-    kind: "hint",
-    price: 30,
-    minLevel: 0,
-    value: "1",
-  },
-  {
-    id: "avatar-robot",
-    name: "Robô explorador",
-    description: "Um companheiro para suas descobertas.",
-    kind: "avatar",
-    price: 100,
-    minLevel: 0,
-    value: "🤖",
-  },
-  {
-    id: "avatar-fox",
-    name: "Raposa curiosa",
-    description: "Curiosidade em cada desafio.",
-    kind: "avatar",
-    price: 150,
-    minLevel: 2,
-    value: "🦊",
-  },
-  {
-    id: "avatar-scholar",
-    name: "Coruja sábia",
-    description: "Presente ao alcançar o nível 5.",
-    kind: "avatar",
-    price: 250,
-    minLevel: 5,
-    value: "🦉",
-  },
-  {
-    id: "avatar-flame",
-    name: "Chama constante",
-    description: "Presente por uma sequência de 30 dias.",
-    kind: "avatar",
-    price: 300,
-    minLevel: 5,
-    value: "🔥",
-  },
-  {
-    id: "name-cyan",
-    name: "Nome ciano",
-    description: "Dê uma nova cor ao seu nome.",
-    kind: "name_color",
-    price: 100,
-    minLevel: 0,
-    value: "#22d3ee",
-  },
-  {
-    id: "name-violet",
-    name: "Nome violeta",
-    description: "Uma cor exclusiva a partir do nível 3.",
-    kind: "name_color",
-    price: 150,
-    minLevel: 3,
-    value: "#c4b5fd",
-  },
-  {
-    id: "theme-ocean",
-    name: "Oceano",
-    description: "Tons profundos de azul e ciano.",
-    kind: "theme",
-    price: 200,
-    minLevel: 2,
-    value: "ocean",
-  },
-  {
-    id: "theme-sunset",
-    name: "Pôr do sol",
-    description: "Tons quentes para acompanhar seus estudos.",
-    kind: "theme",
-    price: 250,
-    minLevel: 5,
-    value: "sunset",
-  },
-];
+export { SHOP_ITEMS, SHOP_COLLECTIONS, WEEKLY_PRIZES } from "./shop-catalog";
+import { SHOP_ITEMS, SHOP_COLLECTIONS } from "./shop-catalog";
 
 const DAY_MS = 86_400_000;
 const WEEK_MS = DAY_MS * 7;
 const MONDAY_EPOCH = Date.UTC(1970, 0, 5);
-
-/** Stable across clients and servers, rotating each Monday at 00:00 UTC. */
-export function weeklyOffer(date: Date = new Date()): ShopOffer {
-  const time = date.getTime();
-  if (!Number.isFinite(time)) throw new Error("Data inválida");
-  const week = Math.floor((time - MONDAY_EPOCH) / WEEK_MS);
-  const candidates = SHOP_ITEMS.filter((item) => item.kind !== "hint");
-  const index =
-    ((week % candidates.length) + candidates.length) % candidates.length;
-  const item = candidates[index];
-  const start = MONDAY_EPOCH + week * WEEK_MS;
+const LOCAL_FORMAT = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Sao_Paulo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+function localParts(date: Date) {
+  if (!Number.isFinite(date.getTime())) throw new Error("Data inválida");
+  return Object.fromEntries(
+    LOCAL_FORMAT.formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  );
+}
+function localMidnight(calendarDay: number): number {
+  let time = calendarDay;
+  // Resolve the named timezone rather than treating every historic date as UTC-3.
+  for (let iteration = 0; iteration < 3; iteration++) {
+    const p = localParts(new Date(time));
+    const localTime = Date.UTC(
+      p.year,
+      p.month - 1,
+      p.day,
+      p.hour,
+      p.minute,
+      p.second,
+    );
+    const correction = calendarDay - localTime;
+    if (correction === 0) break;
+    time += correction;
+  }
+  return time;
+}
+export interface StudyPeriods {
+  daily: { startsAt: string; endsAt: string };
+  weekly: { startsAt: string; endsAt: string };
+}
+/** Half-open periods beginning at local midnight in America/Sao_Paulo. */
+export function studyPeriods(date: Date = new Date()): StudyPeriods {
+  const p = localParts(date);
+  const day = Date.UTC(p.year, p.month - 1, p.day);
+  const weekday = new Date(day).getUTCDay();
+  const monday = day - ((weekday + 6) % 7) * DAY_MS;
+  const period = (start: number, end: number) => ({
+    startsAt: new Date(localMidnight(start)).toISOString(),
+    endsAt: new Date(localMidnight(end)).toISOString(),
+  });
   return {
-    itemId: item.id,
-    price: Math.max(100, Math.floor(item.price * 0.8)),
-    startsAt: new Date(start).toISOString(),
-    endsAt: new Date(start + WEEK_MS).toISOString(),
+    daily: period(day, day + DAY_MS),
+    weekly: period(monday, monday + WEEK_MS),
   };
 }
-
+/** Three purchase-only cosmetic discounts, stable throughout the local study week. */
+export function weeklyOffers(date: Date = new Date()): ShopOffer[] {
+  const period = studyPeriods(date).weekly;
+  const p = localParts(new Date(period.startsAt));
+  const calendarStart = Date.UTC(p.year, p.month - 1, p.day);
+  const week = Math.floor((calendarStart - MONDAY_EPOCH) / WEEK_MS);
+  const candidates = SHOP_ITEMS.filter(
+    (item) => item.kind !== "hint" && item.acquisition === "purchase",
+  );
+  const index =
+    ((week % candidates.length) + candidates.length) % candidates.length;
+  return Array.from({ length: Math.min(3, candidates.length) }, (_, offset) => {
+    const item = candidates[(index + offset) % candidates.length];
+    return {
+      itemId: item.id,
+      price: Math.max(1, Math.floor(item.price * 0.8)),
+      ...period,
+    };
+  });
+}
+/** Compatibility projection for clients supporting only one offer. */
+export function weeklyOffer(date: Date = new Date()): ShopOffer {
+  return weeklyOffers(date)[0];
+}
 export function itemPrice(item: ShopItem, date: Date = new Date()): number {
-  const offer = weeklyOffer(date);
-  return item.id === offer.itemId ? offer.price : item.price;
+  return (
+    weeklyOffers(date).find((offer) => offer.itemId === item.id)?.price ??
+    item.price
+  );
+}
+/** Compute only from trusted post-publication distinct completion evidence. Claims are persisted by the server. */
+export function studyMissions(
+  input: {
+    registered: boolean;
+    dailyCompletionIds: readonly string[];
+    weeklyCompletionIds: readonly string[];
+    dailyClaimed?: boolean;
+    weeklyClaimed?: boolean;
+  },
+  date: Date = new Date(),
+): StudyMission[] {
+  const periods = studyPeriods(date);
+  return [
+    {
+      id: "daily",
+      target: ECONOMY_RULES.dailyMissionTarget,
+      coins: ECONOMY_RULES.dailyMissionCoins,
+      progress: Math.min(3, new Set(input.dailyCompletionIds).size),
+      claimed: input.dailyClaimed ?? false,
+      eligible: input.registered,
+      ...periods.daily,
+    },
+    {
+      id: "weekly",
+      target: ECONOMY_RULES.weeklyMissionTarget,
+      coins: ECONOMY_RULES.weeklyMissionCoins,
+      progress: Math.min(7, new Set(input.weeklyCompletionIds).size),
+      claimed: input.weeklyClaimed ?? false,
+      eligible: input.registered,
+      ...periods.weekly,
+    },
+  ];
+}
+/** Award only on the server, to registered accounts, merging permanent ownership atomically. */
+export function collectionRewardItemIds(
+  ownedItemIds: readonly string[],
+): string[] {
+  const owned = new Set(ownedItemIds);
+  return SHOP_COLLECTIONS.filter(
+    (collection) =>
+      !owned.has(collection.rewardItemId) &&
+      collection.itemIds.every((id) => owned.has(id)),
+  ).map((collection) => collection.rewardItemId);
 }
 
 function validCount(count: number): void {
@@ -165,7 +200,19 @@ export function guestShop(date: Date = new Date()): ShopState {
     coins: 0,
     items: structuredClone([...SHOP_ITEMS]),
     ownedItemIds: [],
-    equipped: { avatarId: null, nameColorId: null, themeId: null },
+    equipped: {
+      avatarId: null,
+      nameColorId: null,
+      themeId: null,
+      frameId: null,
+      titleId: null,
+    },
     offer: weeklyOffer(date),
+    offers: weeklyOffers(date),
+    collections: structuredClone([...SHOP_COLLECTIONS]),
+    missions: studyMissions(
+      { registered: false, dailyCompletionIds: [], weeklyCompletionIds: [] },
+      date,
+    ),
   };
 }

@@ -35,7 +35,7 @@ try:
         try:docker('exec',container,'pg_isready','-h','127.0.0.1','-U','postgres');break
         except subprocess.CalledProcessError:time.sleep(.2)
     migrations='\n'.join('\n'.join(line for line in p.read_text().splitlines() if not line.lower().startswith('create extension')) for p in sorted((ROOT/'supabase/migrations').glob('*.sql')))
-    sql=bootstrap+'\n'+migrations+'\n'+'\n'.join(p.read_text() for p in sorted((ROOT/'supabase/tests').glob('*.sql')))
+    sql=bootstrap+'\n'+migrations+'\n'+'\n'.join(p.read_text() for p in sorted((ROOT/'supabase/tests').glob('*.sql')))+'\n'+(ROOT/'tests/fixtures/shop-rewards-v2.sql').read_text()
     result=subprocess.run(['docker','exec','-i','-e','PGPASSWORD=local-test-only',container,'psql','-h','127.0.0.1','-U','postgres','-v','ON_ERROR_STOP=1'],input=sql,text=True,capture_output=True)
     if result.returncode:print(result.stdout[-2000:]);print(result.stderr);raise SystemExit(result.returncode)
     print(result.stderr.strip());print('Local PostgreSQL invariant tests passed (PGMQ/cron/net doubled; run supabase test db for integration).')

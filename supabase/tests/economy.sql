@@ -33,8 +33,8 @@ begin
  update public.profiles set xp=2250 where id=u;
  if (select coins from public.profiles where id=u)<>675 then raise exception 'unchanged_xp_rewarded'; end if;
  receipt:=public.shop_state(u);
- if (receipt->'offer'->>'price')::integer<100 or (receipt->'offer'->>'endsAt')::timestamptz-(receipt->'offer'->>'startsAt')::timestamptz<>interval '7 days' then raise exception 'invalid_weekly_offer'; end if;
- quoted:=case when receipt->'offer'->>'itemId'='avatar-robot' then (receipt->'offer'->>'price')::integer else 100 end;
+ if (receipt->'offer'->>'price')::integer<=0 or (receipt->'offer'->>'endsAt')::timestamptz-(receipt->'offer'->>'startsAt')::timestamptz<>interval '7 days' then raise exception 'invalid_weekly_offer'; end if;
+ quoted:=coalesce((select (value->>'price')::integer from jsonb_array_elements(receipt->'offers') where value->>'itemId'='avatar-robot'),100);
  begin
   perform public.shop_purchase(u,'avatar-robot','stale-offer',quoted+1); raise exception 'stale_quote_charged';
  exception when others then if sqlerrm<>'price_changed' then raise; end if; end;

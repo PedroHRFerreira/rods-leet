@@ -1,6 +1,14 @@
 # Rods Leet — ambiente de testes
 
-## Último estado confirmado — 2 de outubro de 2026
+## Último estado confirmado — loja e recompensas v2, 3 de outubro de 2026
+
+A migração `202610030001_shop_rewards_v2.sql` e a Edge Function `api` foram publicadas no projeto existente. O banco confirmou 37 itens, dois jobs ativos de premiação, nenhum resultado histórico premiado e preservação exata dos totais anteriores: 98 perfis, 3.879 XP, 95 moedas, zero itens no inventário e 125 registros de ledger. Escrita em resultados e execução direta do RPC semanal continuam recusadas aos papéis do navegador. A publicação do frontend está em verificação.
+
+Validação local: 511 testes unitários, seis fixtures SQL em PostgreSQL real e PGlite, paridade do catálogo/ofertas, cinco testes Deno e quatro cenários de concorrência real aprovados. A suíte de navegador cobriu 99 cenários únicos; um caso exclusivo de tablet é omitido no projeto mobile. Duas expectativas de texto antigo no perfil foram atualizadas e seus quatro casos de navegação passaram na repetição dirigida. Tipos, lint, formatação, build e build do BFF passaram. Cores e cinco temas claros/escuros, nove molduras, teclado, movimento reduzido e layouts de 320/390/800/1440 px foram inspecionados em Chromium. Detalhes e limites em [segurança da loja](shop-rewards-v2-security-2026-10-03.md).
+
+Backup anterior à atualização em `backups/2026-10-03-before-shop-v2/`, ignorado pelo Git: esquema e dados criptografados, com leitura por descriptografia e hashes verificados. O dump de dados contém perfis, economia e estudo; Auth, sessões BFF e feedback foram excluídos conforme autorização do usuário. Restauração e cópia externa não foram ensaiadas. Cadastro e recuperação continuam desativados; o convite Discord permanece opcional.
+
+## Executor confirmado — 2 de outubro de 2026
 
 O executor foi recuperado nesta máquina e reconectado ao projeto Supabase existente. Em produção, uma nova sessão visitante executou Python e submeteu `sum-two-integers`: aprovação oficial e 100 XP confirmados. As dez linguagens de programação continuam no seletor; JavaScript e TypeScript também mantêm a prática no navegador. Todas as linguagens de programação e SQL passaram pela homologação local da imagem recuperada. Veja o [registro da recuperação](executor-recovery-2026-10-02.md) para evidências, limites e dependência deste computador/Docker. Os registros de indisponibilidade abaixo descrevem o estado anterior à reconexão.
 

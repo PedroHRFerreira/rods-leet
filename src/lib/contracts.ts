@@ -230,6 +230,8 @@ export interface UserProfile {
   avatarId?: string | null;
   nameColorId?: string | null;
   themeId?: string | null;
+  frameId?: string | null;
+  titleId?: string | null;
   authenticated: boolean;
   /** Connected identity created automatically for this browser, without login. */
   anonymous?: boolean;
@@ -264,6 +266,8 @@ export interface RankingEntry {
   displayName: string;
   avatarId?: string | null;
   nameColorId?: string | null;
+  frameId?: string | null;
+  titleId?: string | null;
   xp: number;
   completedCount: number;
   reachedAt: string;
@@ -292,7 +296,11 @@ export interface ShopItem {
   id: string;
   name: string;
   description: string;
-  kind: "hint" | "avatar" | "name_color" | "theme";
+  kind: "hint" | "avatar" | "name_color" | "theme" | "frame" | "title";
+  rarity?: "common" | "rare" | "epic" | "legendary";
+  collectionId?: string;
+  acquisition?: "purchase" | "milestone" | "collection" | "ranking";
+  hintCount?: number;
   price: number;
   minLevel: number;
   /** Approved presentation value, never arbitrary CSS or markup. */
@@ -312,8 +320,52 @@ export interface ShopState {
     avatarId: string | null;
     nameColorId: string | null;
     themeId: string | null;
+    frameId?: string | null;
+    titleId?: string | null;
   };
   offer: ShopOffer;
+  offers?: ShopOffer[];
+  collections?: ShopCollection[];
+  missions?: StudyMission[];
+}
+export interface ShopCollection {
+  id: string;
+  name: string;
+  description: string;
+  itemIds: string[];
+  rewardItemId: string;
+}
+/** Progress and claims must come from server-confirmed distinct completions. */
+export interface StudyMission {
+  id: "daily" | "weekly";
+  target: number;
+  progress: number;
+  coins: number;
+  startsAt: string;
+  endsAt: string;
+  claimed: boolean;
+  eligible: boolean;
+}
+export interface WeeklyRankingEntry extends RankingEntry {
+  weeklyXp: number;
+  weeklyCompletedCount: number;
+  eligible: boolean;
+}
+export interface WeeklyRankingWinner extends WeeklyRankingEntry {
+  position: number;
+  coinsAwarded: number;
+  itemId: string;
+}
+export interface WeeklyRankingState {
+  startsAt: string;
+  endsAt: string;
+  entries: WeeklyRankingEntry[];
+  currentUser?: WeeklyRankingEntry | null;
+  lastCompleted?: {
+    startsAt: string;
+    endsAt: string;
+    winners: WeeklyRankingWinner[];
+  };
 }
 export interface AuthResult {
   requiresEmailConfirmation: boolean;
@@ -325,6 +377,7 @@ export interface AppGateway {
   getChallenge(idOrSlug: string): Promise<PublicChallenge>;
   getDashboard(): Promise<Dashboard>;
   getRanking(): Promise<RankingEntry[]>;
+  getWeeklyRanking?(): Promise<WeeklyRankingState>;
   getShop(): Promise<ShopState>;
   purchaseItem(
     itemId: string,

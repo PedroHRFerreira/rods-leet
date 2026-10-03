@@ -14,7 +14,7 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 - Uma dica inicial; mais uma a cada dez desafios distintos concluídos. Repetir desafio ou mudar modo não concede outra conclusão distinta.
 - Gabarito gratuito após uma aprovação ou três submissões incorretas acumuladas. Abrir antes de resolver torna futuras submissões desse desafio prática sem XP. Uma submissão pendente preserva o snapshot de assistência do envio.
 - Nível inicial zero. A transição do nível L para L+1 custa 150 × (L+1) XP adicionais. Erros nesta versão não reduzem nível nem apagam conclusões.
-- Ranking único, ordenado por XP líquido, conclusões distintas e instante em que a pontuação foi alcançada. Nunca vender XP, multiplicadores de XP ou posição no ranking.
+- Ranking geral ordenado por XP líquido, conclusões distintas e instante em que a pontuação foi alcançada. Ranking semanal mede XP conquistado no período e premia contas cadastradas com pelo menos três conclusões distintas; não altera a classificação geral. Nunca vender XP, multiplicadores de XP ou posição no ranking.
 
 ## Sessões Hard
 
@@ -60,3 +60,7 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 - Loja vende dica extra consumível por 30 moedas e cosméticos permanentes a partir de 100. Dicas gratuitas e redução de XP pelo uso continuam conforme as regras acima. Compras não consomem XP nem alteram ranking.
 - Ofertas rotacionam às segundas-feiras, 00:00 UTC; desconto de até 20%, com piso de 100 moedas. Exibir desconto somente quando real. O servidor recusa preço diferente do confirmado, inclusive ao terminar uma oferta.
 - Carteira, inventário, compras e equipagem são transacionais, com fonte/chave única e verificação de conta registrada. Restaurar avatar, cor e tema padrão é gratuito; itens comprados permanecem no inventário. Claro e escuro básicos continuam gratuitos.
+
+- Loja v2 amplia o catálogo com personagens/skins, molduras, títulos, cores e temas completos. Prévia precede a compra; coleções concluídas entregam um item exclusivo uma única vez. Dicas avulsas e pacotes mantêm a penalidade de XP de uso; nenhum conteúdo gratuito passa a exigir compra.
+- Metas extras de estudo concedem 20 moedas por três primeiras conclusões distintas do dia e 75 por sete da semana, exclusivamente a contas cadastradas e uma vez por período. Não conceder essas metas retroativamente antes da ativação.
+- Semana competitiva inicia segunda-feira 00h em America/Sao_Paulo e termina na segunda seguinte, com intervalo semiaberto. Top 5 elegível recebe 500/350/250/150/100 moedas e cosméticos exclusivos permanentes. Só participam contas cadastradas com XP positivo e três conclusões distintas no período; não premiar semanas encerradas antes da publicação. Encerramento, histórico de vencedores e entrega de prêmio são confirmados no servidor, com recuperação idempotente após falha operacional.

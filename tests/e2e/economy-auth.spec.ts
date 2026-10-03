@@ -85,7 +85,9 @@ async function setup(
       if (!applied.has(key)) {
         applied.add(key);
         shop.coins -= Number(body.expectedPrice);
-        if (body.itemId === "hint-extra") hints++;
+        if (body.itemId.startsWith("hint-"))
+          hints +=
+            shop.items.find((item) => item.id === body.itemId)?.hintCount ?? 1;
         else shop.ownedItemIds.push(body.itemId);
       }
       if (options.dropPurchase && purchases.length === 1) return route.abort();
@@ -97,6 +99,10 @@ async function setup(
         shop.equipped.avatarId = itemId === "avatar-default" ? null : itemId;
       if (itemId.startsWith("theme-"))
         shop.equipped.themeId = itemId === "theme-default" ? null : itemId;
+      if (itemId.startsWith("frame-"))
+        shop.equipped.frameId = itemId === "frame-default" ? null : itemId;
+      if (itemId.startsWith("title-"))
+        shop.equipped.titleId = itemId === "title-default" ? null : itemId;
       return route.fulfill({ json: shop });
     }
     if (path === "/api/shop") return route.fulfill({ json: shop });
@@ -157,7 +163,9 @@ test("purchase lost reply retries the same key, equips and restores an avatar", 
   ).toBeVisible();
   expect(state.purchases).toHaveLength(2);
   expect(state.purchases[0]).toEqual(state.purchases[1]);
-  expect(state.shop.coins).toBe(400);
+  expect(state.shop.coins).toBe(
+    500 - Number(state.purchases[0].body.expectedPrice),
+  );
   await card.getByRole("button", { name: "Equipar", exact: true }).click();
   await page.getByRole("button", { name: "Confirmar e equipar" }).click();
   await expect(
@@ -184,14 +192,79 @@ test("visitors preview the shop but cannot buy", async ({ page }) => {
   const state = await setup(page, { anonymous: true });
   await page.goto(`${baseURL}/loja`);
   await expect(
-    page.getByRole("link", { name: "Entrar ou criar conta", exact: true }),
+    page.getByRole("link", {
+      name: /Entrar ou criar conta|Sobre sua conta/,
+      exact: true,
+    }),
   ).toBeVisible();
   for (const button of await page
     .getByRole("button", { name: "Disponível com sua conta" })
     .all())
     await expect(button).toBeDisabled();
   expect(state.purchases).toHaveLength(0);
+  await expect(
+    page.getByText(
+      /Compras, equipagem, metas extras e prêmios semanais exigem conta/,
+    ),
+  ).toBeVisible();
   await fits(page);
+});
+test("registered hint packs confirm the discounted server price without granting a cosmetic", async ({
+  page,
+}) => {
+  const state = await setup(page);
+  await page.goto(`${baseURL}/loja`);
+  const card = page.locator("article").filter({
+    has: page.getByRole("heading", {
+      name: "Pacote de 3 dicas",
+      exact: true,
+    }),
+  });
+  await card.getByRole("button", { name: "Comprar", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Comprar por 75 moedas", exact: true })
+    .click();
+  await expect.poll(() => state.purchases.length).toBe(1);
+  expect(state.purchases[0].body).toEqual({
+    itemId: "hint-pack3",
+    expectedPrice: 75,
+  });
+  expect(state.shop.coins).toBe(425);
+  expect(state.shop.ownedItemIds).not.toContain("hint-pack3");
+});
+test("frames are previewed before purchase and equipped in a separate confirmed operation", async ({
+  page,
+}) => {
+  const state = await setup(page);
+  await page.goto(`${baseURL}/loja`);
+  const card = page.locator("article").filter({
+    has: page.getByRole("heading", { name: "Pixels clássicos", exact: true }),
+  });
+  await card
+    .getByRole("button", {
+      name: "Ver prévia de Pixels clássicos",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Prévia: Pixels clássicos",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(state.purchases).toHaveLength(0);
+  expect(state.shop.equipped.frameId).toBeNull();
+  await card.getByRole("button", { name: "Comprar", exact: true }).click();
+  await page.getByRole("button", { name: /Comprar por/ }).click();
+  await expect
+    .poll(() => state.shop.ownedItemIds.includes("frame-pixel"))
+    .toBe(true);
+  expect(state.shop.equipped.frameId).toBeNull();
+  await card.getByRole("button", { name: "Equipar", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Confirmar e equipar", exact: true })
+    .click();
+  await expect.poll(() => state.shop.equipped.frameId).toBe("frame-pixel");
 });
 test("email signup preserves visitor session and requests no password before confirmation", async ({
   page,

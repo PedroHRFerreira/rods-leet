@@ -95,3 +95,76 @@ it("propagates a changed offer without announcing a purchase", async () => {
     false,
   );
 });
+
+it("ignores forged pack size, rarity and recipient when granting hints", async () => {
+  const response = await purchase({
+    itemId: "hint-pack3",
+    expectedPrice: 75,
+    hintCount: -999,
+    rarity: "legendary",
+    userId: "victim",
+  });
+  expect(response.status).toBe(200);
+  expect(mocks.rpc).toHaveBeenCalledWith("shop_purchase", {
+    p_user: "learner",
+    p_item: "hint-pack3",
+    p_key: "purchase-key",
+    p_expected_price: 75,
+  });
+});
+it("serves weekly ranking only for the verified identity and omits caller-controlled period", async () => {
+  const state = {
+    startsAt: "2026-10-05T03:00:00Z",
+    endsAt: "2026-10-12T03:00:00Z",
+    entries: [],
+    currentUser: null,
+    lastCompleted: null,
+  };
+  mocks.rpc.mockImplementation(async (name) =>
+    name === "weekly_ranking" ? state : {},
+  );
+  const response = await handler(
+    new Request(
+      "http://localhost/api/ranking/weekly?userId=victim&startsAt=2000-01-01",
+    ),
+  );
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual(state);
+  expect(mocks.rpc).toHaveBeenCalledWith("weekly_ranking", {
+    p_user: "learner",
+  });
+  expect(mocks.rpc.mock.calls.some(([name]) => name === "user_context")).toBe(
+    false,
+  );
+});
+it("keeps weekly ranking visible to visitors without treating them as registered", async () => {
+  mocks.user.mockResolvedValue({ id: "visitor", anonymous: true });
+  mocks.rpc.mockImplementation(async (name) =>
+    name === "weekly_ranking" ? { entries: [], currentUser: null } : {},
+  );
+  const response = await handler(
+    new Request("http://localhost/api/ranking/weekly"),
+  );
+  expect(response.status).toBe(200);
+  expect(mocks.rpc).toHaveBeenCalledWith("weekly_ranking", {
+    p_user: "visitor",
+  });
+});
+it("does not report an achievement purchase as successful", async () => {
+  mocks.rpc.mockImplementation(async (name) => {
+    if (name === "shop_purchase")
+      throw new ApiError("item_not_purchasable", 409);
+    return {};
+  });
+  const response = await purchase({
+    itemId: "frame-champion",
+    expectedPrice: 0,
+  });
+  expect(response.status).toBe(409);
+  expect(await response.json()).toMatchObject({
+    error: { code: "item_not_purchasable" },
+  });
+  expect(mocks.rpc.mock.calls.some(([name]) => name === "shop_state")).toBe(
+    false,
+  );
+});

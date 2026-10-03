@@ -12,11 +12,12 @@ import type {
   AuthResult,
   EmailConfirmationType,
   ShopState,
+  WeeklyRankingState,
 } from "./contracts";
 import { GatewayError } from "./contracts";
 import { parsePublicSubmission } from "./submission-validation";
 import { validateProductFeedback } from "../domain/product-feedback";
-import { guestShop } from "../domain/economy";
+import { guestShop, studyPeriods } from "../domain/economy";
 
 export interface GatewaySession {
   user: { id: string };
@@ -415,6 +416,18 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
       return current
         ? request("/ranking", "GET", undefined, undefined, current)
         : [];
+    },
+    async getWeeklyRanking() {
+      const current = await session();
+      return current
+        ? request<WeeklyRankingState>(
+            "/ranking/weekly",
+            "GET",
+            undefined,
+            undefined,
+            current,
+          )
+        : { ...studyPeriods().weekly, entries: [], currentUser: null };
     },
     async getShop() {
       const current = await session();

@@ -27,7 +27,11 @@ import {
   X,
 } from "lucide-react";
 import WelcomeGuide from "./WelcomeGuide";
-import { CosmeticAvatar, cosmeticNameColor } from "./CosmeticAvatar";
+import {
+  CosmeticAvatar,
+  cosmeticNameColor,
+  cosmeticTheme,
+} from "./CosmeticAvatar";
 import { useGateway } from "../lib/gateway-context";
 
 const navigation = [
@@ -90,14 +94,9 @@ export default function Shell({ children }: { children?: ReactNode }) {
   const equippedTheme = profile?.themeId;
 
   useEffect(() => {
-    const cosmeticTheme =
-      equippedTheme === "theme-ocean"
-        ? "ocean"
-        : equippedTheme === "theme-sunset"
-          ? "sunset"
-          : null;
-    if (cosmeticTheme)
-      document.documentElement.dataset.cosmeticTheme = cosmeticTheme;
+    const selectedTheme = cosmeticTheme(equippedTheme);
+    if (selectedTheme)
+      document.documentElement.dataset.cosmeticTheme = selectedTheme;
     else delete document.documentElement.dataset.cosmeticTheme;
     return () => {
       delete document.documentElement.dataset.cosmeticTheme;
@@ -253,7 +252,11 @@ export default function Shell({ children }: { children?: ReactNode }) {
             BETA ABERTO
           </div>
           <NavLink to="/perfil" className="sidebar-profile">
-            <CosmeticAvatar avatarId={profile?.avatarId} displayName={name} />
+            <CosmeticAvatar
+              avatarId={profile?.avatarId}
+              frameId={profile?.frameId}
+              displayName={name}
+            />
             <span>
               <strong
                 style={{ color: cosmeticNameColor(profile?.nameColorId) }}
@@ -340,7 +343,11 @@ export default function Shell({ children }: { children?: ReactNode }) {
               className="topbar-avatar"
               aria-label="Abrir meu perfil"
             >
-              <CosmeticAvatar avatarId={profile?.avatarId} displayName={name} />
+              <CosmeticAvatar
+                avatarId={profile?.avatarId}
+                frameId={profile?.frameId}
+                displayName={name}
+              />
             </Link>
           </div>
         </header>

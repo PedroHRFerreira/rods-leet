@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("exploration remains free and offers email login without a tutor or social login", async ({
+test("exploration remains free and explains registered account access without a tutor or social login", async ({
   page,
 }) => {
   for (const path of [
@@ -28,11 +28,11 @@ test("exploration remains free and offers email login without a tutor or social 
     ).toHaveCount(0);
   }
   await expect(
-    page.getByRole("link", { name: "Criar conta ou entrar", exact: true }),
+    page.getByRole("link", { name: "Ver opções de acesso", exact: true }),
   ).toBeVisible();
   await expect(page.locator("main")).toContainText("Perfil de visitante");
   await expect(page.locator("main")).toContainText(
-    "Crie sua conta por e-mail para preservar seu progresso",
+    "compras e itens equipáveis exigem uma conta cadastrada",
   );
 });
 

@@ -115,3 +115,13 @@ ECONOMY_SQL_RUNTIME=/tmp/rods-economy-sql/node_modules/@electric-sql/pglite/dist
 ```
 
 O runner aplica todas as migrações e fixtures em PostgreSQL isolado, reutilizando os doubles de PGMQ/Cron/pg_net do runner Docker. Não comprova extensões reais, concorrência entre conexões ou SMTP; executar os testes também no Supabase de homologação antes de ativar. Cadastro converte visitante somente após verificar e-mail, conforme [Anonymous Sign-Ins](https://supabase.com/docs/guides/auth/auth-anonymous); templates e configuração seguem [a documentação de e-mails](https://supabase.com/docs/guides/local-development/customizing-email-templates).
+
+## Loja e recompensas v2
+
+Aplicar `202610030001_shop_rewards_v2.sql` antes de publicar a API e o frontend. A migração preserva moedas, XP e inventário; adiciona molduras, títulos, coleções, pacotes e metas. O ranking semanal conta eventos oficiais da semana atual completa. Metas começam na ativação, sem progresso retroativo; semanas já encerradas antes da publicação não recebem premiação.
+
+O fechamento usa `private.close_due_study_weeks()` tanto no cron de segunda às 03h UTC (00h Brasília) quanto na recuperação horária e na consulta semanal. Conferir os jobs `rods-weekly-prizes` e `rods-weekly-prizes-recovery` em `cron.job`. A mesma semana tem um único resultado persistido; compras e créditos bloqueiam a carteira na transação. RPCs e tabelas de economia não permitem escrita com os papéis do navegador. Não criar endpoint de prêmio manual nem aceitar identidade, saldo ou quantidade de dicas enviados pelo cliente.
+
+Validações locais adicionais: `python3 scripts/test-database.py` cobre permissões e regras; `python3 scripts/test-economy-concurrency.py` usa conexões simultâneas no PostgreSQL descartável para verificar reenvio, gasto concorrente, item permanente e fechamento semanal. Ambos usam doubles de Cron/PGMQ/pg_net; o agendamento real precisa ser conferido no ambiente publicado. Os fixtures nunca devem ser executados em produção.
+
+Compras, equipagem, metas extras e prêmios exigem conta cadastrada. Preservar `EMAIL_REGISTRATION_ENABLED=false` e `VITE_EMAIL_REGISTRATION_ENABLED=false` enquanto o cadastro permanecer desativado. A comunidade Discord é um convite opcional e não participa da autorização da loja.

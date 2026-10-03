@@ -23,6 +23,7 @@ import "../editor.css";
 import {
   CosmeticAvatar,
   cosmeticNameColor,
+  cosmeticTitle,
 } from "../components/CosmeticAvatar";
 import { DiscordCommunity } from "../components/DiscordCommunity";
 
@@ -58,6 +59,8 @@ function SubmissionPreferences({ identity }: { identity: string }) {
 
 export default function ProfilePage() {
   const gateway = useGateway();
+  const registrationDisabled =
+    import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false";
   const queryClient = useQueryClient();
   const signOut = useMutation({
     mutationFn: () => gateway.signOut(),
@@ -113,6 +116,7 @@ export default function ProfilePage() {
             <span className="profile-large-avatar">
               <CosmeticAvatar
                 avatarId={data.profile.avatarId}
+                frameId={data.profile.frameId}
                 displayName={data.profile.displayName}
                 size={72}
               />
@@ -124,7 +128,12 @@ export default function ProfilePage() {
             <h2 style={{ color: cosmeticNameColor(data.profile.nameColorId) }}>
               {data.profile.displayName}
             </h2>
-            <p>{registered ? "Conta por e-mail" : "Perfil de visitante"}</p>
+            {cosmeticTitle(data.profile.titleId) && (
+              <p className="cosmetic-profile-title">
+                {cosmeticTitle(data.profile.titleId)}
+              </p>
+            )}
+            <p>{registered ? "Conta cadastrada" : "Perfil de visitante"}</p>
             <span className="profile-access">
               <span />
               Beta aberto · sem login obrigatório
@@ -196,8 +205,8 @@ export default function ProfilePage() {
                 </h2>
                 <p>
                   {registered
-                    ? "Entre com seu e-mail e senha para acessar seu progresso em outros dispositivos."
-                    : "Crie sua conta por e-mail para preservar seu progresso, suas moedas e seus itens."}
+                    ? "Seu progresso, suas moedas e seus itens estão guardados nesta conta."
+                    : `Você pode estudar e ganhar moedas-base como visitante; compras e itens equipáveis exigem uma conta cadastrada.${registrationDisabled ? " O cadastro está desativado nesta versão." : ""}`}
                 </p>
               </div>
             </div>
@@ -223,7 +232,7 @@ export default function ProfilePage() {
                   sessão. Seus rascunhos permanecem neste navegador.
                 </p>
                 <Link className="button button-primary" to="/conta">
-                  Criar conta ou entrar
+                  Ver opções de acesso
                 </Link>
               </>
             )}
@@ -240,6 +249,12 @@ export default function ProfilePage() {
               liberam a Chama constante. Outros cosméticos ficam disponíveis na
               loja conforme seu nível. Comprar itens preserva seu XP e sua
               posição no ranking.
+            </p>
+            <p>
+              Contas cadastradas também recebem 20 moedas por três primeiras
+              conclusões distintas no dia e 75 por sete na semana. As metas
+              começam na publicação desta atualização e usam o horário de
+              Brasília.
             </p>
             <Link className="text-link" to="/loja">
               Ver loja e inventário <ArrowUpRight size={15} />
@@ -263,8 +278,8 @@ export default function ProfilePage() {
       <div className="profile-fairness">
         <ShieldCheck size={17} />
         <p>
-          Beta gratuito, ranking único e progresso real. Dicas ajudam no
-          caminho; recompensas seguem os mesmos critérios para todos.
+          Beta gratuito, rankings geral e semanal e progresso real. Dicas ajudam
+          no caminho; recompensas seguem os mesmos critérios para todos.
         </p>
       </div>
     </div>

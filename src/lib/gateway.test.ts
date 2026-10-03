@@ -5,7 +5,7 @@ import {
   type GatewayAuth,
   type GatewaySession,
 } from "./gateway";
-import type { DraftInput } from "./contracts";
+import type { DraftInput, WeeklyRankingState } from "./contracts";
 
 function memoryStorage() {
   const data = new Map<string, string>();
@@ -62,6 +62,78 @@ function setup(
 }
 
 describe("public exploration and server authority", () => {
+  test("weekly ranking is a separate cookie-authenticated read and preserves server eligibility", async () => {
+    const weekly: WeeklyRankingState = {
+      startsAt: "2026-10-05T03:00:00.000Z",
+      endsAt: "2026-10-12T03:00:00.000Z",
+      entries: [],
+      currentUser: {
+        userId: "alice",
+        displayName: "Alice",
+        xp: 2000,
+        completedCount: 30,
+        reachedAt: "2026-10-05T12:00:00Z",
+        weeklyXp: 50,
+        weeklyCompletedCount: 1,
+        eligible: false,
+      },
+      lastCompleted: {
+        startsAt: "2026-09-28T03:00:00.000Z",
+        endsAt: "2026-10-05T03:00:00.000Z",
+        winners: [],
+      },
+    };
+    const s = setup((url) =>
+      respond(url === "/api/ranking/weekly" ? weekly : []),
+    );
+    s.options.auth.getSession = vi.fn(s.options.auth.getSession);
+    expect(await s.gateway.getWeeklyRanking!()).toEqual(weekly);
+    expect(await s.gateway.getRanking()).toEqual([]);
+    expect(s.fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/ranking/weekly",
+      "/api/ranking",
+    ]);
+    const init = s.fetchMock.mock.calls[0][1]!;
+    expect(init).toMatchObject({
+      method: "GET",
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    expect(new Headers(init.headers).has("Authorization")).toBe(false);
+    s.setUser("bob");
+    await s.gateway.getWeeklyRanking!();
+    expect(s.options.auth.getSession).toHaveBeenCalledTimes(3);
+    expect(s.fetchMock).toHaveBeenCalledTimes(3);
+  });
+  test("weekly exploration never sends remote requests or invents winners, eligibility or prizes", async () => {
+    const send = vi.fn();
+    const weekly = await createGateway({ fetch: send }).getWeeklyRanking!();
+    expect(weekly.entries).toEqual([]);
+    expect(weekly.currentUser).toBeNull();
+    expect(weekly.lastCompleted).toBeUndefined();
+    expect(new Date(weekly.endsAt).getTime()).toBeGreaterThan(
+      new Date(weekly.startsAt).getTime(),
+    );
+    expect(send).not.toHaveBeenCalled();
+    const s = setup(() =>
+      respond(
+        {
+          error: {
+            code: "ranking_unavailable",
+            message: "Ranking indisponível",
+          },
+        },
+        503,
+      ),
+    );
+    await expect(s.gateway.getWeeklyRanking!()).rejects.toMatchObject({
+      code: "ranking_unavailable",
+      status: 503,
+    });
+    s.setUser(null);
+    expect((await s.gateway.getWeeklyRanking!()).entries).toEqual([]);
+    expect(s.fetchMock).toHaveBeenCalledTimes(1);
+  });
   test("demo shop never grants inventory or buys items without the server", async () => {
     const gateway = createGateway();
     expect(await gateway.getShop()).toMatchObject({

@@ -200,6 +200,7 @@ export function allowedApi(request: Request): URL {
   const id = "[a-zA-Z0-9_-]{1,128}";
   const routes: Record<string, RegExp[]> = {
     GET: [
+      /^\/ranking\/weekly$/,
       /^\/(dashboard|ranking|shop|challenges|drafts|execution-status|tutor\/conversations)$/,
       new RegExp(`^/(challenges|attempts|submissions)/${id}$`),
     ],

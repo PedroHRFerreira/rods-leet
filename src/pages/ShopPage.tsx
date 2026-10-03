@@ -9,6 +9,7 @@ import {
   LockKeyhole,
   Palette,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import type { ShopItem, ShopState } from "../lib/contracts";
 import { GatewayError } from "../lib/contracts";
@@ -22,6 +23,7 @@ import {
   formatNumber,
   LoadingState,
   PageHeading,
+  ProgressBar,
 } from "../components/ui";
 
 type Operation = {
@@ -30,13 +32,16 @@ type Operation = {
   key: string;
   price: number;
 };
-type Category = "all" | ShopItem["kind"];
+type Category = "all" | "achievements" | ShopItem["kind"];
 const categories: Array<{ id: Category; label: string }> = [
   { id: "all", label: "Tudo" },
-  { id: "avatar", label: "Avatares" },
+  { id: "avatar", label: "Personagens e skins" },
+  { id: "frame", label: "Molduras" },
+  { id: "title", label: "Títulos" },
   { id: "name_color", label: "Cores do nome" },
   { id: "theme", label: "Temas" },
   { id: "hint", label: "Dicas" },
+  { id: "achievements", label: "Conquistas" },
 ];
 const defaultItems: ShopItem[] = [
   {
@@ -53,6 +58,24 @@ const defaultItems: ShopItem[] = [
     name: "Cor padrão do nome",
     kind: "name_color",
     description: "A cor original do seu nome.",
+    price: 0,
+    minLevel: 0,
+    value: "",
+  },
+  {
+    id: "frame-default",
+    name: "Sem moldura",
+    kind: "frame",
+    description: "Seu personagem sem moldura.",
+    price: 0,
+    minLevel: 0,
+    value: "",
+  },
+  {
+    id: "title-default",
+    name: "Sem título",
+    kind: "title",
+    description: "Seu perfil sem título.",
     price: 0,
     minLevel: 0,
     value: "",
@@ -83,25 +106,67 @@ function ItemPreview({ item, name }: { item: ShopItem; name: string }) {
   if (item.kind === "theme")
     return (
       <div
-        className={`shop-theme-preview shop-theme-${item.id === "theme-ocean" ? "ocean" : "sunset"}`}
+        className={`shop-theme-preview shop-theme-${item.value}`}
         aria-label={`Prévia do tema ${item.name}`}
       >
-        <Palette size={30} />
-        <span />
-        <span />
-        <span />
+        <div className="shop-theme-mini-header">
+          <Palette size={18} /> Meu espaço
+        </div>
+        <div className="shop-theme-mini-body">
+          <span />
+          <div>
+            <strong>Continue aprendendo</strong>
+            <span />
+            <span />
+          </div>
+        </div>
+        <span className="shop-theme-mini-button">Próximo desafio</span>
       </div>
     );
-  return <Lightbulb size={50} aria-hidden="true" />;
+  if (item.kind === "frame")
+    return (
+      <span className={`cosmetic-frame cosmetic-frame-${item.value}`}>
+        <CosmeticAvatar size={72} />
+      </span>
+    );
+  if (item.kind === "title")
+    return (
+      <span className="shop-title-preview">
+        <Trophy size={24} aria-hidden="true" />
+        {item.value}
+      </span>
+    );
+  return (
+    <span className="shop-hint-preview">
+      <Lightbulb size={42} aria-hidden="true" />
+      <strong>{item.hintCount ?? 1}</strong>
+    </span>
+  );
 }
 
 function priceFor(item: ShopItem, shop: ShopState): number {
   const now = Date.now();
-  return shop.offer.itemId === item.id &&
-    now >= Date.parse(shop.offer.startsAt) &&
-    now < Date.parse(shop.offer.endsAt)
-    ? shop.offer.price
-    : item.price;
+  return (
+    (shop.offers ?? [shop.offer]).find(
+      (offer) =>
+        offer.itemId === item.id &&
+        now >= Date.parse(offer.startsAt) &&
+        now < Date.parse(offer.endsAt),
+    )?.price ?? item.price
+  );
+}
+
+const rarityLabels = {
+  common: "Comum",
+  rare: "Raro",
+  epic: "Épico",
+  legendary: "Lendário",
+};
+function acquisitionLabel(item: ShopItem): string {
+  if (item.acquisition === "ranking") return "Prêmio do ranking semanal";
+  if (item.acquisition === "collection") return "Presente da coleção";
+  if (item.acquisition === "milestone") return "Presente de conquista";
+  return "Item permanente";
 }
 
 export default function ShopPage() {
@@ -109,13 +174,21 @@ export default function ShopPage() {
   const client = useQueryClient();
   const [category, setCategory] = useState<Category>("all");
   const [inventory, setInventory] = useState(false);
+  const [collection, setCollection] = useState("all");
+  const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
   const [operation, setOperation] = useState<Operation | null>(null);
   const [notice, setNotice] = useState("");
   const submitting = useRef(false);
   const confirmationHeading = useRef<HTMLHeadingElement>(null);
+  const previewHeading = useRef<HTMLHeadingElement>(null);
+  const operationTrigger = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (operation) confirmationHeading.current?.focus();
+    else operationTrigger.current?.focus();
   }, [operation]);
+  useEffect(() => {
+    if (previewItem) previewHeading.current?.focus();
+  }, [previewItem]);
   const dashboard = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => gateway.getDashboard(),
@@ -141,7 +214,7 @@ export default function ShopPage() {
         request.kind === "equip"
           ? `${request.item.name} equipado.`
           : request.item.kind === "hint"
-            ? "Dica extra comprada. Ela já está no seu saldo de dicas."
+            ? `${request.item.hintCount ?? 1} ${request.item.hintCount === 1 || !request.item.hintCount ? "dica adicionada" : "dicas adicionadas"} ao seu saldo.`
             : `${request.item.name} adicionado ao inventário.`,
       );
       setOperation(null);
@@ -181,18 +254,50 @@ export default function ShopPage() {
     data.profile.anonymous;
   const items = shop.items.filter(
     (item) =>
-      (category === "all" || category === item.kind) &&
+      (category === "all" ||
+        category === item.kind ||
+        (category === "achievements" &&
+          item.acquisition &&
+          item.acquisition !== "purchase")) &&
+      (collection === "all" || collection === item.collectionId) &&
       (!inventory || shop.ownedItemIds.includes(item.id)),
   );
   const equippedIds = Object.values(shop.equipped);
-  const offerItem = shop.items.find((item) => item.id === shop.offer.itemId);
-  const offerActive = offerItem && priceFor(offerItem, shop) < offerItem.price;
+  const activeOffers = (shop.offers ?? [shop.offer]).flatMap((offer) => {
+    const item = shop.items.find((entry) => entry.id === offer.itemId);
+    return item && priceFor(item, shop) < item.price ? [{ item, offer }] : [];
+  });
+  const previewAvatarId =
+    previewItem?.kind === "avatar" ? previewItem.id : shop.equipped.avatarId;
+  const previewNameColorId =
+    previewItem?.kind === "name_color"
+      ? previewItem.id
+      : shop.equipped.nameColorId;
+  const previewTheme = shop.items.find(
+    (item) =>
+      item.id ===
+      (previewItem?.kind === "theme" ? previewItem.id : shop.equipped.themeId),
+  );
+  const previewFrame = shop.items.find(
+    (item) =>
+      item.id ===
+      (previewItem?.kind === "frame" ? previewItem.id : shop.equipped.frameId),
+  );
+  const previewTitle = shop.items.find(
+    (item) =>
+      item.id ===
+      (previewItem?.kind === "title" ? previewItem.id : shop.equipped.titleId),
+  );
   const definiteFailure =
     mutation.error instanceof GatewayError &&
     mutation.error.status >= 400 &&
     mutation.error.status < 500;
   function choose(item: ShopItem, kind: Operation["kind"]) {
     if (operation || submitting.current || guest) return;
+    operationTrigger.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
     mutation.reset();
     setNotice("");
     setOperation({
@@ -226,10 +331,11 @@ export default function ShopPage() {
           <div>
             <h2>Suas moedas começam com o estudo</h2>
             <p>
-              Ganhe moedas estudando como visitante. Uma conta permite comprar e
-              guardar seus itens.
+              Ganhe moedas-base estudando como visitante e conheça o catálogo.
+              Compras, equipagem, metas extras e prêmios semanais exigem conta
+              cadastrada.
               {import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false" &&
-                " Cadastro e compras para novos usuários estarão disponíveis em breve."}
+                " O cadastro está desativado; novos visitantes ainda não podem comprar."}
             </p>
           </div>
           <Link className="button button-primary" to="/conta">
@@ -256,23 +362,187 @@ export default function ShopPage() {
           <span>ao completar 7 / 30 dias de sequência</span>
         </div>
       </section>
-      {offerActive && (
-        <section className="panel shop-offer">
-          <Sparkles size={24} />
-          <div>
-            <span className="eyebrow">OFERTA DA SEMANA</span>
-            <h2>{offerItem.name}</h2>
-            <p>
-              <del>{formatNumber(offerItem.price)}</del>{" "}
-              <strong>{formatNumber(shop.offer.price)} moedas</strong> · Até{" "}
-              {new Intl.DateTimeFormat("pt-BR", {
-                dateStyle: "short",
-                timeStyle: "short",
-              }).format(new Date(shop.offer.endsAt))}{" "}
-              (horário local)
-            </p>
+      <section
+        className="panel shop-personal-preview"
+        aria-label="Prévia da personalização"
+      >
+        <div className="shop-preview-profile">
+          <span className="eyebrow">SEU PRÓXIMO VISUAL</span>
+          <span
+            className={`cosmetic-frame cosmetic-frame-${previewFrame?.value ?? "default"}`}
+          >
+            <CosmeticAvatar
+              avatarId={previewAvatarId}
+              displayName={data.profile.displayName}
+              size={96}
+            />
+          </span>
+          <h2 style={{ color: cosmeticNameColor(previewNameColorId) }}>
+            {data.profile.displayName}
+          </h2>
+          {previewTitle && (
+            <span className="shop-preview-title">{previewTitle.value}</span>
+          )}
+          <span>
+            Nível {data.level} · {formatNumber(data.xp)} XP
+          </span>
+        </div>
+        <div className="shop-preview-detail">
+          <h2 ref={previewHeading} tabIndex={-1}>
+            {previewItem
+              ? `Prévia: ${previewItem.name}`
+              : "Experimente antes de escolher"}
+          </h2>
+          <p>
+            {previewItem?.description ??
+              "Veja como personagens, molduras, títulos, cores e temas ficam no seu espaço. A prévia não compra nem equipa itens."}
+          </p>
+          {previewTheme && (
+            <ItemPreview item={previewTheme} name={data.profile.displayName} />
+          )}
+          {previewItem && (
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={() => setPreviewItem(null)}
+            >
+              Voltar ao visual equipado
+            </button>
+          )}
+        </div>
+      </section>
+      {!!shop.missions?.length && (
+        <section className="shop-missions" aria-label="Metas de estudo">
+          {shop.missions.map((mission) => (
+            <article className="panel shop-mission" key={mission.id}>
+              <span className="eyebrow">
+                {mission.id === "daily" ? "META DO DIA" : "META DA SEMANA"}
+              </span>
+              <h2>{mission.target} primeiras conclusões distintas</h2>
+              <strong>+{mission.coins} moedas</strong>
+              <ProgressBar
+                value={mission.progress}
+                max={mission.target}
+                label={`Progresso da meta ${mission.id === "daily" ? "diária" : "semanal"}`}
+              />
+              <p>
+                {mission.progress} / {mission.target} concluídos ·{" "}
+                {mission.claimed
+                  ? "Recompensa recebida"
+                  : guest || !mission.eligible
+                    ? "Exclusiva para contas cadastradas"
+                    : "Entrega automática ao completar"}
+              </p>
+              <small>
+                Até{" "}
+                {new Intl.DateTimeFormat("pt-BR", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                  timeZone: "America/Sao_Paulo",
+                }).format(new Date(mission.endsAt))}{" "}
+                · Brasília
+              </small>
+            </article>
+          ))}
+        </section>
+      )}
+      {!!activeOffers.length && (
+        <section className="shop-weekly-offers" aria-label="Ofertas da semana">
+          <div className="shop-section-heading">
+            <span className="eyebrow">OFERTAS DA SEMANA</span>
+            <h2>Novas possibilidades, menos moedas</h2>
+            <p>Descontos reais em cosméticos. A compra mantém seu XP.</p>
           </div>
-          <ItemPreview item={offerItem} name={data.profile.displayName} />
+          <div className="shop-offer-grid">
+            {activeOffers.map(({ item, offer }) => (
+              <article className="panel shop-offer" key={item.id}>
+                <ItemPreview item={item} name={data.profile.displayName} />
+                <div>
+                  <h3>{item.name}</h3>
+                  <p>
+                    <del>{formatNumber(item.price)}</del>{" "}
+                    <strong>{formatNumber(offer.price)} moedas</strong>
+                  </p>
+                  <small>
+                    Até{" "}
+                    {new Intl.DateTimeFormat("pt-BR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                      timeZone: "America/Sao_Paulo",
+                    }).format(new Date(offer.endsAt))}{" "}
+                    · Brasília
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => setPreviewItem(item)}
+                >
+                  Ver prévia de {item.name}
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      {!!shop.collections?.length && (
+        <section className="shop-collections" aria-label="Coleções">
+          <div className="shop-section-heading">
+            <span className="eyebrow">COLECIONE SEU ESTILO</span>
+            <h2>Um conjunto, uma conquista</h2>
+          </div>
+          <div className="shop-collection-grid">
+            {shop.collections.map((entry) => {
+              const ownedCount = entry.itemIds.filter((id) =>
+                shop.ownedItemIds.includes(id),
+              ).length;
+              const reward = shop.items.find(
+                (item) => item.id === entry.rewardItemId,
+              );
+              return (
+                <article
+                  className={`panel shop-collection shop-collection-${entry.id}`}
+                  key={entry.id}
+                >
+                  <h3>{entry.name}</h3>
+                  <p>{entry.description}</p>
+                  <ProgressBar
+                    value={ownedCount}
+                    max={entry.itemIds.length}
+                    label={`Coleção ${entry.name}`}
+                  />
+                  <span>
+                    {ownedCount} / {entry.itemIds.length} itens
+                  </span>
+                  <small>
+                    {shop.ownedItemIds.includes(entry.rewardItemId)
+                      ? "Título recebido"
+                      : `Título exclusivo: ${reward?.name ?? entry.name}`}
+                  </small>
+                  <button
+                    type="button"
+                    className="text-link"
+                    aria-pressed={collection === entry.id}
+                    onClick={() => {
+                      setCollection(collection === entry.id ? "all" : entry.id);
+                      setCategory("all");
+                    }}
+                  >
+                    Ver coleção {entry.name}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+          {collection !== "all" && (
+            <button
+              className="text-link"
+              type="button"
+              onClick={() => setCollection("all")}
+            >
+              Mostrar todas as coleções
+            </button>
+          )}
         </section>
       )}
       <div className="shop-view-switch" role="group" aria-label="Visualização">
@@ -317,7 +587,11 @@ export default function ShopPage() {
                   ? !shop.equipped.avatarId
                   : item.kind === "name_color"
                     ? !shop.equipped.nameColorId
-                    : !shop.equipped.themeId;
+                    : item.kind === "frame"
+                      ? !shop.equipped.frameId
+                      : item.kind === "title"
+                        ? !shop.equipped.titleId
+                        : !shop.equipped.themeId;
               return (
                 <button
                   type="button"
@@ -357,7 +631,7 @@ export default function ShopPage() {
               ? `Você usará ${formatNumber(operation.price)} moedas.`
               : "Este item aparecerá no seu perfil."}{" "}
             {operation.item.kind === "hint"
-              ? "Esta compra adiciona uma dica consumível. Ao usar a dica no desafio, a redução de XP continua valendo."
+              ? `Esta compra adiciona ${operation.item.hintCount ?? 1} dica(s) consumível(is). Ao usar uma dica no desafio, a redução de XP continua valendo.`
               : operation.kind === "purchase"
                 ? "O item ficará permanentemente no seu inventário."
                 : "Você pode trocar novamente no inventário."}
@@ -412,7 +686,9 @@ export default function ShopPage() {
           </h2>
           <p>
             {inventory
-              ? "Compre um cosmético ou alcance os marcos de nível e sequência para receber presentes. Dicas compradas aparecem no saldo de dicas do perfil."
+              ? guest
+                ? "Itens adquiridos e presentes aparecem aqui. Comprar e equipar exigem uma conta cadastrada; suas moedas-base continuam disponíveis nesta sessão."
+                : "Compre um cosmético ou alcance os marcos de nível e sequência para receber presentes. Dicas compradas aparecem no saldo de dicas do perfil."
               : "Escolha outra categoria para explorar o catálogo."}
           </p>
         </section>
@@ -424,6 +700,8 @@ export default function ShopPage() {
             const locked = data.level < item.minLevel;
             const price = priceFor(item, shop);
             const insufficient = shop.coins < price;
+            const purchasable =
+              !item.acquisition || item.acquisition === "purchase";
             return (
               <article
                 className={`panel shop-card shop-card-${item.kind}${equipped ? " is-equipped" : ""}`}
@@ -432,6 +710,11 @@ export default function ShopPage() {
                 <div className="shop-item-preview">
                   <ItemPreview item={item} name={data.profile.displayName} />
                 </div>
+                <span
+                  className={`shop-rarity shop-rarity-${item.rarity ?? "common"}`}
+                >
+                  {rarityLabels[item.rarity ?? "common"]}
+                </span>
                 <div className="shop-item-heading">
                   <h2>{item.name}</h2>
                   {equipped ? (
@@ -447,8 +730,8 @@ export default function ShopPage() {
                 <div className="shop-item-meta">
                   <span>
                     {item.kind === "hint"
-                      ? "Consumível · 1 dica"
-                      : "Item permanente"}
+                      ? `Consumível · ${item.hintCount ?? 1} ${(item.hintCount ?? 1) === 1 ? "dica" : "dicas"}`
+                      : acquisitionLabel(item)}
                   </span>
                   {item.minLevel > 0 && (
                     <span>
@@ -456,7 +739,7 @@ export default function ShopPage() {
                     </span>
                   )}
                 </div>
-                {!owned && (
+                {!owned && purchasable && (
                   <div className="shop-price">
                     <Coins size={18} />
                     <strong>{formatNumber(price)}</strong>
@@ -464,6 +747,21 @@ export default function ShopPage() {
                       <del>{formatNumber(item.price)}</del>
                     )}
                   </div>
+                )}
+                {item.kind === "hint" && (item.hintCount ?? 1) > 1 && (
+                  <p className="shop-pack-saving">
+                    Economize {(item.hintCount ?? 1) * 30 - price} moedas em
+                    relação às dicas avulsas.
+                  </p>
+                )}
+                {item.kind !== "hint" && (
+                  <button
+                    type="button"
+                    className="button button-secondary shop-preview-button"
+                    onClick={() => setPreviewItem(item)}
+                  >
+                    Ver prévia de {item.name}
+                  </button>
                 )}
                 <button
                   type="button"
@@ -473,21 +771,23 @@ export default function ShopPage() {
                     !!operation ||
                     mutation.isPending ||
                     equipped ||
-                    (!owned && (locked || insufficient))
+                    (!owned && (!purchasable || locked || insufficient))
                   }
                   onClick={() => choose(item, owned ? "equip" : "purchase")}
                 >
-                  {guest
-                    ? "Disponível com sua conta"
-                    : equipped
-                      ? "Equipado"
-                      : owned
-                        ? "Equipar"
-                        : locked
-                          ? `Desbloqueia no nível ${item.minLevel}`
-                          : insufficient
-                            ? "Moedas insuficientes"
-                            : "Comprar"}
+                  {!owned && !purchasable
+                    ? acquisitionLabel(item)
+                    : guest
+                      ? "Disponível com sua conta"
+                      : equipped
+                        ? "Equipado"
+                        : owned
+                          ? "Equipar"
+                          : locked
+                            ? `Desbloqueia no nível ${item.minLevel}`
+                            : insufficient
+                              ? "Moedas insuficientes"
+                              : "Comprar"}
                 </button>
               </article>
             );
@@ -496,7 +796,8 @@ export default function ShopPage() {
       )}
       <p className="shop-footnote">
         XP mede sua evolução e permanece acumulado. Cosméticos não alteram o
-        ranking. O nível 5 presenteia uma coruja; 30 dias de sequência
+        ranking. Raridades indicam acabamento e aquisição, sem vantagens nos
+        desafios. O nível 5 presenteia uma coruja; 30 dias de sequência
         presenteiam uma chama.
       </p>
     </div>

@@ -359,6 +359,12 @@ test("tutor stays hidden and profile is available without login", async ({
     )
     .toBe(true);
   await expect(
+    page.getByRole("heading", {
+      name: "Nenhum participante elegível nesta semana",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Geral", exact: true }).click();
+  await expect(
     page.getByRole("heading", { name: "Nenhuma pontuação registrada" }),
   ).toBeVisible();
   await expect(page.locator(".ranking-table tbody tr")).toHaveCount(0);

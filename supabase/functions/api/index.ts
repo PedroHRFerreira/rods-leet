@@ -40,6 +40,11 @@ const errorMessages: Record<string, string> = {
   solution_locked:
     "O gabarito abre após aprovação ou três submissões incorretas.",
   authentication_required: "Entre com sua conta para continuar.",
+  account_required: "Compras e itens equipáveis exigem uma conta cadastrada.",
+  item_not_purchasable: "Este item é uma conquista e não está à venda.",
+  item_not_owned: "Adquira este item antes de equipá-lo.",
+  item_locked: "Alcance o nível necessário para comprar este item.",
+  insufficient_coins: "Você ainda não tem moedas suficientes para esta compra.",
   price_changed:
     "O preço desta oferta mudou. Atualize a loja e confirme o novo valor.",
   challenge_already_completed:
@@ -119,6 +124,9 @@ export async function handler(request: Request): Promise<Response> {
       p_name: user.name,
       p_github_login: user.githubLogin,
     });
+    if (request.method === "GET" && path === "/ranking/weekly") {
+      return json(await db.rpc("weekly_ranking", { p_user: user.id }));
+    }
     if (request.method === "GET" && path === "/shop") {
       return json(await db.rpc("shop_state", { p_user: user.id }));
     }
@@ -701,6 +709,8 @@ export async function handler(request: Request): Promise<Response> {
           avatarId: profile.avatar_id ?? null,
           nameColorId: profile.name_color_id ?? null,
           themeId: profile.theme_id ?? null,
+          frameId: profile.frame_id ?? null,
+          titleId: profile.title_id ?? null,
         },
         coins: profile.coins,
         xp: profile.xp,
@@ -729,7 +739,7 @@ export async function handler(request: Request): Promise<Response> {
       const [players, completed] = await Promise.all([
         db.rows<Row>(
           "profiles",
-          "select=id,display_name,xp,reached_at,avatar_id,name_color_id,theme_id",
+          "select=id,display_name,xp,reached_at,avatar_id,name_color_id,theme_id,frame_id,title_id",
         ),
         db.rows<Row>("completions", "select=user_id,challenge_id"),
       ]);
@@ -740,6 +750,8 @@ export async function handler(request: Request): Promise<Response> {
           avatarId: p.avatar_id ?? null,
           nameColorId: p.name_color_id ?? null,
           themeId: p.theme_id ?? null,
+          frameId: p.frame_id ?? null,
+          titleId: p.title_id ?? null,
           xp: p.xp,
           completedCount: new Set(
             completed
