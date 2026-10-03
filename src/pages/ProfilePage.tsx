@@ -1,13 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
   Award,
   CheckCircle2,
+  Coins,
   Lightbulb,
   ShieldCheck,
   Target,
-  UserRound,
   Zap,
 } from "lucide-react";
 import { useGateway } from "../lib/gateway-context";
@@ -20,6 +20,10 @@ import {
   ProgressBar,
 } from "../components/ui";
 import "../editor.css";
+import {
+  CosmeticAvatar,
+  cosmeticNameColor,
+} from "../components/CosmeticAvatar";
 
 function SubmissionPreferences({ identity }: { identity: string }) {
   const quiz = useSubmissionConfirmation(identity, "quiz");
@@ -53,6 +57,14 @@ function SubmissionPreferences({ identity }: { identity: string }) {
 
 export default function ProfilePage() {
   const gateway = useGateway();
+  const queryClient = useQueryClient();
+  const signOut = useMutation({
+    mutationFn: () => gateway.signOut(),
+    onSuccess: () => {
+      queryClient.clear();
+      window.location.assign("/");
+    },
+  });
   const dashboard = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => gateway.getDashboard(),
@@ -78,12 +90,17 @@ export default function ProfilePage() {
       </div>
     );
   const data = dashboard.data;
+  const registered = data.profile.authenticated && !data.profile.anonymous;
   return (
     <div className="profile-page">
       <PageHeading
         eyebrow="SEU ESPAÇO"
         title="Perfil e progresso"
-        description="Suas soluções e seu progresso neste navegador."
+        description={
+          registered
+            ? "Seu progresso, suas conquistas e seus itens."
+            : "Suas soluções e seu progresso neste navegador."
+        }
       />
       <div className="profile-grid">
         <section className="panel profile-card">
@@ -93,20 +110,20 @@ export default function ProfilePage() {
           </div>
           <div className="profile-identity">
             <span className="profile-large-avatar">
-              {data.profile.displayName
-                .charAt(0)
-                .toLocaleUpperCase("pt-BR") || <UserRound size={32} />}
+              <CosmeticAvatar
+                avatarId={data.profile.avatarId}
+                displayName={data.profile.displayName}
+                size={72}
+              />
             </span>
             <span className="profile-level">
               <Award size={14} />
               Nível {data.level}
             </span>
-            <h2>{data.profile.displayName}</h2>
-            <p>
-              {data.profile.authenticated && !data.profile.anonymous
-                ? "Conta GitHub conectada"
-                : "Perfil anônimo"}
-            </p>
+            <h2 style={{ color: cosmeticNameColor(data.profile.nameColorId) }}>
+              {data.profile.displayName}
+            </h2>
+            <p>{registered ? "Conta por e-mail" : "Perfil de visitante"}</p>
             <span className="profile-access">
               <span />
               Beta aberto · sem login obrigatório
@@ -131,6 +148,12 @@ export default function ProfilePage() {
         <div className="profile-main">
           <section className="profile-stats">
             {[
+              {
+                icon: Coins,
+                label: "Moedas disponíveis",
+                value: formatNumber(data.coins ?? 0),
+                className: "gold",
+              },
               {
                 icon: Zap,
                 label: "XP conquistado",
@@ -165,18 +188,61 @@ export default function ProfilePage() {
                 <ShieldCheck size={21} />
               </span>
               <div>
-                <h2>Progresso neste navegador</h2>
+                <h2>
+                  {registered
+                    ? "Sua conta está conectada"
+                    : "Guarde suas conquistas"}
+                </h2>
                 <p>
-                  Você pode praticar sem criar uma conta. Sua sessão identifica
-                  seu progresso neste navegador.
+                  {registered
+                    ? "Entre com seu e-mail e senha para acessar seu progresso em outros dispositivos."
+                    : "Crie sua conta por e-mail para preservar seu progresso, suas moedas e seus itens."}
                 </p>
               </div>
             </div>
-            <p className="account-note">
-              Apagar os dados do site ou usar outro navegador pode fazer você
-              perder o acesso ao progresso desta sessão. Neste beta, não há
-              recuperação de perfil anônimo entre dispositivos.
+            {registered ? (
+              <>
+                <button
+                  className="button button-secondary"
+                  disabled={signOut.isPending}
+                  onClick={() => signOut.mutate()}
+                >
+                  {signOut.isPending ? "Saindo…" : "Sair da conta"}
+                </button>
+                {signOut.isError && (
+                  <p role="alert" className="account-note">
+                    {signOut.error.message}
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="account-note">
+                  Apagar os dados do site pode fazer você perder o acesso a esta
+                  sessão. Seus rascunhos permanecem neste navegador.
+                </p>
+                <Link className="button button-primary" to="/conta">
+                  Criar conta ou entrar
+                </Link>
+              </>
+            )}
+          </section>
+          <section className="panel account-panel profile-rewards">
+            <h2>Estude, conquiste e personalize</h2>
+            <p>
+              A primeira conclusão de cada desafio rende 10 moedas. Cada nível
+              alcançado dá mais 25 moedas. Aos 7 e 30 dias de sequência, você
+              recebe 50 e 200 moedas.
             </p>
+            <p>
+              O nível 5 presenteia você com a Coruja sábia; 30 dias de sequência
+              liberam a Chama constante. Outros cosméticos ficam disponíveis na
+              loja conforme seu nível. Comprar itens preserva seu XP e sua
+              posição no ranking.
+            </p>
+            <Link className="text-link" to="/loja">
+              Ver loja e inventário <ArrowUpRight size={15} />
+            </Link>
           </section>
           <SubmissionPreferences identity={data.profile.id} />
           <section className="panel profile-practice">

@@ -8,7 +8,7 @@ test("welcome explains the product, remembers dismissal and can be reopened", as
   await expect(
     guide.getByRole("heading", { name: "Bem-vindo ao Rods Leet" }),
   ).toBeVisible();
-  await expect(guide).toContainText("não exige login");
+  await expect(guide).toContainText("Explore gratuitamente sem login");
   await guide.getByRole("button", { name: "Continuar", exact: true }).click();
   await expect(
     guide.getByRole("heading", { name: "Encontre seu caminho" }),

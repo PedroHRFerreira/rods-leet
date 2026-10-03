@@ -6,8 +6,6 @@ interface BffAuthOptions {
   navigate?: (url: string) => void;
   onSessionChange?: (userId: string | null) => void;
 }
-const AUTHORIZATION_URL =
-  "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize";
 
 /** The browser receives only a CSRF value and identity, never provider credentials. */
 export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
@@ -33,9 +31,42 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
         redirect: "error",
         signal: AbortSignal.timeout(30_000),
       });
-      if (!response.ok) throw new Error("Request failed");
+      if (!response.ok) {
+        let code = "authentication_unavailable";
+        try {
+          const data = await response.json();
+          code = typeof data?.error?.code === "string" ? data.error.code : code;
+        } catch {
+          /* Use generic error. */
+        }
+        const messages: Record<string, string> = {
+          authentication_failed:
+            "Não foi possível validar os dados. Confira o e-mail, a senha ou o link de confirmação.",
+          invalid_email: "Informe um e-mail válido.",
+          invalid_password: "Use uma senha com 10 a 128 caracteres.",
+          invalid_display_name: "Use um nome com 2 a 40 caracteres.",
+          invalid_confirmation:
+            "Este link não é válido. Solicite um novo e-mail.",
+          email_confirmation_required:
+            "Confirme seu e-mail antes de definir a senha.",
+          email_registration_unavailable:
+            "Cadastro e recuperação de senha estarão disponíveis em breve. Continue estudando como visitante.",
+          rate_limited:
+            "Muitas tentativas. Aguarde alguns instantes e tente novamente.",
+          provider_unavailable: "Entre com e-mail e senha.",
+          account_already_registered:
+            "Você já está em uma conta. Saia antes de cadastrar outra.",
+        };
+        throw new GatewayError(
+          code,
+          messages[code] ??
+            "Não foi possível concluir seu acesso. Tente novamente.",
+          response.status,
+        );
+      }
       return await response.json();
-    } catch {
+    } catch (error) {
+      if (error instanceof GatewayError) throw error;
       throw new GatewayError(
         "authentication_unavailable",
         "Não foi possível conferir seu acesso. Tente novamente.",
@@ -43,6 +74,28 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
       );
     }
   }
+  const invalidate = () => {
+    generation++;
+    pending = undefined;
+  };
+  async function post(path: string, body: unknown, protectedSession = false) {
+    const current = protectedSession ? await getSession() : null;
+    if (protectedSession && !current)
+      throw new GatewayError(
+        "authentication_required",
+        "Inicie sua sessão de estudo antes de continuar.",
+        401,
+      );
+    return request(path, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(current ? { "X-CSRF-Token": current.csrf } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
   function getSession(): Promise<GatewaySession | null> {
     if (pending) return pending;
     const startedGeneration = generation;
@@ -81,43 +134,44 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
   }
   return {
     getSession,
-    async signIn(provider) {
-      if (provider !== "github")
-        throw new GatewayError(
-          "invalid_provider",
-          "Escolha uma forma de acesso disponível.",
-          400,
-        );
-      const data = (await request("/auth/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider }),
-      })) as { url?: unknown };
-      let url: URL;
-      try {
-        url = new URL(typeof data?.url === "string" ? data.url : "");
-      } catch {
-        throw new GatewayError(
-          "invalid_redirect",
-          "Não foi possível iniciar o acesso.",
-          502,
-        );
-      }
-      if (
-        url.origin + url.pathname !== AUTHORIZATION_URL ||
-        url.username ||
-        url.password ||
-        url.hash
-      ) {
-        throw new GatewayError(
-          "invalid_redirect",
-          "Não foi possível iniciar o acesso.",
-          502,
-        );
-      }
-      (options.navigate ?? ((target) => window.location.assign(target)))(
-        url.href,
+    async signIn() {
+      throw new GatewayError(
+        "provider_unavailable",
+        "Entre com e-mail e senha.",
+        410,
       );
+    },
+    async signInWithPassword(email, password) {
+      await post("/auth/login", { email, password });
+      invalidate();
+      await getSession();
+    },
+    async signUp(email, displayName) {
+      const result = (await post(
+        "/auth/signup",
+        { email, displayName },
+        true,
+      )) as { requiresEmailConfirmation?: unknown };
+      if (result.requiresEmailConfirmation !== true)
+        throw new GatewayError(
+          "invalid_response",
+          "Não foi possível confirmar o envio do e-mail.",
+          502,
+        );
+      return { requiresEmailConfirmation: true };
+    },
+    async requestPasswordReset(email) {
+      await post("/auth/recover", { email });
+    },
+    async confirmEmail(tokenHash, type) {
+      await post("/auth/confirm", { tokenHash, type });
+      invalidate();
+      await getSession();
+    },
+    async updatePassword(password) {
+      await post("/auth/password", { password }, true);
+      invalidate();
+      await getSession();
     },
     async signOut() {
       const current = await getSession();

@@ -3,7 +3,6 @@ import {
   SESSION_COOKIE,
   OAUTH_COOKIE,
   allowedApi,
-  base64url,
   checkOrigin,
   cookie,
   digest,
@@ -30,9 +29,6 @@ interface Tokens {
   user: { id: string };
   csrf: string;
 }
-interface OAuth {
-  verifier: string;
-}
 type Environment = Pick<
   BffEnv,
   | "APP_ORIGIN"
@@ -40,7 +36,7 @@ type Environment = Pick<
   | "SUPABASE_ANON_KEY"
   | "BFF_SHARED_SECRET"
   | "BFF_ENCRYPTION_KEY"
->;
+> & { EMAIL_REGISTRATION_ENABLED?: string };
 
 function validateEnv(env: Environment, request: Request) {
   if (
@@ -111,7 +107,7 @@ async function service<T>(
 }
 async function authToken(
   env: Environment,
-  grant: "pkce" | "refresh_token",
+  grant: "password" | "refresh_token",
   input: Record<string, string>,
 ): Promise<Omit<Tokens, "csrf">> {
   const response = await fetchWithoutRedirect(
@@ -127,11 +123,20 @@ async function authToken(
     },
   );
   const data = JSON.parse(await readBounded(response.body, 64 * 1024));
+  if (!response.ok)
+    throw new HttpError(
+      response.status === 429 ? 429 : 401,
+      response.status === 429 ? "rate_limited" : "authentication_failed",
+    );
+  return parseAuthTokens(data);
+}
+function parseAuthTokens(data: Record<string, unknown>): Omit<Tokens, "csrf"> {
+  const user = data.user as
+    { id?: unknown; is_anonymous?: boolean } | undefined;
   if (
-    !response.ok ||
     typeof data.access_token !== "string" ||
     typeof data.refresh_token !== "string" ||
-    typeof data.user?.id !== "string" ||
+    typeof user?.id !== "string" ||
     typeof data.expires_in !== "number"
   )
     throw new HttpError(401, "authentication_failed");
@@ -139,9 +144,66 @@ async function authToken(
     access_token: data.access_token,
     refresh_token: data.refresh_token,
     expiresAt: Date.now() + data.expires_in * 1000,
-    user: { id: data.user.id },
+    user: { id: user.id },
   };
 }
+async function authRequest(
+  env: Environment,
+  path: string,
+  method: string,
+  input?: Record<string, unknown>,
+  accessToken?: string,
+): Promise<Record<string, unknown>> {
+  const response = await fetchWithoutRedirect(
+    env.SUPABASE_URL + "/auth/v1" + path,
+    {
+      method,
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      ...(input ? { body: JSON.stringify(input) } : {}),
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+  const body = await readBounded(response.body, 64 * 1024);
+  if (!response.ok)
+    throw new HttpError(
+      response.status === 429 ? 429 : 400,
+      response.status === 429 ? "rate_limited" : "authentication_failed",
+    );
+  return body ? JSON.parse(body) : {};
+}
+async function establishSession(
+  env: Environment,
+  tokens: Omit<Tokens, "csrf">,
+  previous: string | null,
+): Promise<Response> {
+  const admission = await upstream(
+    env,
+    "/functions/v1/api/dashboard",
+    "GET",
+    "",
+    `Bearer ${tokens.access_token}`,
+  );
+  await readBounded(admission.body, 2 * 1024 * 1024);
+  if (!admission.ok) throw new HttpError(403, "authentication_failed");
+  const next = randomToken();
+  const id = await digest(next);
+  const csrf = randomToken();
+  await service(env, {
+    op: "create",
+    id,
+    payload: await seal({ ...tokens, csrf }, env.BFF_ENCRYPTION_KEY, id),
+  });
+  if (previous)
+    await service(env, { op: "delete", id: await digest(previous) });
+  const response = json({ ok: true });
+  response.headers.append("Set-Cookie", cookie(SESSION_COOKIE, next, 86400));
+  return response;
+}
+
 async function anonymousTokens(
   env: Environment,
 ): Promise<Omit<Tokens, "csrf">> {
@@ -237,103 +299,145 @@ export async function handleBff(
     validateEnv(env, request);
     const url = new URL(request.url);
     const token = readCookie(request, SESSION_COOKIE);
-    if (url.pathname === "/auth/start" && request.method === "POST") {
+    if (url.pathname === "/auth/start") {
       checkOrigin(request, env.APP_ORIGIN);
-      await service(env, {
-        op: "rate",
-        bucket: `login:${await digest(request.headers.get("cf-connecting-ip") ?? "unknown")}`,
-      });
-      const data = JSON.parse(await readBounded(request.body, 1024));
-      if (data.provider !== "github" || url.search)
-        throw new HttpError(400, "provider_unavailable");
-      const transaction = randomToken();
-      const id = await digest(transaction);
-      const verifier = randomToken();
-      await service(env, {
-        op: "oauth-put",
-        id,
-        payload: await seal(
-          { verifier },
-          env.BFF_ENCRYPTION_KEY,
-          `oauth:${id}`,
-        ),
-      });
-      const authorize = new URL(`${env.SUPABASE_URL}/auth/v1/authorize`);
-      authorize.search = new URLSearchParams({
-        provider: "github",
-        redirect_to: `${env.APP_ORIGIN}/auth/callback`,
-        code_challenge: base64url(
-          new Uint8Array(
-            await crypto.subtle.digest(
-              "SHA-256",
-              new TextEncoder().encode(verifier),
-            ),
-          ),
-        ),
-        code_challenge_method: "s256",
-      }).toString();
-      const response = json({ url: authorize.toString() });
-      response.headers.append(
-        "Set-Cookie",
-        cookie(OAUTH_COOKIE, transaction, 600),
-      );
-      return response;
+      throw new HttpError(410, "provider_unavailable");
     }
-    if (url.pathname === "/auth/callback" && request.method === "GET") {
+    if (url.pathname === "/auth/callback") {
+      return redirect("/perfil?authError=1", [cookie(OAUTH_COOKIE, "", 0)]);
+    }
+    if (
+      [
+        "/auth/login",
+        "/auth/signup",
+        "/auth/recover",
+        "/auth/confirm",
+        "/auth/password",
+      ].includes(url.pathname)
+    ) {
+      if (request.method !== "POST" || url.search)
+        throw new HttpError(404, "route_not_found");
+      checkOrigin(request, env.APP_ORIGIN);
+      if (
+        env.EMAIL_REGISTRATION_ENABLED === "false" &&
+        ["/auth/signup", "/auth/recover"].includes(url.pathname)
+      )
+        throw new HttpError(503, "email_registration_unavailable");
+      if (
+        request.headers.get("content-type")?.split(";")[0] !==
+        "application/json"
+      )
+        throw new HttpError(415, "json_required");
       await service(env, {
         op: "rate",
-        bucket: `callback:${await digest(request.headers.get("cf-connecting-ip") ?? "unknown")}`,
+        bucket: `email-auth:${await digest(request.headers.get("cf-connecting-ip") ?? "unknown")}`,
       });
-      const transaction = readCookie(request, OAUTH_COOKIE);
-      const code = url.searchParams.get("code");
-      if (
-        !transaction ||
-        !code ||
-        code.length > 1024 ||
-        url.searchParams.getAll("code").length !== 1
-      )
-        throw new HttpError(400, "oauth_invalid");
-      const transactionId = await digest(transaction);
-      const pending = await service<Stored | null>(env, {
-        op: "oauth-take",
-        id: transactionId,
-      });
-      if (!pending) throw new HttpError(400, "oauth_expired");
-      const { verifier } = await unseal<OAuth>(
-        pending.payload,
-        env.BFF_ENCRYPTION_KEY,
-        `oauth:${transactionId}`,
-      );
-      const tokens = await authToken(env, "pkce", {
-        auth_code: code,
-        code_verifier: verifier,
-      });
-      // The API confirms the GitHub identity before an application session is created.
-      const admission = await upstream(
+      let input: Record<string, unknown>;
+      try {
+        input = JSON.parse(await readBounded(request.body, 4096));
+      } catch (error) {
+        if (error instanceof HttpError) throw error;
+        throw new HttpError(400, "invalid_credentials");
+      }
+      if (!input || typeof input !== "object" || Array.isArray(input))
+        throw new HttpError(400, "invalid_credentials");
+      const email = () => {
+        if (
+          typeof input.email !== "string" ||
+          input.email.length > 254 ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)
+        )
+          throw new HttpError(400, "invalid_email");
+        return input.email.trim().toLowerCase();
+      };
+      const password = () => {
+        if (
+          typeof input.password !== "string" ||
+          input.password.length < 10 ||
+          input.password.length > 128
+        )
+          throw new HttpError(400, "invalid_password");
+        return input.password;
+      };
+      if (url.pathname === "/auth/login") {
+        const tokens = await authToken(env, "password", {
+          email: email(),
+          password: password(),
+        });
+        return await establishSession(env, tokens, token);
+      }
+      if (url.pathname === "/auth/recover") {
+        await authRequest(
+          env,
+          `/recover?redirect_to=${encodeURIComponent(env.APP_ORIGIN + "/conta/confirmar")}`,
+          "POST",
+          { email: email() },
+        );
+        return json({ ok: true });
+      }
+      if (url.pathname === "/auth/confirm") {
+        if (
+          typeof input.tokenHash !== "string" ||
+          !/^[a-f0-9]{32,128}$/i.test(input.tokenHash) ||
+          !["signup", "email_change", "recovery"].includes(String(input.type))
+        )
+          throw new HttpError(400, "invalid_confirmation");
+        const data = await authRequest(env, "/verify", "POST", {
+          token_hash: input.tokenHash,
+          type: input.type,
+        });
+        const tokens = parseAuthTokens(data);
+        return await establishSession(env, tokens, token);
+      }
+      const current = token ? await getSession(env, token, true) : null;
+      if (!current) throw new HttpError(401, "authentication_required");
+      checkOrigin(request, env.APP_ORIGIN, current.csrf);
+      const user = await authRequest(
         env,
-        "/functions/v1/api/dashboard",
+        "/user",
         "GET",
-        "",
-        `Bearer ${tokens.access_token}`,
+        undefined,
+        current.access_token,
       );
-      await readBounded(admission.body, 2 * 1024 * 1024);
-      if (!admission.ok) throw new HttpError(403, "authentication_failed");
-      const next = randomToken();
-      const id = await digest(next);
-      await service(env, {
-        op: "create",
-        id,
-        payload: await seal(
-          { ...tokens, csrf: randomToken() },
-          env.BFF_ENCRYPTION_KEY,
-          id,
-        ),
+      if (url.pathname === "/auth/signup") {
+        if (user.is_anonymous !== true)
+          throw new HttpError(409, "account_already_registered");
+        if (
+          typeof input.displayName !== "string" ||
+          input.displayName.trim().length < 2 ||
+          input.displayName.trim().length > 40
+        )
+          throw new HttpError(400, "invalid_display_name");
+        // Preserve the anonymous identity. Password is set only after email verification.
+        await authRequest(
+          env,
+          `/user?redirect_to=${encodeURIComponent(env.APP_ORIGIN + "/conta/confirmar")}`,
+          "PUT",
+          {
+            email: email(),
+            data: {
+              display_name: input.displayName.trim(),
+              full_name: input.displayName.trim(),
+            },
+          },
+          current.access_token,
+        );
+        return json({ requiresEmailConfirmation: true });
+      }
+      if (user.is_anonymous !== false || !user.email_confirmed_at)
+        throw new HttpError(403, "email_confirmation_required");
+      await authRequest(
+        env,
+        "/user",
+        "PUT",
+        { password: password() },
+        current.access_token,
+      );
+      // Rotate the application cookie/CSRF after credential changes too.
+      const tokens = await authToken(env, "refresh_token", {
+        refresh_token: current.refresh_token,
       });
-      if (token) await service(env, { op: "delete", id: await digest(token) });
-      return redirect("/perfil", [
-        cookie(SESSION_COOKIE, next, 86400),
-        cookie(OAUTH_COOKIE, "", 0),
-      ]);
+      return await establishSession(env, tokens, token);
     }
     if (
       url.pathname === "/api/session" &&

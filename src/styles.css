@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./economy.css";
 
 :root {
   font-family: Inter, "Segoe UI", ui-sans-serif, system-ui, sans-serif;

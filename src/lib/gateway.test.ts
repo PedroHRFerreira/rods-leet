@@ -62,6 +62,60 @@ function setup(
 }
 
 describe("public exploration and server authority", () => {
+  test("demo shop never grants inventory or buys items without the server", async () => {
+    const gateway = createGateway();
+    expect(await gateway.getShop()).toMatchObject({
+      coins: 0,
+      ownedItemIds: [],
+    });
+    await expect(
+      gateway.purchaseItem("hint-extra", "purchase-1"),
+    ).rejects.toMatchObject({ code: "authentication_required" });
+    await expect(
+      gateway.equipItem("avatar-robot", "equip-1"),
+    ).rejects.toMatchObject({ code: "authentication_required" });
+    await expect(
+      gateway.signInWithPassword("alice@example.com", "secret"),
+    ).rejects.toMatchObject({ code: "authentication_unconfigured" });
+  });
+  test("shop mutations forward only item IDs and server idempotency headers", async () => {
+    const { gateway, fetchMock } = setup(() =>
+      respond({ coins: 40, ownedItemIds: ["avatar-robot"] }),
+    );
+    await gateway.purchaseItem("avatar-robot", "buy-once");
+    await gateway.equipItem("avatar-robot", "equip-once");
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      "/api/shop/purchase",
+      "/api/shop/equip",
+    ]);
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(JSON.parse(init!.body as string)).toEqual({
+        itemId: "avatar-robot",
+      });
+      expect(new Headers(init?.headers).get("X-CSRF-Token")).toBe("test-csrf");
+    }
+    expect(
+      fetchMock.mock.calls.map(([, init]) =>
+        new Headers(init?.headers).get("Idempotency-Key"),
+      ),
+    ).toEqual(["buy-once", "equip-once"]);
+  });
+  test("email auth delegates the two-step registration and preserves actionable errors", async () => {
+    const s = setup(() => respond({}));
+    const auth = s.options.auth;
+    auth.signUp = vi.fn(async () => ({ requiresEmailConfirmation: true }));
+    auth.confirmEmail = vi.fn(async () => {});
+    auth.updatePassword = vi.fn(async () => {});
+    const gateway = createGateway(s.options);
+    expect(await gateway.signUp("alice@example.com", "Alice")).toEqual({
+      requiresEmailConfirmation: true,
+    });
+    expect(auth.signUp).toHaveBeenCalledWith("alice@example.com", "Alice");
+    await gateway.confirmEmail("hash", "email_change");
+    await gateway.updatePassword("new password");
+    expect(auth.confirmEmail).toHaveBeenCalledWith("hash", "email_change");
+    expect(auth.updatePassword).toHaveBeenCalledWith("new password");
+  });
   test("real 69-challenge catalog, empty ranking and zero progress do not require a server", async () => {
     const gateway = createGateway();
     expect(await gateway.listChallenges()).toHaveLength(69);

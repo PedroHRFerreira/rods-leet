@@ -61,37 +61,56 @@ describe("cookie BFF authentication", () => {
     expect(await auth.getSession()).toBeNull();
     expect(changed.mock.calls).toEqual([["alice"], [null]]);
   });
-  test.each([
-    "https://evil.test/auth/v1/authorize",
-    "javascript:alert(1)",
-    "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize/other",
-    "https://user@bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize",
-  ])("rejects unexpected OAuth navigation %s", async (url) => {
+  test("social login is disabled and never navigates or sends credentials", async () => {
+    const send = vi.fn();
     const navigate = vi.fn();
-    const auth = createBffAuth({
-      fetch: vi.fn().mockResolvedValue(json({ url })),
-      navigate,
-    });
-    await expect(auth.signIn("github")).rejects.toMatchObject({
-      code: "invalid_redirect",
-    });
+    await expect(
+      createBffAuth({ fetch: send, navigate }).signIn("github"),
+    ).rejects.toMatchObject({ code: "provider_unavailable" });
+    expect(send).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
-  test("starts OAuth with same-origin POST and navigates only to the fixed provider endpoint", async () => {
-    const url =
-      "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize?provider=github";
-    const send = vi.fn().mockResolvedValue(json({ url }));
-    const navigate = vi.fn();
-    await createBffAuth({ fetch: send, navigate }).signIn("github");
-    expect(send.mock.calls[0]).toEqual([
-      "/auth/start",
+  test("signup preserves the study session and sends email without storing a password", async () => {
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce(json(session))
+      .mockResolvedValueOnce(json({ requiresEmailConfirmation: true }));
+    const auth = createBffAuth({ fetch: send });
+    expect(await auth.signUp!("learner@example.com", "Learner")).toEqual({
+      requiresEmailConfirmation: true,
+    });
+    expect(send.mock.calls[1]).toEqual([
+      "/auth/signup",
       expect.objectContaining({
         method: "POST",
-        credentials: "same-origin",
-        body: '{"provider":"github"}',
+        body: JSON.stringify({
+          email: "learner@example.com",
+          displayName: "Learner",
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": "csrf-value",
+        },
       }),
     ]);
-    expect(navigate).toHaveBeenCalledWith(url);
+  });
+  test("email login invalidates the previous session and projects only identity", async () => {
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce(json({ ok: true }))
+      .mockResolvedValueOnce(json({ ...session, access_token: "secret" }));
+    const auth = createBffAuth({ fetch: send });
+    await auth.signInWithPassword!("learner@example.com", "strong-password");
+    expect(send.mock.calls[0]).toEqual([
+      "/auth/login",
+      expect.objectContaining({
+        body: JSON.stringify({
+          email: "learner@example.com",
+          password: "strong-password",
+        }),
+      }),
+    ]);
+    expect(send.mock.calls[1][0]).toBe("/api/session");
   });
   test("malformed or failed session responses fail closed with generic errors", async () => {
     const send = vi

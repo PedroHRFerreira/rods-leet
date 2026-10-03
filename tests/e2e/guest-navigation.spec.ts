@@ -6,8 +6,17 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("beta navigation has no tutor or login entry points", async ({ page }) => {
-  for (const path of ["/", "/desafios", "/trilhas", "/ranking", "/perfil"]) {
+test("exploration remains free and offers email login without a tutor or social login", async ({
+  page,
+}) => {
+  for (const path of [
+    "/",
+    "/desafios",
+    "/trilhas",
+    "/ranking",
+    "/loja",
+    "/perfil",
+  ]) {
     await page.goto(path);
     await expect(page.locator("main h1")).toBeVisible();
     await expect(page.locator('a[href="/tutor"]')).toHaveCount(0);
@@ -19,15 +28,15 @@ test("beta navigation has no tutor or login entry points", async ({ page }) => {
     ).toHaveCount(0);
   }
   await expect(
-    page.getByRole("heading", { name: "Progresso neste navegador" }),
+    page.getByRole("link", { name: "Criar conta ou entrar", exact: true }),
   ).toBeVisible();
-  await expect(page.locator("main")).toContainText("Perfil anônimo");
+  await expect(page.locator("main")).toContainText("Perfil de visitante");
   await expect(page.locator("main")).toContainText(
-    "não há recuperação de perfil anônimo entre dispositivos",
+    "Crie sua conta por e-mail para preservar seu progresso",
   );
 });
 
-test("mobile shortcuts keep all five available destinations accessible", async ({
+test("mobile shortcuts keep all six available destinations accessible", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -36,9 +45,13 @@ test("mobile shortcuts keep all five available destinations accessible", async (
     name: "Atalhos de navegação",
   });
   await expect(shortcuts).toBeVisible();
-  await expect(shortcuts.getByRole("link")).toHaveCount(5);
+  await expect(shortcuts.getByRole("link")).toHaveCount(6);
   await shortcuts.getByRole("link", { name: "Trilhas", exact: true }).click();
   await expect(page).toHaveURL(/\/trilhas$/);
+  await shortcuts.getByRole("link", { name: "Loja", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Loja e inventário" }),
+  ).toBeVisible();
   await shortcuts.getByRole("link", { name: "Feedback", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Envie seu feedback" }),

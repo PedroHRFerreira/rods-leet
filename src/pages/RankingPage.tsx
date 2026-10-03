@@ -16,6 +16,10 @@ import {
   PageHeading,
 } from "../components/ui";
 import "../editor.css";
+import {
+  CosmeticAvatar,
+  cosmeticNameColor,
+} from "../components/CosmeticAvatar";
 
 export default function RankingPage() {
   const gateway = useGateway();
@@ -100,12 +104,17 @@ export default function RankingPage() {
                     </td>
                     <td>
                       <span className="ranking-player">
-                        <span className="avatar">
-                          {entry.displayName
-                            .charAt(0)
-                            .toLocaleUpperCase("pt-BR")}
-                        </span>
-                        <strong>{entry.displayName}</strong>
+                        <CosmeticAvatar
+                          avatarId={entry.avatarId}
+                          displayName={entry.displayName}
+                        />
+                        <strong
+                          style={{
+                            color: cosmeticNameColor(entry.nameColorId),
+                          }}
+                        >
+                          {entry.displayName}
+                        </strong>
                         {entry.isCurrentUser && <small>Você</small>}
                       </span>
                     </td>

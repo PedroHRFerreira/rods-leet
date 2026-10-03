@@ -13,10 +13,28 @@ major_version = 17
 
 [auth]
 enabled = true
-site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/auth/callback"]
+site_url = "http://localhost:5178"
+additional_redirect_urls = ["http://localhost:5178/conta/confirmar"]
 enable_signup = true
 enable_anonymous_sign_ins = true
+enable_manual_linking = true
+minimum_password_length = 10
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "Confirme sua conta no Rods Leet"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.email_change]
+subject = "Confirme seu e-mail no Rods Leet"
+content_path = "./supabase/templates/email-change.html"
+
+[auth.email.template.recovery]
+subject = "Recupere sua conta no Rods Leet"
+content_path = "./supabase/templates/recovery.html"
 
 [functions.api]
 verify_jwt = true

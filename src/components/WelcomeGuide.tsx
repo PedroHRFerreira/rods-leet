@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Trophy,
   UserRound,
+  ShoppingBag,
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +38,12 @@ const screens = [
   {
     icon: UserRound,
     title: "Perfil",
-    text: "Acompanhe seu nível e suas conclusões com o progresso neste navegador.",
+    text: "Acompanhe seu nível e suas conclusões. Crie uma conta por e-mail para preservar suas conquistas.",
+  },
+  {
+    icon: ShoppingBag,
+    title: "Loja",
+    text: "Troque moedas de estudo por dicas, avatares, cores de nome e temas. Equipe seus itens no inventário.",
   },
 ];
 
@@ -113,9 +119,10 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <p className="welcome-note">
-              O beta é gratuito e não exige login. Seu progresso fica associado
-              a este navegador; apagar os dados do site pode fazer você perder o
-              acesso a ele.
+              Explore gratuitamente sem login. Crie sua conta por e-mail para
+              preservar o progresso e acessar suas moedas e itens em outros
+              dispositivos. Sem conta, apagar os dados deste navegador pode
+              fazer você perder o acesso ao progresso.
             </p>
           </>
         )}
@@ -202,6 +209,15 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
                   Nos desafios de código, você começa com uma dica e ganha outra
                   a cada dez desafios distintos concluídos. A recompensa fica em
                   100% sem dicas, 95% com uma e 85% com duas ou mais.
+                </span>
+              </li>
+              <li>
+                <strong>Moedas por estudo e constância</strong>
+                <span>
+                  A primeira conclusão rende 10 moedas e cada nível rende 25.
+                  Sequências de 7 e 30 dias concedem 50 e 200 moedas. Alguns
+                  marcos também dão avatares; outros liberam itens na loja.
+                  Comprar não consome XP nem altera sua posição no ranking.
                 </span>
               </li>
               <li>

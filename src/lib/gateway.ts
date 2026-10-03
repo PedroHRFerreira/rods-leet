@@ -9,10 +9,14 @@ import type {
   ExecutionStatusResult,
   TutorConversation,
   UserProfile,
+  AuthResult,
+  EmailConfirmationType,
+  ShopState,
 } from "./contracts";
 import { GatewayError } from "./contracts";
 import { parsePublicSubmission } from "./submission-validation";
 import { validateProductFeedback } from "../domain/product-feedback";
+import { guestShop } from "../domain/economy";
 
 export interface GatewaySession {
   user: { id: string };
@@ -22,6 +26,11 @@ export interface GatewayAuth {
   getSession(): Promise<GatewaySession | null>;
   signIn(provider: "github"): Promise<void>;
   signOut(): Promise<void>;
+  signInWithPassword?(email: string, password: string): Promise<void>;
+  signUp?(email: string, displayName: string): Promise<AuthResult>;
+  requestPasswordReset?(email: string): Promise<void>;
+  updatePassword?(password: string): Promise<void>;
+  confirmEmail?(tokenHash: string, type: EmailConfirmationType): Promise<void>;
 }
 export interface GatewayOptions {
   auth?: GatewayAuth;
@@ -57,6 +66,7 @@ export function guestDashboard(): Dashboard {
   return {
     profile: { id: "guest", displayName: "Explorador", authenticated: false },
     xp: 0,
+    coins: 0,
     level: 0,
     xpIntoLevel: 0,
     xpForNextLevel: 150,
@@ -129,6 +139,26 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
       );
     }
   };
+  async function authAction<T>(
+    action: (() => Promise<T>) | undefined,
+  ): Promise<T> {
+    if (!live || !action)
+      throw new GatewayError(
+        "authentication_unconfigured",
+        "O login por e-mail ainda não está configurado neste ambiente.",
+        503,
+      );
+    try {
+      return await action();
+    } catch (error) {
+      if (error instanceof GatewayError) throw error;
+      throw new GatewayError(
+        "authentication_failed",
+        "Não foi possível concluir o acesso à conta. Tente novamente.",
+        503,
+      );
+    }
+  }
   async function request<T>(
     path: string,
     method = "GET",
@@ -386,6 +416,21 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
         ? request("/ranking", "GET", undefined, undefined, current)
         : [];
     },
+    async getShop() {
+      const current = await session();
+      return current
+        ? request<ShopState>("/shop", "GET", undefined, undefined, current)
+        : guestShop();
+    },
+    purchaseItem: (itemId, key, expectedPrice) =>
+      request<ShopState>(
+        "/shop/purchase",
+        "POST",
+        { itemId, expectedPrice },
+        key,
+      ),
+    equipItem: (itemId, key) =>
+      request<ShopState>("/shop/equip", "POST", { itemId }, key),
     startAttempt: (input, key) => request("/attempts", "POST", input, key),
     getAttempt: (id) => request(`/attempts/${encodeURIComponent(id)}`),
     run: async (input, key) =>
@@ -515,6 +560,36 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
     },
     saveDraft,
     resolveDraftConflict: (input) => saveDraft(input, true),
+    signInWithPassword: (email, password) =>
+      authAction(
+        options.auth?.signInWithPassword
+          ? () => options.auth!.signInWithPassword!(email, password)
+          : undefined,
+      ),
+    signUp: (email, displayName) =>
+      authAction(
+        options.auth?.signUp
+          ? () => options.auth!.signUp!(email, displayName)
+          : undefined,
+      ),
+    requestPasswordReset: (email) =>
+      authAction(
+        options.auth?.requestPasswordReset
+          ? () => options.auth!.requestPasswordReset!(email)
+          : undefined,
+      ),
+    updatePassword: (password) =>
+      authAction(
+        options.auth?.updatePassword
+          ? () => options.auth!.updatePassword!(password)
+          : undefined,
+      ),
+    confirmEmail: (tokenHash, type) =>
+      authAction(
+        options.auth?.confirmEmail
+          ? () => options.auth!.confirmEmail!(tokenHash, type)
+          : undefined,
+      ),
     async signIn(provider) {
       if (!live)
         throw new GatewayError(

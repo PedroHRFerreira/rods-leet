@@ -40,6 +40,8 @@ const errorMessages: Record<string, string> = {
   solution_locked:
     "O gabarito abre após aprovação ou três submissões incorretas.",
   authentication_required: "Entre com sua conta para continuar.",
+  price_changed:
+    "O preço desta oferta mudou. Atualize a loja e confirme o novo valor.",
   challenge_already_completed:
     "Você já concluiu este desafio. Continue praticando ou avance para o próximo.",
   hard_unavailable: "O modo Hard chega na segunda fase.",
@@ -117,6 +119,31 @@ export async function handler(request: Request): Promise<Response> {
       p_name: user.name,
       p_github_login: user.githubLogin,
     });
+    if (request.method === "GET" && path === "/shop") {
+      return json(await db.rpc("shop_state", { p_user: user.id }));
+    }
+    if (
+      request.method === "POST" &&
+      ["/shop/purchase", "/shop/equip"].includes(path)
+    ) {
+      if (user.anonymous) throw new ApiError("account_required", 403);
+      const body = await readJson(request);
+      const itemId = stringValue(body.itemId, "item_id");
+      const purchase = path === "/shop/purchase";
+      if (
+        purchase &&
+        (!Number.isSafeInteger(body.expectedPrice) ||
+          Number(body.expectedPrice) < 0)
+      )
+        throw new ApiError("invalid_price", 400);
+      await db.rpc(purchase ? "shop_purchase" : "shop_equip", {
+        p_user: user.id,
+        p_item: itemId,
+        p_key: idempotencyKey(request),
+        ...(purchase ? { p_expected_price: body.expectedPrice } : {}),
+      });
+      return json(await db.rpc("shop_state", { p_user: user.id }));
+    }
     if (request.method === "POST" && path === "/feedback") {
       const validated = validateProductFeedback(feedbackBody);
       if (!validated.ok)
@@ -671,7 +698,11 @@ export async function handler(request: Request): Promise<Response> {
           displayName: profile.display_name,
           authenticated: true,
           anonymous: user.anonymous,
+          avatarId: profile.avatar_id ?? null,
+          nameColorId: profile.name_color_id ?? null,
+          themeId: profile.theme_id ?? null,
         },
+        coins: profile.coins,
         xp: profile.xp,
         ...levelForXp(profile.xp),
         completedCount: ids.length,
@@ -696,13 +727,19 @@ export async function handler(request: Request): Promise<Response> {
     }
     if (request.method === "GET" && path === "/ranking") {
       const [players, completed] = await Promise.all([
-        db.rows<Row>("profiles", "select=id,display_name,xp,reached_at"),
+        db.rows<Row>(
+          "profiles",
+          "select=id,display_name,xp,reached_at,avatar_id,name_color_id,theme_id",
+        ),
         db.rows<Row>("completions", "select=user_id,challenge_id"),
       ]);
       const ranked = players
         .map((p) => ({
           userId: p.id,
           displayName: p.display_name,
+          avatarId: p.avatar_id ?? null,
+          nameColorId: p.name_color_id ?? null,
+          themeId: p.theme_id ?? null,
           xp: p.xp,
           completedCount: new Set(
             completed

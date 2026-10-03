@@ -227,6 +227,9 @@ export interface UserProfile {
   id: string;
   displayName: string;
   avatarUrl?: string;
+  avatarId?: string | null;
+  nameColorId?: string | null;
+  themeId?: string | null;
   authenticated: boolean;
   /** Connected identity created automatically for this browser, without login. */
   anonymous?: boolean;
@@ -234,6 +237,7 @@ export interface UserProfile {
 export interface Dashboard {
   profile: UserProfile;
   xp: number;
+  coins?: number;
   level: number;
   xpIntoLevel: number;
   xpForNextLevel: number;
@@ -258,6 +262,8 @@ export interface ExecutionStatusResult {
 export interface RankingEntry {
   userId: string;
   displayName: string;
+  avatarId?: string | null;
+  nameColorId?: string | null;
   xp: number;
   completedCount: number;
   reachedAt: string;
@@ -282,12 +288,50 @@ export interface ProductFeedbackReceipt {
   protocol: string;
   createdAt: string;
 }
+export interface ShopItem {
+  id: string;
+  name: string;
+  description: string;
+  kind: "hint" | "avatar" | "name_color" | "theme";
+  price: number;
+  minLevel: number;
+  /** Approved presentation value, never arbitrary CSS or markup. */
+  value: string;
+}
+export interface ShopOffer {
+  itemId: string;
+  price: number;
+  startsAt: string;
+  endsAt: string;
+}
+export interface ShopState {
+  coins: number;
+  items: ShopItem[];
+  ownedItemIds: string[];
+  equipped: {
+    avatarId: string | null;
+    nameColorId: string | null;
+    themeId: string | null;
+  };
+  offer: ShopOffer;
+}
+export interface AuthResult {
+  requiresEmailConfirmation: boolean;
+}
+export type EmailConfirmationType = "signup" | "email_change" | "recovery";
 export interface AppGateway {
   readonly mode: "demo" | "live";
   listChallenges(filters?: ChallengeFilters): Promise<PublicChallenge[]>;
   getChallenge(idOrSlug: string): Promise<PublicChallenge>;
   getDashboard(): Promise<Dashboard>;
   getRanking(): Promise<RankingEntry[]>;
+  getShop(): Promise<ShopState>;
+  purchaseItem(
+    itemId: string,
+    idempotencyKey: string,
+    expectedPrice?: number,
+  ): Promise<ShopState>;
+  equipItem(itemId: string, idempotencyKey: string): Promise<ShopState>;
   createFeedback(
     input: ProductFeedbackInput,
     idempotencyKey: string,
@@ -332,6 +376,11 @@ export interface AppGateway {
   /** Explicit user choice only: keep local code over the latest remote draft. */
   resolveDraftConflict?(input: DraftInput): Promise<DraftInput>;
   signIn(provider: "github"): Promise<void>;
+  signInWithPassword(email: string, password: string): Promise<void>;
+  signUp(email: string, displayName: string): Promise<AuthResult>;
+  requestPasswordReset(email: string): Promise<void>;
+  updatePassword(password: string): Promise<void>;
+  confirmEmail(tokenHash: string, type: EmailConfirmationType): Promise<void>;
   signOut(): Promise<void>;
 }
 export class GatewayError extends Error {

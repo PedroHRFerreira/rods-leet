@@ -90,3 +90,28 @@ Teste a restauração em uma instância Supabase local vazia com `scripts/restor
 - `psql "$DATABASE_URL_LOCAL" -v ON_ERROR_STOP=1 -f supabase/tests/invariants.sql`: execute contra Supabase local com extensões reais após aplicar migrações. Não execute fixtures de teste em produção.
 
 Fontes consultadas: [SDK E2B 2.13.0](https://docs.e2b.dev/sdk-reference/js-sdk/v2.13.0/sandbox), [acesso de rede E2B](https://docs.e2b.dev/network/restrict-public-access), [PGMQ](https://supabase.com/docs/guides/queues/pgmq), [limites Edge Functions](https://supabase.com/docs/guides/functions/limits), [pglast v8 para PostgreSQL 18](https://github.com/lelit/pglast), [modelo Workers AI](https://developers.cloudflare.com/workers-ai/models/qwen3-30b-a3b-fp8/).
+
+## Ativação de moedas, loja e login por e-mail
+
+A migração e a API foram publicadas em 2 de outubro de 2026. Cadastro e recuperação por e-mail permanecem desativados por decisão do usuário até configurar domínio e SMTP. A confirmação da publicação da interface e suas evidências ficam em `deployment-status.md`.
+
+Durante essa etapa, configurar `EMAIL_REGISTRATION_ENABLED=false` nas Pages Functions e `VITE_EMAIL_REGISTRATION_ENABLED=false` no build. O BFF recusa cadastro e recuperação sem chamar Auth; a interface sinaliza disponibilidade futura. Login em contas existentes e exploração anônima continuam disponíveis. Compras continuam exigindo conta; visitantes podem ganhar moedas, mas não comprar. Para liberar cadastro, concluir configuração e teste de e-mail abaixo, trocar ambas as opções para `true` e publicar novamente. Não habilitar as notificações de feedback junto com o SMTP de Auth.
+
+O backup anterior à migração foi exportado diretamente para arquivos criptografados em `backups/2026-10-03-before-economy/`, ignorados pelo Git e com acesso restrito. A leitura por descriptografia foi verificada; restauração e cópia externa ainda não foram ensaiadas. A chave de recuperação deve ser guardada pelo operador separadamente dos dumps.
+
+1. Aplicar `supabase/migrations/202610020001_economy.sql` depois das migrações existentes. Ela adiciona carteira, ledger, inventário, catálogo e RPCs, preservando o histórico sem moedas retroativas. Fazer backup antes da migração; manter a carteira/ledger em caso de rollback da interface.
+2. No Supabase Auth, manter Anonymous Sign-Ins, habilitar Email, confirmação de e-mail e manual linking. Configurar senha mínima de dez caracteres. Desabilitar Google/GitHub para novos acessos nesta versão; sessões existentes podem continuar válidas.
+3. Configurar Site URL como o domínio do frontend e incluir `/conta/confirmar` nas URLs permitidas. Para desenvolvimento, o config usa `http://localhost:5178`; o frontend conectado também precisa do BFF, com APP_ORIGIN correspondente.
+4. Copiar os três templates de `supabase/templates/` para Confirmation, Change Email Address e Reset Password no projeto publicado. Os links usam TokenHash + tipo para a rota de confirmação, nunca fragmentos com access/refresh tokens. Configurar e homologar o envio SMTP para visitantes reais. Alterar config.toml local não modifica as configurações hospedadas.
+5. Publicar a Edge Function `api` atualizada antes do frontend/BFF; preservar a função `session` e suas chaves. O servidor aceita contas com e-mail confirmado sem exigir identidade social. As novas rotas são `/api/shop`, `/api/shop/purchase` e `/api/shop/equip`.
+6. Publicar frontend e Pages Functions juntos; testar e-mail real, confirmação em outra aba/dispositivo, primeira senha, logout/login, recuperação e preservação do mesmo user ID. Testar uma conclusão de código e uma pergunta: XP, moedas e dicas devem fechar na mesma transação.
+7. Monitorar falhas de Auth, RPCs da loja e integridade carteira/ledger. Saldo insuficiente, nível bloqueado e oferta expirada são recusas esperadas. Nunca corrigir saldo no navegador.
+
+Validação SQL local sem Docker (dependência temporária, fora do projeto):
+
+```sh
+npm install --prefix /tmp/rods-economy-sql --ignore-scripts --no-audit --no-fund @electric-sql/pglite
+ECONOMY_SQL_RUNTIME=/tmp/rods-economy-sql/node_modules/@electric-sql/pglite/dist/index.js node scripts/test-economy-sql.mjs
+```
+
+O runner aplica todas as migrações e fixtures em PostgreSQL isolado, reutilizando os doubles de PGMQ/Cron/pg_net do runner Docker. Não comprova extensões reais, concorrência entre conexões ou SMTP; executar os testes também no Supabase de homologação antes de ativar. Cadastro converte visitante somente após verificar e-mail, conforme [Anonymous Sign-Ins](https://supabase.com/docs/guides/auth/auth-anonymous); templates e configuração seguem [a documentação de e-mails](https://supabase.com/docs/guides/local-development/customizing-email-templates).

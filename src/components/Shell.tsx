@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Code2,
   Command,
+  Coins,
   Compass,
   Flame,
   LayoutDashboard,
@@ -21,11 +22,12 @@ import {
   Moon,
   Search,
   Sun,
+  Store,
   Trophy,
-  UserRound,
   X,
 } from "lucide-react";
 import WelcomeGuide from "./WelcomeGuide";
+import { CosmeticAvatar, cosmeticNameColor } from "./CosmeticAvatar";
 import { useGateway } from "../lib/gateway-context";
 
 const navigation = [
@@ -38,6 +40,7 @@ const navigation = [
     icon: BookOpen,
   },
   { to: "/ranking", label: "Ranking", icon: Trophy },
+  { to: "/loja", label: "Loja", icon: Store },
   { to: "/feedback", label: "Feedback", icon: MessageSquare },
 ];
 
@@ -75,11 +78,31 @@ export default function Shell({ children }: { children?: ReactNode }) {
   const activeLabel =
     location.pathname === "/perfil"
       ? "Meu perfil"
-      : location.pathname.startsWith("/desafios/")
-        ? "Desafio"
-        : (navigation.find((item) => item.to === location.pathname)?.label ??
-          "Rods Leet");
-  const name = dashboard.data?.profile.displayName || "Visitante";
+      : location.pathname.startsWith("/conta")
+        ? "Minha conta"
+        : location.pathname.startsWith("/desafios/")
+          ? "Desafio"
+          : (navigation.find((item) => item.to === location.pathname)?.label ??
+            "Rods Leet");
+  const profile = dashboard.data?.profile;
+  const name = profile?.displayName || "Visitante";
+  const registered = Boolean(profile?.authenticated && !profile?.anonymous);
+  const equippedTheme = profile?.themeId;
+
+  useEffect(() => {
+    const cosmeticTheme =
+      equippedTheme === "theme-ocean"
+        ? "ocean"
+        : equippedTheme === "theme-sunset"
+          ? "sunset"
+          : null;
+    if (cosmeticTheme)
+      document.documentElement.dataset.cosmeticTheme = cosmeticTheme;
+    else delete document.documentElement.dataset.cosmeticTheme;
+    return () => {
+      delete document.documentElement.dataset.cosmeticTheme;
+    };
+  }, [equippedTheme]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -230,11 +253,13 @@ export default function Shell({ children }: { children?: ReactNode }) {
             BETA ABERTO
           </div>
           <NavLink to="/perfil" className="sidebar-profile">
-            <span className="avatar">
-              {name.charAt(0).toLocaleUpperCase("pt-BR")}
-            </span>
+            <CosmeticAvatar avatarId={profile?.avatarId} displayName={name} />
             <span>
-              <strong>{name}</strong>
+              <strong
+                style={{ color: cosmeticNameColor(profile?.nameColorId) }}
+              >
+                {name}
+              </strong>
               <small>Nível {dashboard.data?.level ?? 0}</small>
             </span>
             <ChevronRight size={16} />
@@ -279,6 +304,19 @@ export default function Shell({ children }: { children?: ReactNode }) {
             </kbd>
           </form>
           <div className="topbar-actions">
+            <Link
+              to="/loja"
+              className="topbar-coins"
+              aria-label={`${dashboard.data?.coins ?? 0} moedas. Abrir loja`}
+            >
+              <Coins size={17} />
+              <span>{dashboard.data?.coins ?? 0}</span>
+            </Link>
+            {dashboard.data && !registered && (
+              <Link className="text-link topbar-login" to="/conta">
+                Entrar
+              </Link>
+            )}
             <span
               className="topbar-streak"
               title={`${dashboard.data?.streakDays ?? 0} dias de sequência`}
@@ -299,10 +337,10 @@ export default function Shell({ children }: { children?: ReactNode }) {
             </button>
             <Link
               to="/perfil"
-              className="avatar topbar-avatar"
+              className="topbar-avatar"
               aria-label="Abrir meu perfil"
             >
-              <UserRound size={19} />
+              <CosmeticAvatar avatarId={profile?.avatarId} displayName={name} />
             </Link>
           </div>
         </header>

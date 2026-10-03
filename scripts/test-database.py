@@ -12,7 +12,7 @@ def docker(*args,input=None):
 
 bootstrap=r'''
 create role anon;create role authenticated;create role service_role;
-create schema auth;create table auth.users(id uuid primary key);
+create schema auth;create table auth.users(id uuid primary key,is_anonymous boolean not null default false);
 create schema extensions;create schema pgmq;create schema cron;create schema net;
 create table pgmq.q_evaluations(msg_id bigserial primary key,message jsonb,vt timestamptz default now(),read_ct integer default 0);
 create table pgmq.a_evaluations(msg_id bigint,message jsonb,archived_at timestamptz default now());

@@ -156,6 +156,9 @@ describe("BFF security boundary", () => {
   it.each([
     ["GET", "/api/dashboard"],
     ["GET", "/api/ranking"],
+    ["GET", "/api/shop"],
+    ["POST", "/api/shop/purchase"],
+    ["POST", "/api/shop/equip"],
     ["GET", "/api/challenges"],
     ["GET", "/api/challenges/find-max"],
     ["GET", "/api/attempts/00000000-0000-0000-0000-000000000001"],
@@ -355,7 +358,7 @@ describe("BFF security boundary", () => {
       env,
     );
     expect(response.headers.get("location")).toBe("/perfil?authError=1");
-    expect(upstream.mock.calls).toHaveLength(1);
+    expect(upstream.mock.calls).toHaveLength(0);
   });
   it("signs identity and idempotency along with request content", async () => {
     const result = await sign(

@@ -50,3 +50,13 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 - Os temas escuro e claro são suportados integralmente, incluindo editor, estados vazios, erros, navegação e telas menores. A escolha explícita é preservada.
 - A interface prioriza os problemas, o código e o progresso real; não simula resultados ou atividade.
 - Desafios mostram conclusões distintas e etapas restantes do módulo, trilha ou tema, separadas da posição editorial atual. Somente aprovação oficial confirmada conta como conclusão. Reações visuais de resultado preservam as mensagens, respeitam movimento reduzido e não se repetem por polling ou recuperação de histórico. Execução de estudo e falha técnica não celebram aprovação nem aplicam penalidade visual ao aluno.
+
+## Moedas, loja e login próprio — atualização aprovada em 2026-10-02
+
+- Exploração continua livre. Cadastro converte a identidade anônima por confirmação de e-mail e definição de senha, preservando progresso, rascunhos e moedas. Login em conta existente abre os dados daquela conta, sem mesclar visitantes. Não oferecer login Google/GitHub nesta versão.
+- Moedas apenas por estudo: primeira conclusão distinta concede 10; cada novo nível concede 25; os dias 7 e 30 de cada sequência UTC concedem 50 e 200. Repetição de desafio, linguagem ou modo não duplica prêmio. Falhas não geram transações de moedas.
+- As moedas começam na migração, sem prêmios retroativos do histórico. XP, níveis, conclusões e dicas anteriores permanecem.
+- Nível 5 concede o avatar Coruja sábia; sequência de 30 dias concede Chama constante. Outros cosméticos exigem níveis indicados no catálogo. Presentes obtidos permanecem equipáveis mesmo se o nível mínimo da compra não estiver alcançado.
+- Loja vende dica extra consumível por 30 moedas e cosméticos permanentes a partir de 100. Dicas gratuitas e redução de XP pelo uso continuam conforme as regras acima. Compras não consomem XP nem alteram ranking.
+- Ofertas rotacionam às segundas-feiras, 00:00 UTC; desconto de até 20%, com piso de 100 moedas. Exibir desconto somente quando real. O servidor recusa preço diferente do confirmado, inclusive ao terminar uma oferta.
+- Carteira, inventário, compras e equipagem são transacionais, com fonte/chave única e verificação de conta registrada. Restaurar avatar, cor e tema padrão é gratuito; itens comprados permanecem no inventário. Claro e escuro básicos continuam gratuitos.

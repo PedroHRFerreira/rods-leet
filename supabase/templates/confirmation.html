@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Confirme sua conta</title>
+  </head>
+  <body>
+    <h1>Confirme sua conta no Rods Leet</h1>
+    <p>Confirme seu e-mail para continuar seu estudo.</p>
+    <p>
+      <a
+        href="{{ .SiteURL }}/conta/confirmar?token_hash={{ .TokenHash }}&amp;type=signup"
+        >Continuar no Rods Leet</a
+      >
+    </p>
+    <p>Se você não solicitou este e-mail, pode ignorá-lo.</p>
+  </body>
+</html>

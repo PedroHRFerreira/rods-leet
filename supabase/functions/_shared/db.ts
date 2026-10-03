@@ -123,13 +123,15 @@ export async function authenticatedUser(request: Request) {
       ? ((identityData as { user_name?: unknown; login?: unknown }).user_name ??
         (identityData as { login?: unknown }).login)
       : undefined;
-  if (!githubIdentity) throw new ApiError("github_account_required", 403);
   return {
     anonymous: false,
     id: user.id as string,
     email: user.email as string,
     name: String(
-      user.user_metadata?.full_name ?? user.user_metadata?.name ?? "Jogador",
+      user.user_metadata?.display_name ??
+        user.user_metadata?.full_name ??
+        user.user_metadata?.name ??
+        "Jogador",
     ).slice(0, 80),
     githubLogin:
       typeof githubLogin === "string" &&

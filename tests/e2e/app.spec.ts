@@ -239,6 +239,7 @@ test("Monaco loads and drafts survive refresh without grading locally", async ({
   await expect(
     page.getByText(
       "A execução remota está indisponível agora. Seu rascunho continua salvo e nenhuma tentativa será consumida.",
+      { exact: true },
     ),
   ).toBeVisible();
   await expect(page.getByText("Solução aceita", { exact: true })).toHaveCount(
