@@ -152,3 +152,15 @@ Pipeline completo do código publicado aprovado: [Verify Rods Leet — run 37001
 - Não foram realizadas compra real em produção, confirmação de e-mail ou recuperação real; SMTP/domínio permanecem pendentes por decisão do usuário. Validação de recompensas/transações foi feita nos testes SQL isolados.
 
 Publicação final da interface/BFF: `010dbee9` ([deployment](https://010dbee9.rods-leet.pages.dev)), branch de produção `main`, enviada diretamente do workspace validado. O código desta atualização também foi registrado no histórico do projeto para reproduzir a publicação. A primeira publicação desta etapa foi `24796a4c`. A versão final também corrige o texto da loja para deixar claro que visitantes ganham moedas.
+
+## Domínio e e-mail — 3 de outubro de 2026
+
+O usuário escolheu `rodsleet.com` e aprovou avançar com um ano pelo preço exibido de US$ 10,46 na Cloudflare. O painel confirmou registro ativo com vencimento em 3 de outubro de 2027; renovação automática foi desativada e o estado desmarcado foi verificado. Dados cadastrais e pagamento foram concluídos pelo usuário no navegador. Nenhuma credencial de compra ou documento foi copiado para o repositório.
+
+O usuário confirmou ativação do plano gratuito do Brevo, verificação do e-mail e telefone. Quatro registros DNS foram adicionados na Cloudflare: verificação TXT de `auth`, CNAMEs `brevo1._domainkey.auth` e `brevo2._domainkey.auth` (DNS only) e TXT `_dmarc.auth`. O usuário autorizou relatórios DMARC ao Brevo. O painel Brevo confirmou `auth.rodsleet.com` autenticado e remetente `Rods Leet <conta@auth.rodsleet.com>` verificado. O usuário criou a chave SMTP e informou ter salvo no Supabase; a persistência dessa configuração e entrega real não foram comprovadas. Nenhum segredo foi copiado para o repositório.
+
+Antes da ativação pública, o usuário considerou login Discord, mas depois restringiu explicitamente o escopo a criar o servidor e colocar o convite. A implementação intermediária de autenticação foi retirada antes de publicar; não houve alteração de configuração Auth por CLI. Cadastro/recuperação por e-mail permanecem desativados; não houve envio de teste. Notificações de feedback continuam desativadas.
+
+Servidor `Rods Leet` criado pelo usuário no Discord, ID `1555947225945870508`. O painel de convite confirmou duração “nunca irá expirar” e usos ilimitados para https://discord.gg/6fBryhJTfP. Card de convite opcional integrado ao perfil. Desenho final: `docs/rods/specs/2026-10-03-discord-access-design.md`.
+
+Validação do card: tipos, lint e build aprovados. Chromium isolado em `/perfil`, guia de boas-vindas fechado, conferiu 1440, 800, 390 e 320 px sem overflow nem erros JavaScript. Capturas desktop/mobile inspecionadas. Link em nova aba com `noopener noreferrer`; página pública do convite confirmou o nome Rods Leet, sem ingressar nem criar outra conta. Nenhuma migração ou mudança de autenticação foi publicada nesta etapa.

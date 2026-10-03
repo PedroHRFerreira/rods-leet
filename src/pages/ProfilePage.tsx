@@ -24,6 +24,7 @@ import {
   CosmeticAvatar,
   cosmeticNameColor,
 } from "../components/CosmeticAvatar";
+import { DiscordCommunity } from "../components/DiscordCommunity";
 
 function SubmissionPreferences({ identity }: { identity: string }) {
   const quiz = useSubmissionConfirmation(identity, "quiz");
@@ -244,6 +245,7 @@ export default function ProfilePage() {
               Ver loja e inventário <ArrowUpRight size={15} />
             </Link>
           </section>
+          <DiscordCommunity />
           <SubmissionPreferences identity={data.profile.id} />
           <section className="panel profile-practice">
             <div>
