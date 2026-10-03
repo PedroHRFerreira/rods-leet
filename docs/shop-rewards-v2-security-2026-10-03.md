@@ -13,6 +13,6 @@ Escopo: carteira, compras, inventário, metas e premiação semanal. O navegador
 
 ## Limites da evidência
 
-Os testes de banco usam PostgreSQL descartável e doubles de Cron/PGMQ/pg_net. Eles comprovam transações e privilégios, mas não a execução do agendamento real. A publicação exige conferir os jobs no Supabase e o catálogo/API no ambiente conectado. As compras positivas no navegador usam respostas de teste; não criar saldo artificial em contas reais para validar a loja.
+Os testes de banco usam PostgreSQL descartável e doubles de Cron/PGMQ/pg_net. Eles comprovam transações e privilégios, mas não a execução do agendamento real. Em produção, os dois jobs foram confirmados ativos, a API versão 42 mantém `verify_jwt=true`, e catálogo, ofertas, prévia, restrição de visitante e rankings semanal/geral foram conferidos no site conectado. O primeiro fechamento real posterior à publicação ainda não ocorreu. As compras positivas no navegador usam respostas de teste; não foi criado saldo artificial em contas reais para validar a loja.
 
 Não há promessa de invulnerabilidade. Mudanças futuras em autorização, catálogo ou saldo devem preservar essas verificações. Chaves privilegiadas continuam no servidor e não fazem parte do pacote do navegador.
