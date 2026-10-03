@@ -25,7 +25,7 @@ export interface GatewaySession {
 }
 export interface GatewayAuth {
   getSession(): Promise<GatewaySession | null>;
-  signIn(provider: "github"): Promise<void>;
+  signIn(provider: "github" | "google"): Promise<void>;
   signOut(): Promise<void>;
   signInWithPassword?(email: string, password: string): Promise<void>;
   signUp?(email: string, displayName: string): Promise<AuthResult>;

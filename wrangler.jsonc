@@ -5,7 +5,10 @@
   "compatibility_date": "2026-09-05",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    "APP_ORIGIN": "https://rods-leet.pages.dev",
+    "APP_ORIGIN": "https://rodsleet.com",
+    "APP_ORIGIN_ALIASES": "https://rods-leet.pages.dev",
     "SUPABASE_URL": "https://bsjcuygtpiqyomnulpsw.supabase.co",
+    "EMAIL_REGISTRATION_ENABLED": "false",
+    "GOOGLE_LOGIN_ENABLED": "true",
   },
 }

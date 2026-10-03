@@ -53,7 +53,8 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
             "Cadastro e recuperação de senha estarão disponíveis em breve. Continue estudando como visitante.",
           rate_limited:
             "Muitas tentativas. Aguarde alguns instantes e tente novamente.",
-          provider_unavailable: "Entre com e-mail e senha.",
+          provider_unavailable:
+            "Este método de acesso está indisponível. Tente novamente mais tarde.",
           account_already_registered:
             "Você já está em uma conta. Saia antes de cadastrar outra.",
         };
@@ -134,12 +135,37 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
   }
   return {
     getSession,
-    async signIn() {
-      throw new GatewayError(
-        "provider_unavailable",
-        "Entre com e-mail e senha.",
-        410,
-      );
+    async signIn(provider) {
+      if (provider !== "google")
+        throw new GatewayError(
+          "provider_unavailable",
+          "Entre com e-mail e senha.",
+          410,
+        );
+      const result = (await post("/auth/start", { provider }, true)) as {
+        url?: unknown;
+      };
+      let target: URL;
+      try {
+        if (typeof result?.url !== "string") throw new Error();
+        target = new URL(result.url);
+        if (
+          target.origin !== "https://bsjcuygtpiqyomnulpsw.supabase.co" ||
+          target.pathname !== "/auth/v1/authorize" ||
+          target.searchParams.get("provider") !== "google" ||
+          target.username ||
+          target.password ||
+          target.hash
+        )
+          throw new Error();
+      } catch {
+        throw new GatewayError(
+          "invalid_response",
+          "Não foi possível iniciar o acesso com Google.",
+          502,
+        );
+      }
+      (options.navigate ?? ((url) => window.location.assign(url)))(target.href);
     },
     async signInWithPassword(email, password) {
       await post("/auth/login", { email, password });

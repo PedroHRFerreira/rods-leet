@@ -504,6 +504,51 @@
   flex-direction: column;
   gap: 19px;
 }
+.economy-auth-google {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.economy-auth-google .button {
+  width: 100%;
+  min-height: 46px;
+}
+.economy-auth-google p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.economy-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.economy-auth-divider::before,
+.economy-auth-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--border);
+}
+.economy-auth-password-access {
+  margin-top: 18px;
+}
+.economy-auth-password-access summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 8px 0;
+}
+.economy-auth-password-access[open] summary {
+  margin-bottom: 14px;
+}
+.economy-auth-password-access summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 .economy-auth-form > p {
   margin: 0;
   color: var(--muted);

@@ -428,7 +428,7 @@ export interface AppGateway {
   saveDraft(input: DraftInput): Promise<DraftInput>;
   /** Explicit user choice only: keep local code over the latest remote draft. */
   resolveDraftConflict?(input: DraftInput): Promise<DraftInput>;
-  signIn(provider: "github"): Promise<void>;
+  signIn(provider: "github" | "google"): Promise<void>;
   signInWithPassword(email: string, password: string): Promise<void>;
   signUp(email: string, displayName: string): Promise<AuthResult>;
   requestPasswordReset(email: string): Promise<void>;

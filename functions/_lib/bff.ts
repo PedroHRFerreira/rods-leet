@@ -3,6 +3,7 @@ import {
   SESSION_COOKIE,
   OAUTH_COOKIE,
   allowedApi,
+  base64url,
   checkOrigin,
   cookie,
   digest,
@@ -36,11 +37,17 @@ type Environment = Pick<
   | "SUPABASE_ANON_KEY"
   | "BFF_SHARED_SECRET"
   | "BFF_ENCRYPTION_KEY"
-> & { EMAIL_REGISTRATION_ENABLED?: string };
+> & {
+  EMAIL_REGISTRATION_ENABLED?: string;
+  GOOGLE_LOGIN_ENABLED?: string;
+  APP_ORIGIN_ALIASES?: string;
+};
 
 function validateEnv(env: Environment, request: Request) {
   if (
-    new URL(request.url).origin !== env.APP_ORIGIN ||
+    ![env.APP_ORIGIN, ...(env.APP_ORIGIN_ALIASES?.split(",") ?? [])].includes(
+      new URL(request.url).origin,
+    ) ||
     !/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(env.SUPABASE_URL) ||
     !env.SUPABASE_ANON_KEY ||
     typeof env.BFF_SHARED_SECRET !== "string" ||
@@ -107,7 +114,7 @@ async function service<T>(
 }
 async function authToken(
   env: Environment,
-  grant: "password" | "refresh_token",
+  grant: "password" | "refresh_token" | "pkce",
   input: Record<string, string>,
 ): Promise<Omit<Tokens, "csrf">> {
   const response = await fetchWithoutRedirect(
@@ -297,14 +304,125 @@ export async function handleBff(
 ): Promise<Response> {
   try {
     validateEnv(env, request);
+    // Keep each approved hostname's cookies and CSRF isolated during migration.
+    env = { ...env, APP_ORIGIN: new URL(request.url).origin };
     const url = new URL(request.url);
     const token = readCookie(request, SESSION_COOKIE);
     if (url.pathname === "/auth/start") {
       checkOrigin(request, env.APP_ORIGIN);
-      throw new HttpError(410, "provider_unavailable");
+      if (request.method !== "POST" || url.search)
+        throw new HttpError(404, "route_not_found");
+      if (env.GOOGLE_LOGIN_ENABLED !== "true")
+        throw new HttpError(410, "provider_unavailable");
+      if (
+        request.headers.get("content-type")?.split(";")[0] !==
+        "application/json"
+      )
+        throw new HttpError(415, "json_required");
+      const input = JSON.parse(await readBounded(request.body, 1024));
+      if (input?.provider !== "google" || Object.keys(input).length !== 1)
+        throw new HttpError(400, "provider_unavailable");
+      const current = token ? await getSession(env, token, true) : null;
+      if (!current || !token)
+        throw new HttpError(401, "authentication_required");
+      checkOrigin(request, env.APP_ORIGIN, current.csrf);
+      await service(env, {
+        op: "rate",
+        bucket: `login:${await digest(request.headers.get("cf-connecting-ip") ?? "unknown")}`,
+      });
+      const opaque = randomToken();
+      const id = await digest(opaque);
+      const verifier = randomToken();
+      const state = randomToken();
+      const challenge = base64url(
+        new Uint8Array(
+          await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder().encode(verifier),
+          ),
+        ),
+      );
+      await service(env, {
+        op: "oauth-put",
+        id,
+        payload: await seal(
+          {
+            verifier,
+            state,
+            sessionId: await digest(token),
+            origin: env.APP_ORIGIN,
+            expiresAt: Date.now() + 600_000,
+          },
+          env.BFF_ENCRYPTION_KEY,
+          id,
+        ),
+      });
+      const authorization = new URL(env.SUPABASE_URL + "/auth/v1/authorize");
+      authorization.searchParams.set("provider", "google");
+      authorization.searchParams.set(
+        "redirect_to",
+        env.APP_ORIGIN + "/auth/callback?state=" + state,
+      );
+      authorization.searchParams.set("code_challenge", challenge);
+      authorization.searchParams.set("code_challenge_method", "s256");
+      const response = json({ url: authorization.href });
+      response.headers.append("Set-Cookie", cookie(OAUTH_COOKIE, opaque, 600));
+      return response;
     }
     if (url.pathname === "/auth/callback") {
-      return redirect("/perfil?authError=1", [cookie(OAUTH_COOKIE, "", 0)]);
+      const expired = cookie(OAUTH_COOKIE, "", 0);
+      try {
+        if (env.GOOGLE_LOGIN_ENABLED !== "true" || request.method !== "GET")
+          throw new HttpError(401, "authentication_failed");
+        const opaque = readCookie(request, OAUTH_COOKIE);
+        if (!opaque || !token)
+          throw new HttpError(401, "authentication_failed");
+        const id = await digest(opaque);
+        const stored = await service<Stored | null>(env, {
+          op: "oauth-take",
+          id,
+        });
+        if (!stored) throw new HttpError(401, "authentication_failed");
+        const pending = await unseal<{
+          verifier: string;
+          state: string;
+          sessionId: string;
+          origin: string;
+          expiresAt: number;
+        }>(stored.payload, env.BFF_ENCRYPTION_KEY, id);
+        const code = url.searchParams.get("code");
+        let invalidQuery = false;
+        url.searchParams.forEach((_value, key) => {
+          if (key !== "code" && key !== "state") invalidQuery = true;
+        });
+        if (
+          invalidQuery ||
+          url.searchParams.getAll("code").length !== 1 ||
+          url.searchParams.getAll("state").length !== 1 ||
+          !code ||
+          code.length > 2048 ||
+          !/^[a-f0-9]{64}$/.test(pending.verifier) ||
+          pending.state !== url.searchParams.get("state") ||
+          pending.sessionId !== (await digest(token)) ||
+          pending.origin !== env.APP_ORIGIN ||
+          !Number.isFinite(pending.expiresAt) ||
+          pending.expiresAt <= Date.now()
+        )
+          throw new HttpError(401, "authentication_failed");
+        await service(env, {
+          op: "rate",
+          bucket: `callback:${await digest(request.headers.get("cf-connecting-ip") ?? "unknown")}`,
+        });
+        const tokens = await authToken(env, "pkce", {
+          auth_code: code,
+          code_verifier: pending.verifier,
+        });
+        const session = await establishSession(env, tokens, token);
+        const cookies = session.headers.getSetCookie();
+        return redirect("/perfil", [...cookies, expired]);
+      } catch {
+        return redirect("/conta?authError=google", [expired]);
+      }
     }
     if (
       [

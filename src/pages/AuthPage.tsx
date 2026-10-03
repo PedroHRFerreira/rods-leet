@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 import { LoaderCircle, Mail, ShieldCheck } from "lucide-react";
 import { useGateway } from "../lib/gateway-context";
 import type { EmailConfirmationType } from "../lib/contracts";
+import { GatewayError } from "../lib/contracts";
 import { PageHeading } from "../components/ui";
 
 type AccessMode = "login" | "signup" | "recovery";
@@ -43,12 +44,19 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [repeatedPassword, setRepeatedPassword] = useState("");
   const [pending, setPending] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
   const inFlight = useRef(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() =>
+    new URLSearchParams(location.search).get("authError") === "google"
+      ? "Não foi possível entrar com Google. Tente novamente."
+      : "",
+  );
   const [notice, setNotice] = useState("");
   const demo = gateway.mode === "demo";
   const emailRegistrationEnabled =
     import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED !== "false";
+  const googleLoginEnabled =
+    !demo && import.meta.env.VITE_GOOGLE_LOGIN_ENABLED === "true";
   const registrationUnavailable =
     !emailRegistrationEnabled &&
     !confirmRoute &&
@@ -58,6 +66,28 @@ export default function AuthPage() {
   useEffect(() => {
     if (confirmRoute) window.history.replaceState(null, "", "/conta/confirmar");
   }, [confirmRoute]);
+
+  async function signInWithGoogle() {
+    if (!googleLoginEnabled || inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    setGooglePending(true);
+    setError("");
+    setNotice("");
+    try {
+      await gateway.signIn("google");
+    } catch (failure) {
+      // Never display provider messages or callback parameters in the page.
+      setError(
+        failure instanceof GatewayError
+          ? failure.message
+          : "Não foi possível entrar com Google. Tente novamente.",
+      );
+      inFlight.current = false;
+      setPending(false);
+      setGooglePending(false);
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,7 +165,9 @@ export default function AuthPage() {
     ? "Confirme seu e-mail"
     : passwordRoute
       ? "Defina sua senha"
-      : "Sua conta de estudo";
+      : googleLoginEnabled
+        ? "Entre e continue estudando"
+        : "Sua conta de estudo";
   const buttonLabel = confirmRoute
     ? "Confirmar e continuar"
     : passwordRoute
@@ -145,6 +177,130 @@ export default function AuthPage() {
         : mode === "signup"
           ? "Enviar confirmação"
           : "Enviar link de recuperação";
+
+  const emailForm = (
+    <form
+      className="economy-auth-form"
+      onSubmit={(event) => void submit(event)}
+      aria-busy={pending}
+    >
+      {confirmRoute ? (
+        <p>
+          {confirmation
+            ? "Confirme que você abriu este link para continuar. Na próxima etapa, você poderá definir sua senha."
+            : "O link de confirmação está incompleto ou já foi aberto nesta página. Abra novamente o link recebido por e-mail ou solicite outro."}
+        </p>
+      ) : passwordRoute ? (
+        <p>
+          Após confirmar seu e-mail, escolha uma senha com 10 a 128 caracteres.
+        </p>
+      ) : mode === "signup" ? (
+        <p>
+          Primeiro confirme seu e-mail; depois crie sua senha. O cadastro
+          preserva o progresso desta sessão de visitante.
+        </p>
+      ) : mode === "recovery" ? (
+        <p>Informe seu e-mail para receber as instruções de recuperação.</p>
+      ) : (
+        <p>
+          Entre com seu e-mail e senha. Entrar em uma conta existente abre o
+          progresso dela; o progresso de visitante desta sessão não é mesclado.
+        </p>
+      )}
+      {!confirmRoute && !passwordRoute && mode === "signup" && (
+        <label htmlFor="account-name">
+          Nome de usuário
+          <input
+            id="account-name"
+            name="displayName"
+            autoComplete="nickname"
+            minLength={2}
+            maxLength={40}
+            required
+            value={name}
+            disabled={pending || demo || registrationUnavailable}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </label>
+      )}
+      {!confirmRoute && !passwordRoute && (
+        <label htmlFor="account-email">
+          E-mail
+          <input
+            id="account-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            maxLength={254}
+            required
+            value={email}
+            disabled={pending || demo || registrationUnavailable}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </label>
+      )}
+      {(passwordRoute || (!confirmRoute && mode === "login")) && (
+        <label htmlFor="account-password">
+          {passwordRoute ? "Nova senha" : "Senha"}
+          <input
+            id="account-password"
+            name="password"
+            type="password"
+            autoComplete={passwordRoute ? "new-password" : "current-password"}
+            minLength={10}
+            maxLength={128}
+            required
+            value={password}
+            disabled={pending || demo}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <small>Use de 10 a 128 caracteres.</small>
+        </label>
+      )}
+      {passwordRoute && (
+        <label htmlFor="account-repeat-password">
+          Repita a nova senha
+          <input
+            id="account-repeat-password"
+            name="repeatPassword"
+            type="password"
+            autoComplete="new-password"
+            minLength={10}
+            maxLength={128}
+            required
+            value={repeatedPassword}
+            disabled={pending || demo}
+            onChange={(event) => setRepeatedPassword(event.target.value)}
+          />
+        </label>
+      )}
+      {notice && (
+        <p className="economy-notice" role="status">
+          <Mail size={18} aria-hidden="true" />
+          {notice}
+        </p>
+      )}
+      <button
+        className="button button-primary"
+        type="submit"
+        disabled={
+          pending ||
+          demo ||
+          registrationUnavailable ||
+          (confirmRoute && !confirmation)
+        }
+      >
+        {pending ? (
+          <>
+            <LoaderCircle className="spin" size={18} aria-hidden="true" />
+            Aguarde…
+          </>
+        ) : (
+          buttonLabel
+        )}
+      </button>
+    </form>
+  );
 
   return (
     <div className="economy-page economy-auth-page">
@@ -164,14 +320,14 @@ export default function AuthPage() {
             serviço conectado.
           </p>
         )}
-        {!demo && !emailRegistrationEnabled && (
+        {!demo && !emailRegistrationEnabled && !googleLoginEnabled && (
           <p className="economy-notice" role="status">
-            Cadastro e recuperação de senha estarão disponíveis em breve.
-            Continue estudando como visitante: suas moedas e conquistas ficam
-            guardadas nesta sessão.
+            Cadastro por e-mail e recuperação de senha estarão disponíveis em
+            breve. Continue estudando como visitante: suas moedas e conquistas
+            ficam guardadas nesta sessão.
           </p>
         )}
-        {!confirmRoute && !passwordRoute && (
+        {!confirmRoute && !passwordRoute && emailRegistrationEnabled && (
           <div className="economy-auth-tabs" aria-label="Escolha como acessar">
             {(
               [
@@ -199,136 +355,61 @@ export default function AuthPage() {
             ))}
           </div>
         )}
-        <form
-          className="economy-auth-form"
-          onSubmit={(event) => void submit(event)}
-          aria-busy={pending}
-        >
-          {confirmRoute ? (
-            <p>
-              {confirmation
-                ? "Confirme que você abriu este link para continuar. Na próxima etapa, você poderá definir sua senha."
-                : "O link de confirmação está incompleto ou já foi aberto nesta página. Abra novamente o link recebido por e-mail ou solicite outro."}
-            </p>
-          ) : passwordRoute ? (
-            <p>
-              Após confirmar seu e-mail, escolha uma senha com 10 a 128
-              caracteres.
-            </p>
-          ) : mode === "signup" ? (
-            <p>
-              Primeiro confirme seu e-mail; depois crie sua senha. O cadastro
-              preserva o progresso desta sessão de visitante.
-            </p>
-          ) : mode === "recovery" ? (
-            <p>Informe seu e-mail para receber as instruções de recuperação.</p>
-          ) : (
-            <p>
-              Entre com seu e-mail e senha. Entrar em uma conta existente abre o
-              progresso dela; o progresso de visitante desta sessão não é
-              mesclado.
-            </p>
+        {googleLoginEnabled &&
+          !confirmRoute &&
+          !passwordRoute &&
+          mode !== "recovery" && (
+            <div className="economy-auth-google">
+              <button
+                className="button button-primary"
+                type="button"
+                disabled={pending}
+                onClick={() => void signInWithGoogle()}
+              >
+                {googlePending ? (
+                  <LoaderCircle className="spin" size={18} aria-hidden="true" />
+                ) : (
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.89-1.74 2.98-4.31 2.98-7.36ZM12 22c2.7 0 4.96-.89 6.62-2.41l-3.24-2.51c-.89.6-2.03.96-3.38.96-2.61 0-4.82-1.76-5.61-4.12H3.05v2.59A10 10 0 0 0 12 22ZM6.39 13.92a6 6 0 0 1 0-3.84V7.49H3.05a10 10 0 0 0 0 9.02l3.34-2.59ZM12 5.96c1.47 0 2.79.51 3.82 1.51l2.86-2.86A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.95 5.49l3.34 2.59C7.18 7.72 9.39 5.96 12 5.96Z"
+                    />
+                  </svg>
+                )}
+                {googlePending
+                  ? "Redirecionando…"
+                  : "Entrar ou criar conta com Google"}
+              </button>
+              <p>
+                O primeiro acesso cria sua conta automaticamente. O progresso de
+                visitante desta sessão não será mesclado.
+              </p>
+              {emailRegistrationEnabled && (
+                <span className="economy-auth-divider">ou use seu e-mail</span>
+              )}
+            </div>
           )}
-          {!confirmRoute && !passwordRoute && mode === "signup" && (
-            <label htmlFor="account-name">
-              Nome de usuário
-              <input
-                id="account-name"
-                name="displayName"
-                autoComplete="nickname"
-                minLength={2}
-                maxLength={40}
-                required
-                value={name}
-                disabled={pending || demo || registrationUnavailable}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-          )}
-          {!confirmRoute && !passwordRoute && (
-            <label htmlFor="account-email">
-              E-mail
-              <input
-                id="account-email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                maxLength={254}
-                required
-                value={email}
-                disabled={pending || demo || registrationUnavailable}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </label>
-          )}
-          {(passwordRoute || (!confirmRoute && mode === "login")) && (
-            <label htmlFor="account-password">
-              {passwordRoute ? "Nova senha" : "Senha"}
-              <input
-                id="account-password"
-                name="password"
-                type="password"
-                autoComplete={
-                  passwordRoute ? "new-password" : "current-password"
-                }
-                minLength={10}
-                maxLength={128}
-                required
-                value={password}
-                disabled={pending || demo}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-              <small>Use de 10 a 128 caracteres.</small>
-            </label>
-          )}
-          {passwordRoute && (
-            <label htmlFor="account-repeat-password">
-              Repita a nova senha
-              <input
-                id="account-repeat-password"
-                name="repeatPassword"
-                type="password"
-                autoComplete="new-password"
-                minLength={10}
-                maxLength={128}
-                required
-                value={repeatedPassword}
-                disabled={pending || demo}
-                onChange={(event) => setRepeatedPassword(event.target.value)}
-              />
-            </label>
-          )}
-          {error && (
-            <p className="economy-error" role="alert">
-              {error}
-            </p>
-          )}
-          {notice && (
-            <p className="economy-notice" role="status">
-              <Mail size={18} aria-hidden="true" />
-              {notice}
-            </p>
-          )}
-          <button
-            className="button button-primary"
-            type="submit"
-            disabled={
-              pending ||
-              demo ||
-              registrationUnavailable ||
-              (confirmRoute && !confirmation)
-            }
-          >
-            {pending ? (
-              <>
-                <LoaderCircle className="spin" size={18} aria-hidden="true" />
-                Aguarde…
-              </>
-            ) : (
-              buttonLabel
-            )}
-          </button>
-        </form>
+        {error && (
+          <p className="economy-error" role="alert">
+            {error}
+          </p>
+        )}
+        {googleLoginEnabled &&
+        !emailRegistrationEnabled &&
+        !confirmRoute &&
+        !passwordRoute ? (
+          <details className="economy-auth-password-access">
+            <summary>Já tenho uma conta com senha</summary>
+            {emailForm}
+          </details>
+        ) : (
+          emailForm
+        )}
         {(confirmRoute || passwordRoute) && (
           <Link className="text-link" to="/conta">
             Voltar ao acesso da conta

@@ -10,6 +10,8 @@ import {
   readCookie,
   seal,
   SESSION_COOKIE,
+  OAUTH_COOKIE,
+  base64url,
   sign,
   unseal,
 } from "../functions/_lib/security";
@@ -128,6 +130,8 @@ describe("BFF security boundary", () => {
           headers: { cookie: `${SESSION_COOKIE}=${token}` },
         }),
         SESSION_COOKIE,
+        OAUTH_COOKIE,
+        base64url,
       ),
     ).toBe(token);
     expect(
@@ -138,6 +142,8 @@ describe("BFF security boundary", () => {
           },
         }),
         SESSION_COOKIE,
+        OAUTH_COOKIE,
+        base64url,
       ),
     ).toBeNull();
   });
@@ -357,7 +363,7 @@ describe("BFF security boundary", () => {
       new Request(url("/auth/callback?code=stolen")),
       env,
     );
-    expect(response.headers.get("location")).toBe("/perfil?authError=1");
+    expect(response.headers.get("location")).toBe("/conta?authError=google");
     expect(upstream.mock.calls).toHaveLength(0);
   });
   it("signs identity and idempotency along with request content", async () => {
@@ -406,5 +412,310 @@ describe("BFF security boundary", () => {
         ),
       ),
     ).toBe(false);
+  });
+});
+
+describe("Google server PKCE", () => {
+  async function oauthFixture() {
+    const original = randomToken();
+    const originalId = await digest(original);
+    const encrypted = await seal(
+      {
+        user: { id: "visitor" },
+        csrf: "csrf-google",
+        access_token: "visitor-secret",
+        refresh_token: "visitor-refresh",
+        expiresAt: Date.now() + 3600_000,
+      },
+      env.BFF_ENCRYPTION_KEY,
+      originalId,
+    );
+    const rows = new Map<
+      string,
+      { payload: string; version: number; expiresAt: string }
+    >();
+    rows.set(originalId, {
+      payload: encrypted,
+      version: 1,
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    });
+    const send = vi.fn(async (target, init) => {
+      if (String(target).includes("/auth/v1/token?grant_type=pkce")) {
+        return Response.json({
+          access_token: "google-access-secret",
+          refresh_token: "google-refresh-secret",
+          expires_in: 3600,
+          user: { id: "google-account" },
+        });
+      }
+      if (String(target).endsWith("/functions/v1/api/dashboard"))
+        return Response.json({});
+      const data = JSON.parse(init.body);
+      if (data.op === "rate") return Response.json(true);
+      if (data.op === "get") return Response.json(rows.get(data.id) ?? null);
+      if (data.op === "oauth-take") {
+        const found = rows.get(data.id) ?? null;
+        rows.delete(data.id);
+        return Response.json(found);
+      }
+      if (data.op === "delete") {
+        rows.delete(data.id);
+        return Response.json(null);
+      }
+      rows.set(data.id, {
+        payload: data.payload,
+        version: 1,
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      });
+      return Response.json(true);
+    });
+    vi.stubGlobal("fetch", send);
+    const start = async (csrf = "csrf-google") =>
+      handleBff(
+        new Request(url("/auth/start"), {
+          method: "POST",
+          headers: {
+            origin: env.APP_ORIGIN,
+            "content-type": "application/json",
+            "x-csrf-token": csrf,
+            cookie: `${SESSION_COOKIE}=${original}`,
+          },
+          body: JSON.stringify({ provider: "google" }),
+        }),
+        { ...env, GOOGLE_LOGIN_ENABLED: "true" },
+      );
+    return { original, originalId, rows, send, start };
+  }
+  it("encrypts the verifier, binds S256 to it, rotates identity and rejects replay", async () => {
+    const fixture = await oauthFixture();
+    const started = await fixture.start();
+    expect(started.status).toBe(200);
+    const result = await started.json();
+    const authorization = new URL(result.url);
+    const opaque = started.headers
+      .get("set-cookie")!
+      .match(/=([a-f0-9]{64});/)![1];
+    const id = await digest(opaque);
+    const pending = await unseal<{
+      verifier: string;
+      state: string;
+      sessionId: string;
+    }>(fixture.rows.get(id)!.payload, env.BFF_ENCRYPTION_KEY, id);
+    expect(JSON.stringify(result)).not.toContain(pending.verifier);
+    expect(fixture.rows.get(id)!.payload).not.toContain(pending.verifier);
+    expect(pending.sessionId).toBe(fixture.originalId);
+    expect(authorization.searchParams.get("code_challenge")).toBe(
+      base64url(
+        new Uint8Array(
+          await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder().encode(pending.verifier),
+          ),
+        ),
+      ),
+    );
+    const callback = new Request(
+      url(`/auth/callback?state=${pending.state}&code=single-use-code`),
+      {
+        headers: {
+          cookie: `${SESSION_COOKIE}=${fixture.original}; ${OAUTH_COOKIE}=${opaque}`,
+        },
+      },
+    );
+    const finished = await handleBff(callback, {
+      ...env,
+      GOOGLE_LOGIN_ENABLED: "true",
+    });
+    expect(finished.status).toBe(303);
+    expect(finished.headers.get("location")).toBe("/perfil");
+    expect(finished.headers.get("set-cookie")).toContain(
+      "HttpOnly; Secure; SameSite=Lax",
+    );
+    expect(finished.headers.get("set-cookie")).not.toContain("secret");
+    expect(fixture.rows.has(fixture.originalId)).toBe(false);
+    const exchanged = fixture.send.mock.calls.filter(([target]) =>
+      String(target).includes("grant_type=pkce"),
+    );
+    expect(exchanged).toHaveLength(1);
+    expect(JSON.parse(exchanged[0][1].body)).toEqual({
+      auth_code: "single-use-code",
+      code_verifier: pending.verifier,
+    });
+    const replay = await handleBff(callback, {
+      ...env,
+      GOOGLE_LOGIN_ENABLED: "true",
+    });
+    expect(replay.headers.get("location")).toBe("/conta?authError=google");
+    expect(
+      fixture.send.mock.calls.filter(([target]) =>
+        String(target).includes("grant_type=pkce"),
+      ),
+    ).toHaveLength(1);
+  });
+  it("rejects forged CSRF before creating authorization state", async () => {
+    const fixture = await oauthFixture();
+    expect((await fixture.start("forged")).status).toBe(403);
+    expect(fixture.rows.size).toBe(1);
+  });
+  it.each(["state", "session", "duplicate", "expired", "tampered", "hostname"])(
+    "rejects %s callback before exchanging credentials",
+    async (variant) => {
+      const fixture = await oauthFixture();
+      const started = await fixture.start();
+      const authorization = new URL((await started.json()).url);
+      const redirect = new URL(authorization.searchParams.get("redirect_to")!);
+      const opaque = started.headers
+        .get("set-cookie")!
+        .match(/=([a-f0-9]{64});/)![1];
+      const id = await digest(opaque);
+      if (variant === "expired") {
+        const pending = await unseal<Record<string, unknown>>(
+          fixture.rows.get(id)!.payload,
+          env.BFF_ENCRYPTION_KEY,
+          id,
+        );
+        pending.expiresAt = Date.now() - 1;
+        fixture.rows.get(id)!.payload = await seal(
+          pending,
+          env.BFF_ENCRYPTION_KEY,
+          id,
+        );
+      }
+      if (variant === "tampered")
+        fixture.rows.get(id)!.payload = "invalid-ciphertext";
+      redirect.searchParams.set("code", "code");
+      if (variant === "state")
+        redirect.searchParams.set("state", randomToken());
+      if (variant === "duplicate")
+        redirect.searchParams.append("code", "another");
+      if (variant === "hostname") redirect.hostname = "rodsleet.com";
+      const response = await handleBff(
+        new Request(redirect, {
+          headers: {
+            cookie: `${SESSION_COOKIE}=${variant === "session" ? randomToken() : fixture.original}; ${OAUTH_COOKIE}=${opaque}`,
+          },
+        }),
+        {
+          ...env,
+          GOOGLE_LOGIN_ENABLED: "true",
+          APP_ORIGIN_ALIASES: "https://rodsleet.com",
+        },
+      );
+      expect(response.headers.get("location")).toBe("/conta?authError=google");
+      expect(
+        fixture.send.mock.calls.some(([target]) =>
+          String(target).includes("grant_type=pkce"),
+        ),
+      ).toBe(false);
+      expect(fixture.rows.has(id)).toBe(false);
+    },
+  );
+});
+
+describe("approved hostname migration boundary", () => {
+  const migratedEnv = {
+    ...env,
+    APP_ORIGIN: "https://rodsleet.com",
+    APP_ORIGIN_ALIASES: env.APP_ORIGIN,
+    GOOGLE_LOGIN_ENABLED: "true",
+  };
+  it.each([env.APP_ORIGIN, "https://rodsleet.com"])(
+    "keeps OAuth callback and CSRF on the request hostname %s",
+    async (origin) => {
+      const sessionCookie = randomToken();
+      const sessionId = await digest(sessionCookie);
+      const payload = await seal(
+        {
+          user: { id: "preserved-visitor" },
+          csrf: "same-host-csrf",
+          access_token: "visitor-private",
+          refresh_token: "visitor-refresh",
+          expiresAt: Date.now() + 3600_000,
+        },
+        env.BFF_ENCRYPTION_KEY,
+        sessionId,
+      );
+      const send = vi.fn(async (_target, init) => {
+        const operation = JSON.parse(init.body);
+        if (operation.op === "get") {
+          expect(operation.id).toBe(sessionId);
+          return Response.json({
+            payload,
+            version: 1,
+            expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+          });
+        }
+        return Response.json(true);
+      });
+      vi.stubGlobal("fetch", send);
+      const response = await handleBff(
+        new Request(origin + "/auth/start", {
+          method: "POST",
+          headers: {
+            origin,
+            "content-type": "application/json",
+            "x-csrf-token": "same-host-csrf",
+            cookie: `${SESSION_COOKIE}=${sessionCookie}`,
+          },
+          body: JSON.stringify({ provider: "google" }),
+        }),
+        migratedEnv,
+      );
+      expect(response.status).toBe(200);
+      const authorization = new URL((await response.json()).url);
+      const callback = new URL(authorization.searchParams.get("redirect_to")!);
+      expect(callback.origin).toBe(origin);
+      expect(callback.pathname).toBe("/auth/callback");
+      expect(response.headers.get("set-cookie")).not.toContain("Domain=");
+      expect(
+        send.mock.calls.some(
+          ([_target, init]) => JSON.parse(init.body).op === "create-anonymous",
+        ),
+      ).toBe(false);
+    },
+  );
+  it.each([
+    [env.APP_ORIGIN, "https://rodsleet.com"],
+    ["https://rodsleet.com", env.APP_ORIGIN],
+  ])(
+    "rejects cross-host Origin even between approved hosts (%s -> %s)",
+    async (requestOrigin, suppliedOrigin) => {
+      const send = vi.fn();
+      vi.stubGlobal("fetch", send);
+      const response = await handleBff(
+        new Request(requestOrigin + "/auth/start", {
+          method: "POST",
+          headers: {
+            origin: suppliedOrigin,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ provider: "google" }),
+        }),
+        migratedEnv,
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({
+        error: { code: "origin_rejected" },
+      });
+      expect(send).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    "https://unlisted.example",
+    "https://rodsleet.com.evil.example",
+    "https://www.rodsleet.com",
+    "http://rodsleet.com",
+  ])("rejects an unlisted request origin %s", async (origin) => {
+    const send = vi.fn();
+    vi.stubGlobal("fetch", send);
+    const response = await handleBff(
+      new Request(origin + "/api/session"),
+      migratedEnv,
+    );
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      error: { code: "service_unconfigured" },
+    });
+    expect(send).not.toHaveBeenCalled();
   });
 });

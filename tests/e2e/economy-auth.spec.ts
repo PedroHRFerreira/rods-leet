@@ -21,7 +21,15 @@ test.beforeAll(async ({ playwright }, info) => {
       String(port),
       "--strictPort",
     ],
-    { env: { ...process.env, VITE_BFF_ENABLED: "true" }, stdio: "inherit" },
+    {
+      env: {
+        ...process.env,
+        VITE_BFF_ENABLED: "true",
+        VITE_EMAIL_REGISTRATION_ENABLED: "true",
+        VITE_GOOGLE_LOGIN_ENABLED: "true",
+      },
+      stdio: "inherit",
+    },
   );
   await expect
     .poll(
@@ -44,6 +52,8 @@ async function setup(
     anonymous?: boolean;
     dropPurchase?: boolean;
     loginError?: boolean;
+    googleError?: boolean;
+    waitForGoogle?: boolean;
     rejectPurchase?: boolean;
     purchaseRefetchError?: boolean;
   } = {},
@@ -55,6 +65,13 @@ async function setup(
   let hints = 1;
   const purchases: Array<{ key: string; body: Record<string, unknown> }> = [];
   const authCalls: Array<{ path: string; body: Record<string, unknown> }> = [];
+  const googleCalls: Array<{ method: string; csrf: string | undefined }> = [];
+  let releaseGoogle = () => {};
+  const googleGate = options.waitForGoogle
+    ? new Promise<void>((resolve) => {
+        releaseGoogle = resolve;
+      })
+    : Promise.resolve();
   const applied = new Set<string>();
   await page.addInitScript(() =>
     localStorage.setItem("rods-leet-welcome-v1", "seen"),
@@ -130,6 +147,23 @@ async function setup(
     if (route.request().method() !== "POST") return route.continue();
     const path = new URL(route.request().url()).pathname;
     authCalls.push({ path, body: route.request().postDataJSON() });
+    if (path === "/auth/start") {
+      googleCalls.push({
+        method: route.request().method(),
+        csrf: route.request().headers()["x-csrf-token"],
+      });
+      await googleGate;
+      return options.googleError
+        ? route.fulfill({
+            status: 429,
+            json: { error: { code: "rate_limited" } },
+          })
+        : route.fulfill({
+            json: {
+              url: "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize?provider=google",
+            },
+          });
+    }
     if (path === "/auth/login" && options.loginError)
       return route.fulfill({
         status: 401,
@@ -146,7 +180,7 @@ async function setup(
           : { ok: true },
     });
   });
-  return { shop, purchases, authCalls };
+  return { shop, purchases, authCalls, googleCalls, releaseGoogle };
 }
 async function fits(page: Page) {
   expect(
@@ -570,7 +604,7 @@ test("confirmation survives initial identity remount and sets password", async (
     "/auth/password",
   ]);
 });
-test("invalid login shows an error without navigating or offering social login", async ({
+test("invalid email login stays on the page and keeps Google available", async ({
   page,
 }, info) => {
   await setup(page, { anonymous: true, loginError: true });
@@ -585,14 +619,148 @@ test("invalid login shows an error without navigating or offering social login",
     "Não foi possível validar",
   );
   await expect(page).toHaveURL(`${baseURL}/conta`);
-  await expect(page.getByRole("button", { name: /Google|GitHub/ })).toHaveCount(
-    0,
-  );
+  await expect(page.getByRole("button", { name: /Google/ })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /GitHub/ })).toHaveCount(0);
   await fits(page);
   await page.screenshot({
     path: `/tmp/rods-auth-error-${info.project.name}.png`,
     fullPage: true,
   });
+});
+test("Google login protects the request, blocks repeated clicks and redirects to the provider", async ({
+  page,
+}, info) => {
+  const state = await setup(page, { anonymous: true, waitForGoogle: true });
+  await page.route(
+    "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize**",
+    (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: "<main>Google authorization destination</main>",
+      }),
+  );
+  await page.goto(`${baseURL}/conta`);
+  const google = page.locator(".economy-auth-google button");
+  await google.click();
+  await expect(google).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Criar conta", exact: true }),
+  ).toBeDisabled();
+  expect(state.authCalls).toEqual([
+    { path: "/auth/start", body: { provider: "google" } },
+  ]);
+  expect(state.googleCalls).toEqual([{ method: "POST", csrf: "csrf" }]);
+  await fits(page);
+  await page.screenshot({
+    path: `/tmp/rods-auth-google-pending-${info.project.name}.png`,
+    fullPage: true,
+  });
+  state.releaseGoogle();
+  await expect(page).toHaveURL(
+    "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize?provider=google",
+  );
+});
+test("Google rate limiting shows a recoverable error and leaves email access available", async ({
+  page,
+}, info) => {
+  const state = await setup(page, { anonymous: true, googleError: true });
+  await page.goto(`${baseURL}/conta`);
+  const google = page.getByRole("button", { name: /Google/ });
+  await google.click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Não foi possível iniciar o login. Tente novamente.",
+  );
+  await expect(page).toHaveURL(`${baseURL}/conta`);
+  await expect(google).toBeEnabled();
+  await expect(page.getByLabel("E-mail", { exact: true })).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Criar conta", exact: true }),
+  ).toBeEnabled();
+  await fits(page);
+  await page.screenshot({
+    path: `/tmp/rods-auth-google-error-${info.project.name}.png`,
+    fullPage: true,
+  });
+  expect(state.googleCalls).toEqual([{ method: "POST", csrf: "csrf" }]);
+});
+test("Google remains available when email registration is disabled in production", async ({
+  page,
+}, info) => {
+  const port = info.project.name === "mobile" ? 5207 : 5206;
+  const googleOnlyURL = `http://127.0.0.1:${port}`;
+  const googleOnlyServer = spawn(
+    process.execPath,
+    [
+      "node_modules/vite/bin/vite.js",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      String(port),
+      "--strictPort",
+    ],
+    {
+      env: {
+        ...process.env,
+        VITE_BFF_ENABLED: "true",
+        VITE_EMAIL_REGISTRATION_ENABLED: "false",
+        VITE_GOOGLE_LOGIN_ENABLED: "true",
+      },
+      stdio: "inherit",
+    },
+  );
+  try {
+    await expect
+      .poll(
+        async () => {
+          try {
+            return (await fetch(googleOnlyURL)).status;
+          } catch {
+            return 0;
+          }
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(200);
+    const state = await setup(page, { anonymous: true, googleError: true });
+    await page.goto(`${googleOnlyURL}/conta`);
+    await expect(
+      page.getByRole("button", { name: "Criar conta", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Enviar confirmação", exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByLabel("E-mail", { exact: true })).toBeHidden();
+    const google = page.locator(".economy-auth-google button");
+    await expect(google).toBeEnabled();
+    await google.click();
+    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(google).toBeEnabled();
+    expect(state.authCalls).toEqual([
+      { path: "/auth/start", body: { provider: "google" } },
+    ]);
+    expect(state.googleCalls).toEqual([{ method: "POST", csrf: "csrf" }]);
+    await fits(page);
+    await page.screenshot({
+      path: `/tmp/rods-auth-google-only-${info.project.name}.png`,
+      fullPage: true,
+    });
+    await page
+      .getByText("Já tenho uma conta com senha", { exact: true })
+      .click();
+    await page.getByLabel("E-mail", { exact: true }).fill("luna@example.test");
+    await page.getByLabel(/^Senha/).fill("secure-password");
+    await page
+      .locator("form")
+      .getByRole("button", { name: "Entrar", exact: true })
+      .click();
+    await expect(page).toHaveURL(`${googleOnlyURL}/perfil`);
+    expect(state.authCalls.map((call) => call.path)).toEqual([
+      "/auth/start",
+      "/auth/login",
+    ]);
+  } finally {
+    googleOnlyServer.kill();
+  }
 });
 test("successful login opens the account and recovery uses a generic receipt", async ({
   page,

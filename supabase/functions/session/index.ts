@@ -18,7 +18,7 @@ export async function handler(request: Request): Promise<Response> {
       const bucket = stringValue(body.bucket, "bucket", 160);
       // Callers may tighten but never lift the anonymous admission ceiling.
       if (
-        !/^(login|callback|session-read|anonymous-create):[a-f0-9]{64}$/.test(
+        !/^(login|callback|session-read|anonymous-create|email-auth):[a-f0-9]{64}$/.test(
           bucket,
         )
       )

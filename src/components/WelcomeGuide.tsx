@@ -38,7 +38,7 @@ const screens = [
   {
     icon: UserRound,
     title: "Perfil",
-    text: "Acompanhe seu nível e suas conclusões. Crie uma conta por e-mail para preservar suas conquistas.",
+    text: "Acompanhe seu nível e suas conclusões. Crie uma conta para preservar suas conquistas.",
   },
   {
     icon: ShoppingBag,
@@ -119,7 +119,7 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <p className="welcome-note">
-              Explore gratuitamente sem login. Crie sua conta por e-mail para
+              Explore gratuitamente sem login. Crie sua conta para
               preservar o progresso e acessar suas moedas e itens em outros
               dispositivos. Sem conta, apagar os dados deste navegador pode
               fazer você perder o acesso ao progresso.

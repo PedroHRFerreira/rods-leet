@@ -70,6 +70,44 @@ describe("cookie BFF authentication", () => {
     expect(send).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
+  test("Google start uses CSRF and only navigates to the trusted provider endpoint", async () => {
+    const destination =
+      "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize?provider=google";
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce(json(session))
+      .mockResolvedValueOnce(json({ url: destination }));
+    const navigate = vi.fn();
+    await createBffAuth({ fetch: send, navigate }).signIn("google");
+    expect(send.mock.calls[1]).toEqual([
+      "/auth/start",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": session.csrf,
+        },
+        body: JSON.stringify({ provider: "google" }),
+      }),
+    ]);
+    expect(navigate).toHaveBeenCalledWith(destination);
+  });
+  test.each([
+    "https://evil.example/auth/v1/authorize?provider=google",
+    "https://bsjcuygtpiqyomnulpsw.supabase.co/evil?provider=google",
+    "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize?provider=github",
+    "https://bsjcuygtpiqyomnulpsw.supabase.co.evil.example/auth/v1/authorize?provider=google",
+  ])("rejects untrusted OAuth destination %s", async (url) => {
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce(json(session))
+      .mockResolvedValueOnce(json({ url }));
+    const navigate = vi.fn();
+    await expect(
+      createBffAuth({ fetch: send, navigate }).signIn("google"),
+    ).rejects.toMatchObject({ code: "invalid_response" });
+    expect(navigate).not.toHaveBeenCalled();
+  });
   test("signup preserves the study session and sends email without storing a password", async () => {
     const send = vi
       .fn()
