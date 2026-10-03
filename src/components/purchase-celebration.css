@@ -1,0 +1,484 @@
+/* The modal owns its viewport; scene variables come from a local allowlist. */
+.purchase-celebration {
+  --celebration-bg: #09111f;
+  --celebration-ink: #f4f7ff;
+  --celebration-muted: #bac8db;
+  --celebration-outline: rgba(226, 232, 240, 0.2);
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 36px 24px;
+  border: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: var(--celebration-ink);
+  background: var(--celebration-bg);
+  isolation: isolate;
+}
+.purchase-celebration[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.purchase-celebration::backdrop {
+  background: #09111f;
+}
+:root[data-theme="light"] .purchase-celebration {
+  --celebration-bg: #f5f8fc;
+  --celebration-ink: #152338;
+  --celebration-muted: #42566f;
+  --celebration-outline: rgba(30, 41, 59, 0.16);
+}
+.purchase-celebration-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(
+      ellipse at 30% 45%,
+      color-mix(in srgb, var(--celebration-accent) 17%, transparent),
+      transparent 54%
+    ),
+    radial-gradient(
+      ellipse at 75% 40%,
+      color-mix(in srgb, var(--celebration-secondary) 13%, transparent),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 50% 25%,
+      color-mix(in srgb, var(--celebration-accent) 8%, transparent),
+      transparent 65%
+    );
+}
+.purchase-celebration-content {
+  width: min(720px, 100%);
+  margin: auto;
+  text-align: center;
+}
+.purchase-celebration-confirmed {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 8px 14px;
+  border: 1px solid var(--celebration-outline);
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--celebration-bg) 82%, transparent);
+  color: var(--celebration-ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.purchase-celebration-confirmed svg {
+  color: #6ee7b7;
+}
+:root[data-theme="light"] .purchase-celebration-confirmed svg {
+  color: #047857;
+}
+.purchase-celebration-stage {
+  position: relative;
+  width: 100%;
+  height: clamp(230px, 38vh, 380px);
+  height: clamp(230px, 38dvh, 380px);
+  display: grid;
+  place-items: center;
+}
+.purchase-celebration-art {
+  position: absolute;
+  width: min(620px, 100%);
+  height: 100%;
+  inset: 0;
+  margin: auto;
+  color: var(--celebration-accent);
+  opacity: 0.4;
+  overflow: visible;
+}
+:root[data-theme="light"] .purchase-celebration-art {
+  opacity: 0.6;
+  filter: saturate(1.6) brightness(0.73);
+}
+.purchase-celebration-reveal {
+  position: relative;
+  z-index: 1;
+  max-width: 85%;
+}
+.purchase-celebration-portrait {
+  padding: 12px;
+  border-radius: 36px;
+  background: color-mix(in srgb, var(--celebration-bg) 90%, transparent);
+  box-shadow:
+    0 0 0 1px var(--celebration-outline),
+    0 24px 80px color-mix(in srgb, var(--celebration-accent) 22%, transparent);
+}
+.purchase-celebration-portrait .cosmetic-avatar {
+  display: block;
+}
+.purchase-celebration-portrait .cosmetic-frame {
+  border-width: 5px;
+  padding: 8px;
+}
+.purchase-celebration-name {
+  max-width: 100%;
+  padding: 20px 24px;
+  border: 1px solid var(--celebration-outline);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--celebration-bg) 94%, transparent);
+  font-size: clamp(24px, 5vw, 48px);
+  line-height: 1.25;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+  box-shadow: 0 24px 70px
+    color-mix(in srgb, var(--celebration-accent) 18%, transparent);
+}
+.purchase-celebration .purchase-celebration-theme {
+  width: clamp(230px, 40vw, 340px);
+  max-width: 100%;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px
+    color-mix(in srgb, var(--celebration-accent) 20%, transparent);
+  text-align: left;
+}
+.purchase-celebration-theme .shop-theme-mini-body {
+  padding: 15px;
+}
+.purchase-celebration-theme .shop-theme-mini-header {
+  font-size: 14px;
+}
+.purchase-celebration-theme .shop-theme-mini-body strong {
+  font-size: 14px;
+}
+.purchase-celebration-theme .shop-theme-mini-button {
+  margin-top: 16px;
+  font-size: 13px;
+}
+.purchase-celebration-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid var(--celebration-outline);
+  background: color-mix(in srgb, var(--celebration-bg) 94%, transparent);
+  box-shadow: 0 24px 70px
+    color-mix(in srgb, var(--celebration-accent) 20%, transparent);
+}
+.purchase-celebration-title > svg {
+  color: var(--celebration-accent);
+}
+:root[data-theme="light"] .purchase-celebration-title > svg {
+  filter: brightness(0.65);
+}
+.purchase-celebration-title > span {
+  font-size: clamp(20px, 3vw, 30px);
+  line-height: 1.2;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.purchase-celebration-title > small {
+  color: var(--celebration-muted);
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.purchase-celebration-hints {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 145px;
+  padding: 20px;
+  border-radius: 26px;
+  background: color-mix(in srgb, var(--celebration-bg) 94%, transparent);
+  border: 1px solid var(--celebration-outline);
+  box-shadow: 0 24px 70px
+    color-mix(in srgb, var(--celebration-accent) 20%, transparent);
+}
+.purchase-celebration-hints > svg {
+  color: var(--celebration-accent);
+}
+:root[data-theme="light"] .purchase-celebration-hints > svg {
+  color: #a16207;
+}
+.purchase-celebration-hints > strong {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+}
+.purchase-celebration-hints > span {
+  color: var(--celebration-muted);
+  font-size: 12px;
+}
+.purchase-celebration-caption {
+  margin: 14px 0 8px;
+  color: var(--celebration-muted);
+  font-size: 14px;
+}
+.purchase-celebration h2 {
+  max-width: 100%;
+  margin: 0 auto 14px;
+  font-size: clamp(26px, 4vw, 40px);
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  color: var(--celebration-ink);
+  overflow-wrap: anywhere;
+}
+.purchase-celebration h2:focus {
+  outline: none;
+}
+.purchase-celebration-description {
+  width: min(440px, 100%);
+  margin: 0 auto;
+  color: var(--celebration-muted);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.purchase-celebration-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+  min-height: 98px;
+}
+.purchase-celebration .button-primary {
+  min-height: 48px;
+  min-width: min(260px, 100%);
+  color: #09111f;
+  background: #dbeafe;
+  border-color: #dbeafe;
+  box-shadow: 0 8px 32px rgba(56, 189, 248, 0.15);
+}
+:root[data-theme="light"] .purchase-celebration .button-primary {
+  color: #fff;
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+}
+.purchase-celebration .button-primary:hover {
+  background: #fff;
+  color: #09111f;
+}
+:root[data-theme="light"] .purchase-celebration .button-primary:hover {
+  background: #152338;
+  color: #fff;
+}
+.purchase-celebration-skip {
+  padding: 5px 10px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+  background: transparent;
+  color: var(--celebration-muted);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.purchase-celebration button:focus-visible {
+  outline: 3px solid var(--celebration-ink);
+  outline-offset: 5px;
+}
+.purchase-celebration-particles {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  pointer-events: none;
+}
+.purchase-celebration-particles span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 9px;
+  height: 19px;
+  border-radius: 3px;
+  opacity: 0;
+  background: var(--celebration-accent);
+  transform: rotate(var(--particle-angle)) translateY(-90px);
+}
+.purchase-celebration-particles span:nth-child(even) {
+  background: var(--celebration-secondary);
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+}
+.purchase-celebration-particles span:nth-child(1) {
+  --particle-angle: 0deg;
+}
+.purchase-celebration-particles span:nth-child(2) {
+  --particle-angle: 45deg;
+}
+.purchase-celebration-particles span:nth-child(3) {
+  --particle-angle: 90deg;
+}
+.purchase-celebration-particles span:nth-child(4) {
+  --particle-angle: 135deg;
+}
+.purchase-celebration-particles span:nth-child(5) {
+  --particle-angle: 180deg;
+}
+.purchase-celebration-particles span:nth-child(6) {
+  --particle-angle: 225deg;
+}
+.purchase-celebration-particles span:nth-child(7) {
+  --particle-angle: 270deg;
+}
+.purchase-celebration-particles span:nth-child(8) {
+  --particle-angle: 315deg;
+}
+.purchase-celebration[data-phase="intro"][data-motion="full"]
+  .purchase-celebration-reveal {
+  animation: purchase-reveal 2.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.purchase-celebration[data-phase="intro"][data-motion="full"]
+  .purchase-celebration-art {
+  animation: purchase-art-arrival 2.8s ease-out both;
+}
+.purchase-celebration[data-phase="intro"][data-motion="full"]
+  .purchase-celebration-art
+  > * {
+  animation: purchase-line-draw 2.8s ease-out both;
+  stroke-dasharray: 1500;
+}
+.purchase-celebration[data-phase="intro"][data-motion="full"]
+  .purchase-celebration-particles
+  span {
+  animation: purchase-particle 2.8s ease-out both;
+}
+.purchase-celebration[data-scene="launch"] .purchase-celebration-art {
+  transform: rotate(-8deg);
+}
+.purchase-celebration[data-scene="ninja-fan"] .purchase-celebration-art {
+  transform: rotate(8deg);
+}
+.purchase-celebration[data-scene="violet-prism"] .purchase-celebration-art {
+  transform: scale(1.05);
+}
+.purchase-celebration[data-scene="rose-bloom"] .purchase-celebration-art {
+  transform: rotate(15deg);
+}
+.purchase-celebration[data-scene="circuit-border"] .purchase-celebration-art {
+  stroke-width: 5;
+}
+.purchase-celebration[data-scene="pixel-portal"] .purchase-celebration-art {
+  stroke-width: 7;
+  stroke-linejoin: miter;
+  stroke-linecap: square;
+}
+.purchase-celebration[data-scene="neon-city"] .purchase-celebration-art {
+  stroke-width: 4;
+}
+.purchase-celebration[data-motion="reduced"] *,
+.purchase-celebration[data-phase="settled"] * {
+  animation: none !important;
+}
+@keyframes purchase-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(25px) scale(0.72);
+  }
+  18% {
+    opacity: 1;
+  }
+  55% {
+    transform: translateY(-5px) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes purchase-art-arrival {
+  0% {
+    opacity: 0;
+    scale: 0.8;
+  }
+  30% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0.4;
+    scale: 1;
+  }
+}
+@keyframes purchase-line-draw {
+  0% {
+    stroke-dashoffset: 1500;
+  }
+  65%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes purchase-particle {
+  0%,
+  12% {
+    opacity: 0;
+    transform: rotate(var(--particle-angle)) translateY(-60px) scale(0.4);
+  }
+  25% {
+    opacity: 0.8;
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: rotate(var(--particle-angle)) translateY(-190px) scale(0.8);
+  }
+}
+@media (max-width: 480px) {
+  .purchase-celebration {
+    padding: 24px 16px;
+  }
+  .purchase-celebration-stage {
+    height: 230px;
+  }
+  .purchase-celebration-art {
+    width: 100%;
+    overflow: hidden;
+  }
+  .purchase-celebration-portrait {
+    padding: 8px;
+    border-radius: 26px;
+  }
+  .purchase-celebration-portrait .cosmetic-avatar {
+    width: 120px;
+    height: 120px;
+  }
+  .purchase-celebration-name {
+    padding: 16px;
+  }
+  .purchase-celebration .purchase-celebration-theme {
+    width: 230px;
+    padding: 15px;
+  }
+  .purchase-celebration-caption {
+    font-size: 12px;
+  }
+  .purchase-celebration-actions {
+    margin-top: 20px;
+  }
+}
+@media (max-height: 620px) and (min-width: 481px) {
+  .purchase-celebration {
+    padding-block: 18px;
+  }
+  .purchase-celebration-stage {
+    height: 210px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .purchase-celebration *,
+  .purchase-celebration::backdrop {
+    animation: none !important;
+    transition: none !important;
+  }
+  .purchase-celebration-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

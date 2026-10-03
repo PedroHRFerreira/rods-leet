@@ -44,6 +44,8 @@ async function setup(
     anonymous?: boolean;
     dropPurchase?: boolean;
     loginError?: boolean;
+    rejectPurchase?: boolean;
+    purchaseRefetchError?: boolean;
   } = {},
 ) {
   const shop = guestShop();
@@ -61,6 +63,15 @@ async function setup(
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/session")
       return route.fulfill({ json: { user: { id: userId }, csrf: "csrf" } });
+    if (
+      options.purchaseRefetchError &&
+      applied.size > 0 &&
+      (path === "/api/dashboard" || path === "/api/shop")
+    )
+      return route.fulfill({
+        status: 503,
+        json: { error: { code: "service_unavailable" } },
+      });
     if (path === "/api/dashboard")
       return route.fulfill({
         json: {
@@ -82,6 +93,11 @@ async function setup(
       const body = route.request().postDataJSON();
       const key = route.request().headers()["idempotency-key"];
       purchases.push({ key, body });
+      if (options.rejectPurchase)
+        return route.fulfill({
+          status: 409,
+          json: { error: { code: "insufficient_coins" } },
+        });
       if (!applied.has(key)) {
         applied.add(key);
         shop.coins -= Number(body.expectedPrice);
@@ -151,6 +167,7 @@ test("purchase lost reply retries the same key, equips and restores an avatar", 
   await card.getByRole("button", { name: "Comprar", exact: true }).click();
   await page.getByRole("button", { name: /Comprar por/ }).click();
   await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.screenshot({
     path: `/tmp/rods-shop-error-${info.project.name}.png`,
     fullPage: true,
@@ -158,6 +175,12 @@ test("purchase lost reply retries the same key, equips and restores an avatar", 
   await page
     .getByRole("button", { name: "Tentar esta operação novamente" })
     .click();
+  const celebration = page.getByRole("dialog");
+  await expect(celebration).toContainText("Compra confirmada");
+  await expect(
+    celebration.getByRole("heading", { name: "Robô explorador", exact: true }),
+  ).toBeVisible();
+  await celebration.getByRole("button", { name: "Continuar na loja" }).click();
   await expect(
     page.getByRole("status").filter({ hasText: "adicionado ao inventário" }),
   ).toBeVisible();
@@ -171,6 +194,7 @@ test("purchase lost reply retries the same key, equips and restores an avatar", 
   await expect(
     card.getByRole("button", { name: "Equipado", exact: true }),
   ).toBeDisabled();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("button", { name: /Meu inventário/ }).click();
   await page.getByRole("button", { name: "Restaurar avatar padrão" }).click();
   await page.getByRole("button", { name: "Confirmar e equipar" }).click();
@@ -231,6 +255,11 @@ test("registered hint packs confirm the discounted server price without granting
   });
   expect(state.shop.coins).toBe(425);
   expect(state.shop.ownedItemIds).not.toContain("hint-pack3");
+  await expect(page.getByRole("dialog")).toContainText("3 dicas");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Continuar na loja" })
+    .click();
 });
 test("frames are previewed before purchase and equipped in a separate confirmed operation", async ({
   page,
@@ -260,11 +289,241 @@ test("frames are previewed before purchase and equipped in a separate confirmed 
     .poll(() => state.shop.ownedItemIds.includes("frame-pixel"))
     .toBe(true);
   expect(state.shop.equipped.frameId).toBeNull();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Continuar na loja" })
+    .click();
   await card.getByRole("button", { name: "Equipar", exact: true }).click();
   await page
     .getByRole("button", { name: "Confirmar e equipar", exact: true })
     .click();
   await expect.poll(() => state.shop.equipped.frameId).toBe("frame-pixel");
+});
+test("confirmed purchases have a full-screen celebration with keyboard dismissal and no replay", async ({
+  page,
+}, info) => {
+  const state = await setup(page);
+  await page.goto(`${baseURL}/loja`);
+  const card = page.locator("article").filter({
+    has: page.getByRole("heading", { name: "Astronauta", exact: true }),
+  });
+  await card.getByRole("button", { name: "Comprar", exact: true }).click();
+  await page.getByRole("button", { name: /Comprar por/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("Compra confirmada");
+  await expect(
+    dialog.getByRole("heading", { name: "Astronauta", exact: true }),
+  ).toBeVisible();
+  expect(await dialog.evaluate((element) => element.matches(":modal"))).toBe(
+    true,
+  );
+  expect(
+    await page.locator("body").evaluate((element) => element.style.overflow),
+  ).toBe("hidden");
+  const bounds = await dialog.boundingBox();
+  expect(bounds?.width).toBeGreaterThanOrEqual(page.viewportSize()!.width - 2);
+  expect(bounds?.height).toBeGreaterThanOrEqual(
+    page.viewportSize()!.height - 2,
+  );
+  await fits(page);
+  await expect(
+    dialog.getByRole("button", { name: "Continuar na loja" }),
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
+  expect(
+    await dialog.evaluate((element) =>
+      element.contains(document.activeElement),
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: `/tmp/rods-purchase-astronaut-${info.project.name}.png`,
+  });
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    card.getByRole("button", { name: "Equipar", exact: true }),
+  ).toBeFocused();
+  expect(
+    await page.locator("body").evaluate((element) => element.style.overflow),
+  ).toBe("");
+  await page.getByRole("button", { name: /Meu inventário/ }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(state.purchases).toHaveLength(1);
+  expect(state.shop.equipped.avatarId).toBeNull();
+});
+test("a confirmed celebration survives a failed dashboard and shop refresh", async ({
+  page,
+}) => {
+  await setup(page, { purchaseRefetchError: true });
+  await page.goto(`${baseURL}/loja`);
+  const card = page.locator("article").filter({
+    has: page.getByRole("heading", { name: "Dica extra", exact: true }),
+  });
+  await card.getByRole("button", { name: "Comprar", exact: true }).click();
+  await page.getByRole("button", { name: /Comprar por/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("Compra confirmada");
+  await expect(page.locator(".error-state")).toBeAttached();
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Continuar na loja" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Tentar novamente" }),
+  ).toBeVisible();
+});
+test("a rejected purchase never celebrates or changes the wallet", async ({
+  page,
+}) => {
+  const state = await setup(page, { rejectPurchase: true });
+  await page.goto(`${baseURL}/loja`);
+  const card = page.locator("article").filter({
+    has: page.getByRole("heading", { name: "Robô explorador", exact: true }),
+  });
+  await card.getByRole("button", { name: "Comprar", exact: true }).click();
+  await page.getByRole("button", { name: /Comprar por/ }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(state.shop.coins).toBe(500);
+  expect(state.shop.ownedItemIds).not.toContain("avatar-robot");
+});
+test("every purchasable item has its own celebration and reduced motion stays still", async ({
+  page,
+}, info) => {
+  const state = await setup(page);
+  state.shop.coins = 20_000;
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`${baseURL}/loja`);
+  const sceneIds = new Set<string>();
+  for (const item of state.shop.items.filter(
+    (entry) => entry.acquisition === "purchase",
+  )) {
+    const card = page.locator("article").filter({
+      has: page.getByRole("heading", { name: item.name, exact: true }),
+    });
+    await card.getByRole("button", { name: "Comprar", exact: true }).click();
+    await page.getByRole("button", { name: /Comprar por/ }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(
+      dialog.getByRole("heading", { name: item.name, exact: true }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Pular animação" }),
+    ).toHaveCount(0);
+    const sceneId = await dialog.getAttribute("data-scene");
+    expect(sceneId).toBeTruthy();
+    expect(sceneIds.has(sceneId!)).toBe(false);
+    sceneIds.add(sceneId!);
+    expect(
+      await dialog.evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState === "running").length,
+      ),
+    ).toBe(0);
+    await fits(page);
+    if (
+      [
+        "theme-ocean",
+        "name-emerald",
+        "title-debugger",
+        "frame-neon",
+        "hint-pack10",
+      ].includes(item.id)
+    )
+      await page.screenshot({
+        path: `/tmp/rods-purchase-${item.id}-${info.project.name}.png`,
+      });
+    await dialog.getByRole("button", { name: "Continuar na loja" }).click();
+    await expect(dialog).toHaveCount(0);
+  }
+  expect(sceneIds.size).toBe(27);
+  expect(state.purchases).toHaveLength(27);
+});
+test("finishing or skipping the reveal preserves keyboard focus and changing motion preference stops it", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.goto(`${baseURL}/loja`);
+  for (const [name, finish] of [
+    ["Dica extra", "timer"],
+    ["Pacote de 3 dicas", "reduce"],
+    ["Pacote de 10 dicas", "skip"],
+  ]) {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const card = page
+      .locator("article")
+      .filter({ has: page.getByRole("heading", { name, exact: true }) });
+    await card.getByRole("button", { name: "Comprar", exact: true }).click();
+    await page.getByRole("button", { name: /Comprar por/ }).click();
+    const dialog = page.getByRole("dialog");
+    const skip = dialog.getByRole("button", { name: "Pular animação" });
+    await expect(skip).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(skip).toBeFocused();
+    if (finish === "reduce")
+      await page.emulateMedia({ reducedMotion: "reduce" });
+    if (finish === "skip") await page.keyboard.press("Enter");
+    await expect(dialog).toHaveAttribute("data-phase", "settled");
+    await expect(
+      dialog.getByRole("button", { name: "Continuar na loja" }),
+    ).toBeFocused();
+    expect(
+      await dialog.evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState === "running").length,
+      ),
+    ).toBe(0);
+    await page.keyboard.press("Enter");
+    await expect(dialog).toHaveCount(0);
+  }
+});
+test("celebrations fit small phones, tablets and large screens in the light theme", async ({
+  page,
+}, info) => {
+  const state = await setup(page);
+  state.shop.coins = 20_000;
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`${baseURL}/loja`);
+  await page
+    .getByRole("button", { name: "Ativar tema claro", exact: true })
+    .click();
+  for (const [width, height, itemName] of [
+    [320, 568, "Pacote de 10 dicas"],
+    [800, 900, "Nome esmeralda"],
+    [1440, 900, "Cidade Neon"],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    const card = page.locator("article").filter({
+      has: page.getByRole("heading", { name: itemName, exact: true }),
+    });
+    await card.getByRole("button", { name: "Comprar", exact: true }).click();
+    await page.getByRole("button", { name: /Comprar por/ }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await fits(page);
+    expect(
+      await dialog.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (await dialog.locator(".purchase-celebration-confirmed").boundingBox())
+        ?.y,
+    ).toBeGreaterThanOrEqual(0);
+    await dialog
+      .getByRole("button", { name: "Continuar na loja" })
+      .scrollIntoViewIfNeeded();
+    await expect(
+      dialog.getByRole("button", { name: "Continuar na loja" }),
+    ).toBeInViewport();
+    await page.screenshot({
+      path: `/tmp/rods-purchase-light-${width}-${info.project.name}.png`,
+    });
+    await dialog.getByRole("button", { name: "Continuar na loja" }).click();
+  }
 });
 test("email signup preserves visitor session and requests no password before confirmation", async ({
   page,

@@ -10,6 +10,10 @@ Validação local: 511 testes unitários, seis fixtures SQL em PostgreSQL real e
 
 Backup anterior à atualização em `backups/2026-10-03-before-shop-v2/`, ignorado pelo Git: esquema e dados criptografados, com leitura por descriptografia e hashes verificados. O dump de dados contém perfis, economia e estudo; Auth, sessões BFF e feedback foram excluídos conforme autorização do usuário. Restauração e cópia externa não foram ensaiadas. Cadastro e recuperação continuam desativados; o convite Discord permanece opcional.
 
+### Celebrações de compra — 3 de outubro de 2026
+
+Nova interface de celebração em tela inteira, com 27 cenas próprias por item comprável, abertura somente após compra confirmada, revelação de 2,8 segundos e controles para pular/fechar. Movimento reduzido, foco, cenas, erros e confirmação idempotente validados em 28 testes de navegador; 518 testes unitários, tipos, lint, formatação e build aprovados. Inspeção visual em telas de 320 a 1440 px e temas claro/escuro. Detalhes em [celebrações de compra](purchase-celebrations-2026-10-03.md). Atualização exclusivamente de interface, sem migração, mudança de autenticação ou de saldo.
+
 ## Executor confirmado — 2 de outubro de 2026
 
 O executor foi recuperado nesta máquina e reconectado ao projeto Supabase existente. Em produção, uma nova sessão visitante executou Python e submeteu `sum-two-integers`: aprovação oficial e 100 XP confirmados. As dez linguagens de programação continuam no seletor; JavaScript e TypeScript também mantêm a prática no navegador. Todas as linguagens de programação e SQL passaram pela homologação local da imagem recuperada. Veja o [registro da recuperação](executor-recovery-2026-10-02.md) para evidências, limites e dependência deste computador/Docker. Os registros de indisponibilidade abaixo descrevem o estado anterior à reconexão.

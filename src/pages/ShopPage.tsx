@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import {
 import type { ShopItem, ShopState } from "../lib/contracts";
 import { GatewayError } from "../lib/contracts";
 import { useGateway } from "../lib/gateway-context";
+import PurchaseCelebration from "../components/PurchaseCelebration";
 import {
   CosmeticAvatar,
   cosmeticNameColor,
@@ -178,14 +179,25 @@ export default function ShopPage() {
   const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
   const [operation, setOperation] = useState<Operation | null>(null);
   const [notice, setNotice] = useState("");
+  const [celebration, setCelebration] = useState<{
+    item: ShopItem;
+    displayName: string;
+  } | null>(null);
+  const lastCelebratedKey = useRef<string | null>(null);
+  const closeCelebration = useCallback(() => setCelebration(null), []);
   const submitting = useRef(false);
   const confirmationHeading = useRef<HTMLHeadingElement>(null);
   const previewHeading = useRef<HTMLHeadingElement>(null);
   const operationTrigger = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (operation) confirmationHeading.current?.focus();
-    else operationTrigger.current?.focus();
-  }, [operation]);
+    else if (!celebration) {
+      const trigger = operationTrigger.current;
+      if (trigger?.isConnected && !trigger.matches(":disabled"))
+        trigger.focus();
+      else if (trigger) document.getElementById("main-content")?.focus();
+    }
+  }, [operation, celebration]);
   useEffect(() => {
     if (previewItem) previewHeading.current?.focus();
   }, [previewItem]);
@@ -217,6 +229,21 @@ export default function ShopPage() {
             ? `${request.item.hintCount ?? 1} ${request.item.hintCount === 1 || !request.item.hintCount ? "dica adicionada" : "dicas adicionadas"} ao seu saldo.`
             : `${request.item.name} adicionado ao inventário.`,
       );
+      if (
+        request.kind === "purchase" &&
+        lastCelebratedKey.current !== request.key
+      ) {
+        const confirmedItem = shop.items.find(
+          (item) => item.id === request.item.id,
+        );
+        if (confirmedItem) {
+          lastCelebratedKey.current = request.key;
+          setCelebration({
+            item: confirmedItem,
+            displayName: dashboard.data?.profile.displayName ?? "Você",
+          });
+        }
+      }
       setOperation(null);
     },
     onSettled: () => {
@@ -234,17 +261,32 @@ export default function ShopPage() {
     },
   });
 
+  const purchaseCelebration = celebration && (
+    <PurchaseCelebration
+      item={celebration.item}
+      displayName={celebration.displayName}
+      onClose={closeCelebration}
+    />
+  );
   if (dashboard.isPending || shopQuery.isPending)
-    return <LoadingState label="Carregando sua loja…" />;
+    return (
+      <>
+        <LoadingState label="Carregando sua loja…" />
+        {purchaseCelebration}
+      </>
+    );
   if (dashboard.isError || shopQuery.isError)
     return (
-      <ErrorState
-        error={dashboard.error || shopQuery.error}
-        retry={() => {
-          void dashboard.refetch();
-          void shopQuery.refetch();
-        }}
-      />
+      <>
+        <ErrorState
+          error={dashboard.error || shopQuery.error}
+          retry={() => {
+            void dashboard.refetch();
+            void shopQuery.refetch();
+          }}
+        />
+        {purchaseCelebration}
+      </>
     );
   const data = dashboard.data;
   const shop = shopQuery.data;
@@ -293,7 +335,7 @@ export default function ShopPage() {
     mutation.error.status >= 400 &&
     mutation.error.status < 500;
   function choose(item: ShopItem, kind: Operation["kind"]) {
-    if (operation || submitting.current || guest) return;
+    if (operation || celebration || submitting.current || guest) return;
     operationTrigger.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
@@ -312,7 +354,7 @@ export default function ShopPage() {
     submitting.current = true;
     mutation.mutate(operation);
   }
-  return (
+  const shopContent = (
     <div className="shop-page">
       <PageHeading
         eyebrow="CONQUISTE · COLECIONE · PERSONALIZE"
@@ -801,5 +843,11 @@ export default function ShopPage() {
         presenteiam uma chama.
       </p>
     </div>
+  );
+  return (
+    <>
+      {shopContent}
+      {purchaseCelebration}
+    </>
   );
 }
