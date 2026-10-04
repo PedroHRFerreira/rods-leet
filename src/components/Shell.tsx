@@ -147,7 +147,7 @@ export default function Shell({ children }: { children?: ReactNode }) {
 
   return (
     <div className="app-shell">
-      {guideOpen && (
+      {guideOpen && location.pathname !== "/privacidade" && (
         <WelcomeGuide
           onClose={() => {
             try {
@@ -364,6 +364,7 @@ export default function Shell({ children }: { children?: ReactNode }) {
           </span>
           <span>Programação se aprende praticando.</span>
           <span>Beta · 2026</span>
+          <Link to="/privacidade">Privacidade</Link>
         </footer>
       </div>
       <nav className="mobile-bottom-nav" aria-label="Atalhos de navegação">

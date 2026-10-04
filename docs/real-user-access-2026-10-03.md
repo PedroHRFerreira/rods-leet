@@ -40,6 +40,12 @@ Na inspeção direcionada dos imports de `src` e de `vite.config.ts`, não foram
 
 O usuário pediu que o domínio comprado `rodsleet.com` seja usado. Antes de liberar esse endereço, a origem do BFF, o retorno OAuth permitido no Supabase e a configuração do domínio no Cloudflare precisam concordar. O BFF rejeita um hostname diferente de `APP_ORIGIN`; portanto, trocar a origem sem redirecionar o hostname antigo pode deixar o frontend antigo sem acesso aos dados. O callback do cliente Google permanece no Supabase, mesmo quando o endereço público do aplicativo muda para `rodsleet.com`.
 
+### Página pública de privacidade
+
+A página `/privacidade` foi revisada contra a identificação do usuário no servidor e o armazenamento de rascunhos no gateway. O texto descreve os dados de estudo, ranking, cookies, infraestrutura e convite opcional ao Discord; não declara certificações, garantias absolutas de segurança nem uso de e-mail transacional.
+
+Chromium acessou `http://127.0.0.1:5209/privacidade` em 320 × 900 e 1280 × 900. Nos dois tamanhos, a página continha quatro subtítulos, um contato `mailto:devpedrohr@gmail.com` e não apresentou rolagem horizontal. Capturas temporárias: `/tmp/rods-privacy-320-content.png` e `/tmp/rods-privacy-1280-content.png`. Foram reportados ao responsável pela implementação: guia de boas-vindas cobrindo a primeira visita, ausência de separação visual entre títulos/parágrafos e precisão do trecho sobre imagem Google (o servidor de perfil utiliza identificador, nome e e-mail; a imagem pode estar nos metadados do provedor). Esta evidência corresponde à versão anterior aos ajustes sugeridos.
+
 ## Evidências e operação atual
 
 Cloudflare confirmou `rodsleet.com` ativo com SSL; uma navegação HTTPS abriu o site. A configuração final usa esse domínio como origem principal e permite exatamente `https://rods-leet.pages.dev` como alias. Cada hostname conserva seus próprios cookies e proteção CSRF; a transação OAuth também vincula o hostname. O endereço antigo permanece acessível para visitantes existentes, sem transferir ou mesclar perfis entre domínios.

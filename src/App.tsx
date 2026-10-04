@@ -13,6 +13,7 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const ShopPage = lazy(() => import("./pages/ShopPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 
 class PageBoundary extends Component<
   { children: ReactNode },
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="perfil" element={<ProfilePage />} />
             <Route path="loja" element={<ShopPage />} />
             <Route path="conta" element={<AuthPage />} />
+            <Route path="privacidade" element={<PrivacyPage />} />
             <Route path="conta/confirmar" element={<AuthPage />} />
             <Route path="conta/senha" element={<AuthPage />} />
             <Route path="feedback" element={<FeedbackPage />} />
