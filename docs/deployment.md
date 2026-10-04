@@ -125,3 +125,16 @@ O fechamento usa `private.close_due_study_weeks()` tanto no cron de segunda às 
 Validações locais adicionais: `python3 scripts/test-database.py` cobre permissões e regras; `python3 scripts/test-economy-concurrency.py` usa conexões simultâneas no PostgreSQL descartável para verificar reenvio, gasto concorrente, item permanente e fechamento semanal. Ambos usam doubles de Cron/PGMQ/pg_net; o agendamento real precisa ser conferido no ambiente publicado. Os fixtures nunca devem ser executados em produção.
 
 Compras, equipagem, metas extras e prêmios exigem conta cadastrada. Preservar `EMAIL_REGISTRATION_ENABLED=false` e `VITE_EMAIL_REGISTRATION_ENABLED=false` enquanto o cadastro permanecer desativado. A comunidade Discord é um convite opcional e não participa da autorização da loja.
+
+
+## Feedback público no Discord
+
+A partir de 4 de outubro de 2026, o formulário não coleta contato por e-mail. Exige confirmação de publicação no canal geral do servidor Rods Leet. O contrato aceita somente categoria, mensagem, `publishToDiscord: true` e desafio opcional; identidade e destino são definidos no servidor. Feedbacks anteriores continuam privados e não são reenviados.
+
+1. Aplicar `202610040001_discord_feedback.sql`; ela desativa o antigo agendamento de e-mail, preserva registros e adiciona uma fila exclusiva para novos feedbacks públicos.
+2. Criar um webhook no canal geral do servidor `1555947225945870508`, canal `1555947226709237912`. Salvar a URL somente no secret `DISCORD_FEEDBACK_WEBHOOK_URL` das Edge Functions. Salvar `DISCORD_FEEDBACK_CHANNEL_ID=1555947226709237912`. Nunca colocar a URL no frontend, Git, logs ou chat.
+3. Publicar `feedback-discord` e o endpoint aposentado `feedback-mail` com `verify_jwt=false`; o primeiro exige o segredo do coordenador e o segundo retorna 410 sem enviar e-mail. Publicar a API atualizada antes do frontend.
+4. Após validar credenciais e destino, ativar `private.settings.feedback_discord_enabled=true`. O job `rods-feedback-discord` consulta a fila a cada minuto. O worker verifica servidor e canal antes de reivindicar um registro, desativa menções e pede confirmação ao Discord com `wait=true`.
+5. Enviar um feedback de teste pelo domínio oficial e conferir a mensagem e o protocolo no canal geral. Registro na API significa entrada na fila; a interface não afirma que a mensagem já foi publicada.
+
+Falhas após reivindicar o registro deixam a entrega como `uncertain`, sem reenvio automático. Antes de qualquer intervenção manual, conferir o protocolo no Discord para evitar duplicação. Desativar a flag pausa a fila; nunca alterar feedback antigo para destino público. A URL de webhook permite publicar no canal e deve ser revogada e substituída se exposta. Integração baseada na [documentação oficial de webhooks Discord](https://docs.discord.com/developers/resources/webhook#execute-webhook).

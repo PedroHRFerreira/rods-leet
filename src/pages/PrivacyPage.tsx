@@ -14,7 +14,7 @@ export default function PrivacyPage() {
       <h1 style={{ fontSize: 28, fontWeight: 700 }}>
         Privacidade no Rods Leet
       </h1>
-      <p>Atualizado em 3 de outubro de 2026.</p>
+      <p>Atualizado em 4 de outubro de 2026.</p>
       <h2 style={{ fontSize: 20, fontWeight: 600, marginTop: 12 }}>
         Conta e estudo
       </h2>
@@ -61,6 +61,25 @@ export default function PrivacyPage() {
         conta no Rods Leet. Mensagens e dados fornecidos ao Discord são tratados
         naquele serviço. O Rods Leet não utiliza Brevo para cadastro ou
         recuperação por e-mail nesta versão.
+      </p>
+      <h2 style={{ fontSize: 20, fontWeight: 600, marginTop: 12 }}>
+        Feedback público no Discord
+      </h2>
+      <p>
+        Ao confirmar a publicação no formulário de feedback, você autoriza o
+        envio do tipo, da mensagem e do nome público do seu perfil ao canal
+        geral do servidor Rods Leet no Discord. O link do desafio também será
+        compartilhado se você marcar essa opção. Essas informações ficam
+        visíveis à comunidade e são tratadas pelo Discord conforme suas próprias
+        políticas. Evite incluir informações pessoais, senhas ou outros dados
+        sensíveis na mensagem.
+      </p>
+      <p>
+        O formulário não solicita e-mail de contato. Guardamos o feedback, o
+        protocolo e o histórico de entrega no sistema para acompanhar falhas e
+        evitar reenvios indevidos. O protocolo confirma o registro; a publicação
+        no Discord depende da conclusão da entrega. Feedbacks anteriores a essa
+        mudança permanecem privados e não serão publicados no servidor.
       </p>
       <h2 style={{ fontSize: 20, fontWeight: 600, marginTop: 12 }}>
         Controle dos seus dados

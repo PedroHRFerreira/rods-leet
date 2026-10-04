@@ -14,7 +14,9 @@ export function validateProductFeedback(value: unknown): FeedbackValidation {
   if (
     Object.keys(data).some(
       (key) =>
-        !["category", "message", "contactEmail", "challengeId"].includes(key),
+        !["category", "message", "publishToDiscord", "challengeId"].includes(
+          key,
+        ),
     )
   )
     return fail("O feedback contém campos não permitidos.");
@@ -40,17 +42,13 @@ export function validateProductFeedback(value: unknown): FeedbackValidation {
     message.length > FEEDBACK_MAX_LENGTH
   )
     return fail("A mensagem deve ter entre 10 e 4.000 caracteres.");
-  const input: ProductFeedbackInput = { category: data.category, message };
-  if (data.contactEmail !== undefined) {
-    if (typeof data.contactEmail !== "string")
-      return fail("Informe um e-mail válido ou deixe o campo vazio.");
-    const email = data.contactEmail.trim();
-    if (email) {
-      if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-        return fail("Informe um e-mail válido ou deixe o campo vazio.");
-      input.contactEmail = email;
-    }
-  }
+  if (data.publishToDiscord !== true)
+    return fail("Confirme que sua mensagem ficará pública no Discord.");
+  const input: ProductFeedbackInput = {
+    category: data.category,
+    message,
+    publishToDiscord: true,
+  };
   if (data.challengeId !== undefined) {
     if (
       typeof data.challengeId !== "string" ||

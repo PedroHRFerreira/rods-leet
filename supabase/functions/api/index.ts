@@ -158,17 +158,16 @@ export async function handler(request: Request): Promise<Response> {
         throw new ApiError("invalid_feedback", 400, validated.error);
       const input = validated.input;
       const receipt = await db.rpc<ProductFeedbackReceipt>(
-        "submit_product_feedback",
+        "submit_discord_feedback",
         {
           p_user: user.id,
           p_category: input.category,
           p_message: input.message,
-          p_contact_email: input.contactEmail ?? null,
           p_challenge: input.challengeId ?? null,
           p_key: idempotencyKey(request),
         },
       );
-      // Only a durable database receipt can confirm delivery to the UI.
+      // A durable receipt confirms registration, not asynchronous Discord publication.
       if (
         !receipt ||
         typeof receipt.protocol !== "string" ||

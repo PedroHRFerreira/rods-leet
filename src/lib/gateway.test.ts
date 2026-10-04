@@ -359,6 +359,7 @@ describe("validated server receipts", () => {
     const input = {
       category: "suggestion" as const,
       message: "Uma sugestão para o produto.",
+      publishToDiscord: true as const,
     };
     await expect(
       gateway.createFeedback(input, "stable-key"),
@@ -382,20 +383,32 @@ describe("validated server receipts", () => {
       invalid.gateway.createFeedback(input, "key"),
     ).rejects.toMatchObject({ code: "invalid_response" });
   });
-  test("feedback validation prevents sending client identity or attachments", async () => {
-    const { gateway, fetchMock } = setup(() => respond({}));
-    await expect(
-      gateway.createFeedback(
-        {
-          category: "praise",
-          message: "Gostei das perguntas iniciais.",
-          userId: "someone",
-        } as never,
-        "key",
-      ),
-    ).rejects.toMatchObject({ code: "invalid_feedback" });
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
+  test.each([
+    { userId: "someone" },
+    { displayName: "Forged name" },
+    { webhookUrl: "https://discord.com/api/webhooks/forged" },
+    { attachments: ["media"] },
+    { contactEmail: "private@example.com" },
+    { publishToDiscord: undefined },
+    { publishToDiscord: false },
+  ])(
+    "feedback rejects private legacy data or forged fields before transport: %j",
+    async (fields) => {
+      const { gateway, fetchMock } = setup(() => respond({}));
+      await expect(
+        gateway.createFeedback(
+          {
+            category: "praise",
+            message: "Gostei das perguntas iniciais.",
+            publishToDiscord: true,
+            ...fields,
+          } as never,
+          "key",
+        ),
+      ).rejects.toMatchObject({ code: "invalid_feedback" });
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("draft persistence and concurrent edits", () => {

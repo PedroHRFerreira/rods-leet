@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { challenges } from "../content/catalog";
 import { ErrorState, LoadingState, PageHeading } from "../components/ui";
+import { FeedbackDiscordNotice } from "../components/FeedbackDiscordNotice";
 import { useGateway } from "../lib/gateway-context";
 import {
   GatewayError,
@@ -28,7 +29,7 @@ export default function FeedbackPage() {
   });
   const [category, setCategory] = useState<FeedbackCategory>("suggestion");
   const [message, setMessage] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+  const [publishToDiscord, setPublishToDiscord] = useState(false);
   const [includeChallenge, setIncludeChallenge] = useState(false);
   const [sending, setSending] = useState(false);
   const [uncertain, setUncertain] = useState(false);
@@ -70,7 +71,7 @@ export default function FeedbackPage() {
       const result = validateProductFeedback({
         category,
         message,
-        contactEmail,
+        publishToDiscord,
         ...(includeChallenge && challenge ? { challengeId: challenge.id } : {}),
       });
       if (!result.ok) {
@@ -148,7 +149,7 @@ export default function FeedbackPage() {
         <section className="panel account-panel feedback-receipt">
           <div ref={statusRef} tabIndex={-1} role="status">
             <h2>Feedback recebido</h2>
-            <p>Sua mensagem foi registrada.</p>
+            <FeedbackDiscordNotice queued />
             <p>
               Protocolo: <strong>{receipt.protocol}</strong>
             </p>
@@ -217,24 +218,6 @@ export default function FeedbackPage() {
                   {message.trim().length.toLocaleString("pt-BR")} / 4.000
                 </p>
               </div>
-              <div className="feedback-field">
-                <label htmlFor="feedback-email">
-                  E-mail para contato (opcional)
-                </label>
-                <input
-                  id="feedback-email"
-                  type="email"
-                  autoComplete="email"
-                  maxLength={254}
-                  value={contactEmail}
-                  onChange={(event) => setContactEmail(event.target.value)}
-                  aria-describedby="feedback-email-help"
-                />
-                <p id="feedback-email-help">
-                  Informe apenas se quiser compartilhar um contato. O registro
-                  não garante resposta por e-mail.
-                </p>
-              </div>
               {challenge && (
                 <label className="feedback-context">
                   <input
@@ -247,12 +230,23 @@ export default function FeedbackPage() {
                   Incluir o desafio “{challenge.title}” nesta mensagem
                 </label>
               )}
+              <FeedbackDiscordNotice
+                displayName={dashboard.data?.profile.displayName}
+              />
+              <label className="feedback-context">
+                <input
+                  id="feedback-public-consent"
+                  type="checkbox"
+                  checked={publishToDiscord}
+                  onChange={(event) =>
+                    setPublishToDiscord(event.target.checked)
+                  }
+                  aria-describedby="feedback-public-help"
+                  required
+                />
+                Concordo em publicar este feedback no canal geral do Discord.
+              </label>
             </fieldset>
-            <p>
-              Sua mensagem será vinculada à sessão atual. Evite senhas e outros
-              dados sensíveis. Anexos e atendimento por e-mail ainda não estão
-              disponíveis.
-            </p>
             {error && (
               <div
                 className="feedback-status error-state"

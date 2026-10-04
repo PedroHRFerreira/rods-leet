@@ -284,7 +284,7 @@ export type FeedbackCategory = "suggestion" | "criticism" | "praise";
 export interface ProductFeedbackInput {
   category: FeedbackCategory;
   message: string;
-  contactEmail?: string;
+  publishToDiscord: true;
   challengeId?: string;
 }
 /** Issued only after the server durably stores the feedback. */

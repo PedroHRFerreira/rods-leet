@@ -6,53 +6,72 @@ describe("product feedback boundary", () => {
     for (const control of [0, 1, 8, 11, 12, 31, 127])
       expect(
         validateProductFeedback({
+          publishToDiscord: true,
           category: "suggestion",
           message: `Melhorar ${String.fromCharCode(control)} a busca`,
         }).ok,
       ).toBe(false);
     expect(
       validateProductFeedback({
+        publishToDiscord: true,
         category: "suggestion",
         message: "Melhorar\t a busca\n e os filtros\r\n",
       }).ok,
     ).toBe(true);
   });
-  it("normalizes text and optional contact without adding identity", () => {
+  it("normalizes public text without accepting contact or identity", () => {
     expect(
       validateProductFeedback({
         category: "suggestion",
         message: "  Melhorar a busca  ",
-        contactEmail: "  learner@example.com  ",
         challengeId: "concept-values",
+        publishToDiscord: true,
       }),
     ).toEqual({
       ok: true,
       input: {
         category: "suggestion",
         message: "Melhorar a busca",
-        contactEmail: "learner@example.com",
         challengeId: "concept-values",
+        publishToDiscord: true,
       },
     });
-    expect(
-      validateProductFeedback({
-        category: "praise",
-        message: "Gostei muito disso",
-        contactEmail: "  ",
-      }),
-    ).toEqual({
-      ok: true,
-      input: { category: "praise", message: "Gostei muito disso" },
-    });
+  });
+  it("requires explicit public consent and rejects legacy private submissions", () => {
+    for (const publishToDiscord of [undefined, false, null, "true", 1])
+      expect(
+        validateProductFeedback({
+          category: "praise",
+          message: "Gostei muito disso",
+          publishToDiscord,
+        }).ok,
+      ).toBe(false);
+    for (const contactEmail of ["learner@example.com", "", undefined])
+      expect(
+        validateProductFeedback({
+          category: "praise",
+          message: "Gostei muito disso",
+          publishToDiscord: true,
+          contactEmail,
+        }).ok,
+      ).toBe(false);
   });
   it("enforces message bounds after trimming", () => {
     for (const message of ["         ", "short", "x".repeat(4001)])
       expect(
-        validateProductFeedback({ category: "criticism", message }).ok,
+        validateProductFeedback({
+          category: "criticism",
+          message,
+          publishToDiscord: true,
+        }).ok,
       ).toBe(false);
     for (const message of ["x".repeat(10), "x".repeat(4000)])
       expect(
-        validateProductFeedback({ category: "criticism", message }).ok,
+        validateProductFeedback({
+          category: "criticism",
+          message,
+          publishToDiscord: true,
+        }).ok,
       ).toBe(true);
   });
   it("rejects spoofed identity, media and unknown fields", () => {
@@ -65,6 +84,7 @@ describe("product feedback boundary", () => {
     ])
       expect(
         validateProductFeedback({
+          publishToDiscord: true,
           category: "suggestion",
           message: "Melhorar a busca",
           [key]: "value",
@@ -79,12 +99,14 @@ describe("product feedback boundary", () => {
       { category: "bug", message: "Melhorar a busca" },
       { category: "praise", message: 42 },
       {
+        publishToDiscord: true,
         category: "praise",
         message: "Gostei muito disso",
         contactEmail: "invalid",
       },
       { category: "praise", message: "Gostei muito disso", contactEmail: null },
       {
+        publishToDiscord: true,
         category: "praise",
         message: "Gostei muito disso",
         challengeId: "../private",

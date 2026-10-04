@@ -103,8 +103,13 @@ async function open(page: Page) {
   ).toBeVisible();
 }
 const message = "Gostaria de mais exemplos para praticar este conceito.";
+const publicConsent = (page: Page) =>
+  page.getByRole("checkbox", {
+    name: "Concordo em publicar este feedback no canal geral do Discord.",
+    exact: true,
+  });
 
-test("persists text with optional contact and explicit context and shows only a confirmed protocol", async ({
+test("queues public feedback with explicit consent and context and shows only a confirmed protocol", async ({
   page,
 }, info) => {
   const sent = await setup(page);
@@ -112,12 +117,15 @@ test("persists text with optional contact and explicit context and shows only a 
   await expect(
     page.getByRole("checkbox", { name: /Incluir o desafio/ }),
   ).not.toBeChecked();
-  await expect(page.getByText(/não garante resposta por e-mail/)).toBeVisible();
+  await expect(page.locator('input[type="email"]')).toHaveCount(0);
+  await expect(page.getByLabel(/E-mail para contato/)).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Seu feedback será público no Discord" }),
+  ).toBeVisible();
+  await expect(publicConsent(page)).not.toBeChecked();
   await page.getByLabel("Mensagem", { exact: true }).fill(message);
   await page.getByLabel("Tipo de feedback").selectOption("praise");
-  await page
-    .getByLabel("E-mail para contato (opcional)")
-    .fill("user@example.test");
+  await publicConsent(page).check();
   await page.getByRole("checkbox", { name: /Incluir o desafio/ }).check();
   await page
     .getByRole("button", { name: "Enviar feedback", exact: true })
@@ -132,10 +140,19 @@ test("persists text with optional contact and explicit context and shows only a 
   expect(sent[0].body).toEqual({
     category: "praise",
     message,
-    contactEmail: "user@example.test",
+    publishToDiscord: true,
     challengeId: "concept-values",
   });
   expect(sent[0].key).toMatch(/^[a-f0-9-]{36}$/);
+  await expect(page.getByRole("status")).toContainText("fila de publicação");
+  await expect(page.getByRole("status")).toContainText(
+    "O protocolo confirma o recebimento",
+  );
+  await expect(
+    page.getByText(
+      /publicado com sucesso|mensagem publicada|enviado ao Discord/i,
+    ),
+  ).toHaveCount(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -154,11 +171,12 @@ test("persists text with optional contact and explicit context and shows only a 
   });
 });
 
-test("rejects short text and invalid optional email without a feedback request", async ({
+test("rejects short text and missing public consent without a feedback request", async ({
   page,
 }) => {
   const sent = await setup(page);
   await open(page);
+  await publicConsent(page).check();
   await page.getByLabel("Mensagem", { exact: true }).fill("curto");
   await page
     .getByRole("button", { name: "Enviar feedback", exact: true })
@@ -166,11 +184,11 @@ test("rejects short text and invalid optional email without a feedback request",
   await expect(page.getByRole("alert")).toContainText("entre 10 e 4.000");
   expect(sent).toHaveLength(0);
   await page.getByLabel("Mensagem", { exact: true }).fill(message);
-  await page.getByLabel("E-mail para contato (opcional)").fill("invalid-email");
+  await publicConsent(page).uncheck();
   await page
     .getByRole("button", { name: "Enviar feedback", exact: true })
     .click();
-  await expect(page.getByRole("alert")).toContainText("e-mail válido");
+  await expect(page.getByRole("alert")).toContainText(/confirme|confirmação/i);
   expect(sent).toHaveLength(0);
 });
 
@@ -179,6 +197,7 @@ test("a lost reply preserves and locks the message and reuses its key on retry",
 }, info) => {
   const sent = await setup(page, "drop");
   await open(page);
+  await publicConsent(page).check();
   await page.getByLabel("Mensagem", { exact: true }).fill(message);
   await page
     .getByRole("button", { name: "Enviar feedback", exact: true })
@@ -188,6 +207,7 @@ test("a lost reply preserves and locks the message and reuses its key on retry",
     page.getByRole("heading", { name: "Feedback recebido" }),
   ).toHaveCount(0);
   await expect(page.getByLabel("Mensagem", { exact: true })).toBeDisabled();
+  await expect(publicConsent(page)).toBeDisabled();
   await expect(page.getByLabel("Mensagem", { exact: true })).toHaveValue(
     message,
   );
@@ -215,7 +235,11 @@ test("a lost reply preserves and locks the message and reuses its key on retry",
   ).toBeVisible();
   expect(sent).toHaveLength(2);
   expect(sent[1]).toEqual(sent[0]);
-  expect(sent[0].body).toEqual({ category: "suggestion", message });
+  expect(sent[0].body).toEqual({
+    category: "suggestion",
+    message,
+    publishToDiscord: true,
+  });
 });
 
 test("quota cooldown prevents immediate retries and then preserves the delivery key", async ({
@@ -224,6 +248,7 @@ test("quota cooldown prevents immediate retries and then preserves the delivery 
   await page.clock.install();
   const sent = await setup(page, "quota");
   await open(page);
+  await publicConsent(page).check();
   await page.getByLabel("Mensagem", { exact: true }).fill(message);
   await page
     .getByRole("button", { name: "Enviar feedback", exact: true })
@@ -251,6 +276,7 @@ test("a malformed receipt keeps delivery uncertain and does not celebrate succes
 }) => {
   const sent = await setup(page, "malformed");
   await open(page);
+  await publicConsent(page).check();
   await page.getByLabel("Mensagem", { exact: true }).fill(message);
   await page
     .getByRole("button", { name: "Enviar feedback", exact: true })
@@ -260,6 +286,7 @@ test("a malformed receipt keeps delivery uncertain and does not celebrate succes
     page.getByRole("heading", { name: "Feedback recebido" }),
   ).toHaveCount(0);
   await expect(page.getByLabel("Mensagem", { exact: true })).toBeDisabled();
+  await expect(publicConsent(page)).toBeDisabled();
   await page
     .getByRole("button", { name: "Tentar novamente", exact: true })
     .click();

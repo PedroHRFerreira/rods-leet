@@ -51,3 +51,7 @@ verify_jwt = false
 [functions.feedback-mail]
 verify_jwt = false
 # Internal cron uses the existing coordinator secret, never a browser endpoint.
+
+[functions.feedback-discord]
+verify_jwt = false
+# Internal cron authenticates with the coordinator secret before touching the outbox.

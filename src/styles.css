@@ -1907,6 +1907,24 @@ textarea::placeholder {
   margin: 3px 0 0;
   accent-color: var(--accent);
 }
+.feedback-discord-notice {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-hover);
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.feedback-discord-notice h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.feedback-discord-notice p {
+  margin: 0;
+}
 .feedback-status {
   display: flex;
   flex-wrap: wrap;

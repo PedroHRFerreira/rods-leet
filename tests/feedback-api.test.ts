@@ -38,7 +38,7 @@ beforeEach(() => {
     githubLogin: null,
   });
   mocks.rpc.mockImplementation(async (name) =>
-    name === "submit_product_feedback" ? receipt : {},
+    name === "submit_discord_feedback" ? receipt : {},
   );
 });
 afterEach(() => {
@@ -60,6 +60,7 @@ function send(
       body: JSON.stringify({
         category: "suggestion",
         message: "Gostaria de mais exemplos.",
+        publishToDiscord: true,
         ...body,
       }),
     }),
@@ -68,16 +69,14 @@ function send(
 
 it("persists text for an anonymous authenticated identity and exposes only its durable receipt", async () => {
   const response = await send({
-    contactEmail: " user@example.com ",
     challengeId: "find-max",
   });
   expect(response.status).toBe(201);
   expect(await response.json()).toEqual(receipt);
-  expect(mocks.rpc).toHaveBeenCalledWith("submit_product_feedback", {
+  expect(mocks.rpc).toHaveBeenCalledWith("submit_discord_feedback", {
     p_user: "anonymous-learner",
     p_category: "suggestion",
     p_message: "Gostaria de mais exemplos.",
-    p_contact_email: "user@example.com",
     p_challenge: "find-max",
     p_key: "feedback-request",
   });
@@ -91,7 +90,12 @@ it.each([
   { category: "other" },
   { message: "short" },
   { message: "x".repeat(4001) },
-  { contactEmail: "invalid" },
+  { contactEmail: "user@example.com" },
+  { publishToDiscord: undefined },
+  { publishToDiscord: false },
+  { publishToDiscord: "true" },
+  { webhookUrl: "https://discord.com/api/webhooks/forged" },
+  { displayName: "Forged profile name" },
   { challengeId: "../private" },
   { attachments: ["media"] },
   { userId: "other" },
@@ -104,7 +108,7 @@ it.each([
       error: { code: "invalid_feedback" },
     });
     expect(
-      mocks.rpc.mock.calls.some(([name]) => name === "submit_product_feedback"),
+      mocks.rpc.mock.calls.some(([name]) => name === "submit_discord_feedback"),
     ).toBe(false);
   },
 );
@@ -113,7 +117,7 @@ it("requires an idempotency key before saving", async () => {
   const response = await send({}, null);
   expect(response.status).toBe(400);
   expect(
-    mocks.rpc.mock.calls.some(([name]) => name === "submit_product_feedback"),
+    mocks.rpc.mock.calls.some(([name]) => name === "submit_discord_feedback"),
   ).toBe(false);
 });
 
@@ -127,7 +131,7 @@ it("reuses the database receipt when the client retries the same idempotency key
   expect(await (await send({})).json()).toEqual(receipt);
   expect(await (await send({})).json()).toEqual(receipt);
   expect(
-    mocks.rpc.mock.calls.filter(([name]) => name === "submit_product_feedback"),
+    mocks.rpc.mock.calls.filter(([name]) => name === "submit_discord_feedback"),
   ).toHaveLength(2);
 });
 
@@ -135,7 +139,7 @@ it.each(["feedback_hourly_limit", "feedback_daily_limit"])(
   "propagates the atomic quota %s without reporting success",
   async (code) => {
     mocks.rpc.mockImplementation(async (name) => {
-      if (name === "submit_product_feedback") throw new ApiError(code, 409);
+      if (name === "submit_discord_feedback") throw new ApiError(code, 409);
       return {};
     });
     const response = await send({});
@@ -149,7 +153,7 @@ it.each(["idempotency_conflict", "challenge_not_found"])(
   "does not claim receipt for a rejected database write: %s",
   async (code) => {
     mocks.rpc.mockImplementation(async (name) => {
-      if (name === "submit_product_feedback") throw new ApiError(code, 409);
+      if (name === "submit_discord_feedback") throw new ApiError(code, 409);
       return {};
     });
     const response = await send({});
@@ -167,7 +171,7 @@ it.each([
   "does not invent a receipt when persistence returns an invalid result %j",
   async (result) => {
     mocks.rpc.mockImplementation(async (name) =>
-      name === "submit_product_feedback" ? result : {},
+      name === "submit_discord_feedback" ? result : {},
     );
     const response = await send({});
     expect(response.status).toBe(500);
@@ -179,7 +183,7 @@ it.each([
 
 it("returns a failure if the persistence service is unreachable", async () => {
   mocks.rpc.mockImplementation(async (name) => {
-    if (name === "submit_product_feedback") throw new Error("offline");
+    if (name === "submit_discord_feedback") throw new Error("offline");
     return {};
   });
   expect((await send({})).status).toBe(500);
