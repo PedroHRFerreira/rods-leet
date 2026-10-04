@@ -1,21 +1,21 @@
 # Validação da produção — 3 de outubro de 2026
 
-URL oficial: https://rodsleet.com. Produção publicada pelo Wrangler; último artefato funcional verificado: `23ec31d0`. Fonte: `fefaa06`.
+URL oficial: https://rodsleet.com. Produção publicada pelo Wrangler; último artefato funcional verificado: `1ab69f3f`. Fonte: `6ecedd6`.
 
 ## Resultados reais no domínio oficial
 
-| Fluxo                 | Resultado observado                                                                                                                                                                                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HTTPS e rotas diretas | Conta, privacidade, painel, desafios, trilhas, ranking, loja, perfil e feedback carregaram.                                                                                                                                                                                     |
-| Sessão visitante      | Perfil estável entre telas e recarregamentos no domínio oficial. O domínio antigo mantém sessão própria.                                                                                                                                                                        |
-| Submissão JavaScript  | `sum-two-integers` aprovado pela avaliação oficial; 100 XP e 10 moedas persistidos. Após aprovação, o botão não permite ganhar novamente a recompensa.                                                                                                                          |
-| Questionário          | `concept-values` aprovado; mais 20 XP e 10 moedas; progresso atualizado.                                                                                                                                                                                                        |
-| Busca                 | Busca global por “soma” abriu catálogo filtrado com oito resultados, incluindo desafio concluído.                                                                                                                                                                               |
-| Loja                  | Catálogo, ofertas, coleções, metas e prévia de Cidade Neon funcionaram; compras de visitantes permanecem bloqueadas. Aviso antigo de cadastro desativado corrigido para reconhecer Google.                                                                                      |
-| Ranking               | Semanal e geral carregaram; prêmios de 500/350/250/150/100 moedas e regras de elegibilidade visíveis. Não antecipamos fechamento nem concedemos premiações manualmente.                                                                                                         |
-| Perfil e Discord      | XP e moedas persistidos; convite opcional aponta para `https://discord.gg/6fBryhJTfP`. Não enviamos mensagens à comunidade.                                                                                                                                                     |
-| Feedback              | Mensagem vazia rejeitada antes do envio. Entrega completa validada em suíte isolada, sem enviar mensagem real.                                                                                                                                                                  |
-| Google                | Aplicativo Google em produção; provedor Supabase ativado; verificações de nonce mantidas. Seleção de conta e consentimento funcionaram. Retorno falhou: Auth registra `invalid client` / `The provided client secret is invalid.` A substituição privada exige ação do usuário. |
+| Fluxo                 | Resultado observado                                                                                                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HTTPS e rotas diretas | Conta, privacidade, painel, desafios, trilhas, ranking, loja, perfil e feedback carregaram.                                                                                                                                           |
+| Sessão visitante      | Perfil estável entre telas e recarregamentos no domínio oficial. O domínio antigo mantém sessão própria.                                                                                                                              |
+| Submissão JavaScript  | `sum-two-integers` aprovado pela avaliação oficial; 100 XP e 10 moedas persistidos. Após aprovação, o botão não permite ganhar novamente a recompensa.                                                                                |
+| Questionário          | `concept-values` aprovado; mais 20 XP e 10 moedas; progresso atualizado.                                                                                                                                                              |
+| Busca                 | Busca global por “soma” abriu catálogo filtrado com oito resultados, incluindo desafio concluído.                                                                                                                                     |
+| Loja                  | Catálogo, ofertas, coleções, metas e prévia de Cidade Neon funcionaram; compras de visitantes permanecem bloqueadas. Aviso antigo de cadastro desativado corrigido para reconhecer Google.                                            |
+| Ranking               | Semanal e geral carregaram; prêmios de 500/350/250/150/100 moedas e regras de elegibilidade visíveis. Não antecipamos fechamento nem concedemos premiações manualmente.                                                               |
+| Perfil e Discord      | XP e moedas persistidos; convite opcional aponta para `https://discord.gg/6fBryhJTfP`. Não enviamos mensagens à comunidade.                                                                                                           |
+| Feedback              | Mensagem vazia rejeitada antes do envio. Entrega completa validada em suíte isolada, sem enviar mensagem real.                                                                                                                        |
+| Google                | Após o usuário substituir o Client Secret, o login completou em rodsleet.com. A conta cadastrada existente abriu com 100 XP preservados. Logout encerrou a sessão; nova autenticação retornou ao mesmo perfil, com o mesmo progresso. |
 
 ## Proteções verificadas
 
@@ -33,7 +33,8 @@ Typecheck frontend, typecheck BFF, lint, build e build BFF passaram. Tipos do Wr
 
 ## Limites e pendências
 
-- Login Google completo, criação do perfil registrado, saída/reentrada e compras/equipagem reais por conta cadastrada estão pendentes do Client Secret correto. Não marcar como aprovados.
+- Login Google e saída/reentrada estão aprovados em produção após substituição privada do segredo. Loja da conta cadastrada e inventário vazio carregaram; compras foram bloqueadas por saldo zero. Compra/equipagem reais não foram realizadas nessa conta; esses fluxos passaram na suíte isolada. A primeira autenticação com uma identidade Google inédita não foi exercitada ao vivo, pois o teste abriu uma conta já existente.
+- Desativação do segredo Google antigo permanece como etapa de rotação após validar o novo. Não exportamos nem armazenamos os valores dos segredos no projeto.
 - O executor está em serviço systemd do usuário e túnel Docker. O túnel anterior falhou por conexão IPv6/QUIC; substituído por IPv4/HTTP2 e reconectado ao coordenador. A máquina precisa continuar ligada. O túnel temporário não oferece endereço persistente nem disponibilidade de produção garantida.
 - A tentativa de teste incorreto em produção foi anteriormente bloqueada pela revisão automática por consumir tentativa/reduzir recompensa; os casos negativos foram testados em ambiente isolado.
 - O painel de atividade e a sequência base usam UTC, conforme regra existente; metas e ranking semanal usam Brasília. Não alteramos retroativamente a contagem.
