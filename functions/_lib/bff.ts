@@ -32,12 +32,12 @@ interface Tokens {
 }
 type Environment = Pick<
   BffEnv,
-  | "APP_ORIGIN"
   | "SUPABASE_URL"
   | "SUPABASE_ANON_KEY"
   | "BFF_SHARED_SECRET"
   | "BFF_ENCRYPTION_KEY"
 > & {
+  APP_ORIGIN: string;
   EMAIL_REGISTRATION_ENABLED?: string;
   GOOGLE_LOGIN_ENABLED?: string;
   APP_ORIGIN_ALIASES?: string;
