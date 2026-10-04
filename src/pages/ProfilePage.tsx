@@ -60,7 +60,8 @@ function SubmissionPreferences({ identity }: { identity: string }) {
 export default function ProfilePage() {
   const gateway = useGateway();
   const registrationDisabled =
-    import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false";
+    import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false" &&
+    import.meta.env.VITE_GOOGLE_LOGIN_ENABLED !== "true";
   const queryClient = useQueryClient();
   const signOut = useMutation({
     mutationFn: () => gateway.signOut(),

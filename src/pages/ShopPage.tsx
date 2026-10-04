@@ -377,11 +377,13 @@ export default function ShopPage() {
               Compras, equipagem, metas extras e prêmios semanais exigem conta
               cadastrada.
               {import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false" &&
+                import.meta.env.VITE_GOOGLE_LOGIN_ENABLED !== "true" &&
                 " O cadastro está desativado; novos visitantes ainda não podem comprar."}
             </p>
           </div>
           <Link className="button button-primary" to="/conta">
-            {import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false"
+            {import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false" &&
+            import.meta.env.VITE_GOOGLE_LOGIN_ENABLED !== "true"
               ? "Sobre sua conta"
               : "Entrar ou criar conta"}
           </Link>

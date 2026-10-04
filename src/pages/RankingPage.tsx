@@ -130,7 +130,8 @@ function RankingTable({
 export default function RankingPage() {
   const gateway = useGateway();
   const registrationDisabled =
-    import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false";
+    import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false" &&
+    import.meta.env.VITE_GOOGLE_LOGIN_ENABLED !== "true";
   const [mode, setMode] = useState<"weekly" | "general">("weekly");
   const [now, setNow] = useState(() => Date.now());
   const general = useQuery({
