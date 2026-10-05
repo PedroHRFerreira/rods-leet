@@ -1,5 +1,15 @@
 # Rods Leet — ambiente de testes
 
+## Leitura e edição dos desafios — 5 de outubro de 2026
+
+Atualização aprovada pelo usuário e publicada no commit `0b76f6f`, Pages [391c5efc](https://391c5efc.rods-leet.pages.dev). API versão 57 ativa, com `verify_jwt=true` preservado; 69 definições públicas sincronizadas. Sem migração ou alteração do juiz, autenticação, recompensas e executor.
+
+Enunciados sem código resolvido, detalhes técnicos recolhidos, abas ajustadas e painel de leitura com rolagem independente em desktop. Executar apresenta retorno, saída e erros, sem julgamento de acerto. Submeter mantém a avaliação oficial.
+
+Verificação em sessão visitante nova no domínio `https://rodsleet.com`: `function-double` mostra o enunciado revisado, sem `input * 2`; o modelo incompleto executou e mostrou somente `Retorno da função: 3`, apesar de o exemplo esperar 6, sem mensagem de acerto, conclusão ou XP.
+
+Validação local: 611 testes unitários, fluxos de navegador desktop/mobile, quatro larguras e dois temas, tipos frontend/BFF, lint, formatação e builds aprovados. CI da publicação: [37365356504](https://github.com/PedroHRFerreira/rods-leet/actions/runs/37365356504).
+
 ## Acesso e continuidade publicados — 5 de outubro de 2026
 
 Frontend e BFF publicados na branch de produção `main`, Pages [3c4a3e63](https://3c4a3e63.rods-leet.pages.dev). O domínio `https://rodsleet.com` confirmou os assets `index-C1CfPJ2E.js` e `index-DFczxq-P.css`. API versão 54 ativa com verificação JWT e assinatura BFF preservadas; migrações `202610050001` e `202610050002` aplicadas. O histórico remoto de integridade `202610040002` foi recuperado para o repositório sem reaplicação.
