@@ -37,7 +37,7 @@ describe("published beta catalog", () => {
       );
     }
     for (const challenge of challenges) {
-      expect(challenge.description.length).toBeGreaterThan(80);
+      expect(challenge.description.trim()).not.toBe("");
       if (challenge.kind === "quiz") {
         expect(challenge.languageIds).toEqual([]);
         expect(challenge.starterFilesByLanguage).toEqual({});
@@ -64,13 +64,10 @@ describe("published beta catalog", () => {
         challenge.id === "variable-bonus" ||
         challenge.id === "is-even-integer"
       ) {
-        expect(
-          Object.keys(challenge.descriptionsByLanguage ?? {}),
-        ).toHaveLength(10);
-        for (const language of challenge.languageIds)
-          expect(challenge.descriptionsByLanguage?.[language]).toMatch(
-            /int|number|i32|Int|números/,
-          );
+        expect(challenge.descriptionsByLanguage).toBeUndefined();
+        expect(challenge.description).not.toMatch(
+          /points \+ 10|n % 2|input\.a/,
+        );
       }
       const serialized = JSON.stringify(challenge);
       expect(serialized).not.toContain("isCorrect");
@@ -166,7 +163,9 @@ describe("published beta catalog", () => {
       for (const language of lesson.languageIds) {
         const starter = lesson.starterFilesByLanguage[language]![0];
         expect(starter.content).not.toMatch(/throw|NotImplementedError/);
-        expect(lesson.descriptionsByLanguage?.[language]).toContain("return");
+        expect(
+          lesson.descriptionsByLanguage?.[language] ?? lesson.description,
+        ).not.toMatch(/return input|input \* 2|Troque return/);
         const editorial = getEditorial(lesson.id, language);
         expect(editorial.files[0].path).toBe(starter.path);
         expect(editorial.files[0].content).not.toBe(starter.content);

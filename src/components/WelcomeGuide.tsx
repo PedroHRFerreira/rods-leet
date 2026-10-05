@@ -119,10 +119,10 @@ export default function WelcomeGuide({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <p className="welcome-note">
-              Explore gratuitamente sem login. Crie sua conta para
-              preservar o progresso e acessar suas moedas e itens em outros
-              dispositivos. Sem conta, apagar os dados deste navegador pode
-              fazer você perder o acesso ao progresso.
+              Explore gratuitamente sem login. Crie sua conta para preservar o
+              progresso e acessar suas moedas e itens em outros dispositivos.
+              Sem conta, apagar os dados deste navegador pode fazer você perder
+              o acesso ao progresso.
             </p>
           </>
         )}

@@ -1,55 +1,5 @@
 import type { LanguageId, PublicChallenge } from "../lib/contracts";
 
-const firstSteps: Record<
-  string,
-  { task: string; concept: string; js: string; py: string }
-> = {
-  "literal-number": {
-    task: "Troque o 0 por 7 na linha return.",
-    concept:
-      "Um número não precisa de aspas. return devolve esse valor como resposta.",
-    js: "return 7; // Devolve o número 7.",
-    py: "return 7  # Devolve o número 7.",
-  },
-  "literal-text": {
-    task: 'Escreva "Olá, mundo!" entre as aspas na linha return.',
-    concept: "As aspas indicam onde um texto começa e termina.",
-    js: 'return "Olá, mundo!";',
-    py: 'return "Olá, mundo!"',
-  },
-  "named-value": {
-    task: "Troque o valor de pontos de 0 para 10. Mantenha return pontos.",
-    concept:
-      "Uma variável é um nome para um valor. = guarda o valor; return entrega a resposta.",
-    js: "const pontos = 10;\nreturn pontos;",
-    py: "pontos = 10\nreturn pontos",
-  },
-  "console-and-return": {
-    task: 'Escreva "Estou aprendendo" em mensagem. Clique em Executar código para ver a saída.',
-    concept: "Mostrar uma mensagem e devolver a resposta são ações diferentes.",
-    js: 'const mensagem = "Estou aprendendo";\nconsole.log(mensagem); // Mostra a mensagem.\nreturn mensagem; // Devolve a resposta.',
-    py: 'mensagem = "Estou aprendendo"\nprint(mensagem)  # Mostra a mensagem.\nreturn mensagem  # Devolve a resposta.',
-  },
-  "input-echo": {
-    task: "Troque return 0 por return input para devolver o número recebido.",
-    concept:
-      "input recebe o valor enviado pela aplicação. A mesma função será chamada com valores diferentes.",
-    js: "// Se input recebe 6, esta linha devolve 6.\nreturn input;",
-    py: "# Se input recebe 6, esta linha devolve 6.\nreturn input",
-  },
-  "function-double": {
-    task: "Depois de return, escreva input * 2 para devolver o dobro.",
-    concept:
-      "A função usa a entrada para calcular uma nova resposta. * é o símbolo de multiplicação.",
-    js: "return input * 2;",
-    py: "return input * 2",
-  },
-};
-
-export function firstStepTask(challengeId: string) {
-  return firstSteps[challengeId]?.task;
-}
-
 /** Names differ across runtimes; the starter is the learner's public contract. */
 export function modelFunctionName(
   challenge: PublicChallenge,
@@ -73,7 +23,6 @@ export function FunctionGuide({
   language: LanguageId;
 }) {
   if (challenge.kind === "sql" || language === "sql") return null;
-  const lesson = firstSteps[challenge.id];
   const name = modelFunctionName(challenge, language);
   const source = challenge.starterFilesByLanguage[language]?.[0]?.content ?? "";
   const signature = source
@@ -102,27 +51,13 @@ export function FunctionGuide({
           : exampleInput === null
             ? "Neste passo, a entrada não é usada. Preserve o parâmetro do modelo."
             : "A aplicação fornece o valor de entrada no parâmetro do modelo; não precisa pedir dados pelo teclado.";
-  const helper = javascript
-    ? "const soma = (a, b) => a + b;\n\nexport function solve(input) {\n  return soma(input.a, input.b);\n}"
-    : 'def soma(a, b):\n    return a + b\n\ndef solve(input):\n    return soma(input["a"], input["b"])';
   return (
     <section
       className="function-guide"
       aria-label="Orientação do modelo da função"
     >
       <h3>Entenda o modelo</h3>
-      {lesson && (
-        <div className="function-guide-task">
-          <strong>Neste passo</strong>
-          <p>{lesson.task}</p>
-          <p>{lesson.concept}</p>
-          <pre className="function-guide-code">
-            <code>{language === "python" ? lesson.py : lesson.js}</code>
-          </pre>
-          <small>Use esta orientação para completar o modelo no editor.</small>
-        </div>
-      )}
-      <details className="function-guide-contract" open={!lesson}>
+      <details className="function-guide-contract">
         <summary>Como a função do modelo funciona?</summary>
         <p>
           Mantenha a função <code>{name}</code> do modelo. A aplicação chama
@@ -166,18 +101,6 @@ export function FunctionGuide({
           Uma função com outro nome, chamada manualmente, não substitui a função
           que a aplicação procura.
         </p>
-        {challenge.id === "sum-two-integers" &&
-          (javascript || language === "python") && (
-            <>
-              <p>
-                Você pode criar soma(a, b) e chamá-la dentro de solve. Use os
-                valores recebidos em input, como neste exemplo:
-              </p>
-              <pre className="function-guide-code">
-                <code>{helper}</code>
-              </pre>
-            </>
-          )}
       </details>
     </section>
   );

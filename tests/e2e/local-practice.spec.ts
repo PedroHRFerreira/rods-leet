@@ -267,14 +267,23 @@ test("JS and TS run in real isolated workers without server runs, XP or completi
   );
   await run(page);
   await expect(page.locator(".local-practice-result")).toContainText(
-    "Teste concluído",
+    "Retorno da função",
     { timeout: 15_000 },
   );
   await expect(page.locator(".local-practice-result")).toContainText(
     "browser-js",
   );
   await expect(page.locator(".local-practice-result")).toContainText(
-    "Prática local · sem XP",
+    "Retorno da função",
+  );
+  await expect(page.locator(".local-practice-result")).not.toContainText(
+    /aprov|Passou|Não passou|correto|XP/,
+  );
+  await editor.fill("export function solve(input) { return 999; }");
+  await run(page);
+  await expect(page.locator(".local-practice-result pre")).toHaveText("999");
+  await expect(page.locator(".local-practice-result")).not.toContainText(
+    /aprov|Passou|Não passou|correto|XP/,
   );
   await expect(page.locator(".arena-xp strong")).toHaveText(
     `${challenge.baseXp} XP`,
@@ -295,7 +304,7 @@ test("JS and TS run in real isolated workers without server runs, XP or completi
     );
   await run(page);
   await expect(page.locator(".local-practice-result")).toContainText(
-    "Teste concluído",
+    "Retorno da função",
     { timeout: 15_000 },
   );
   await expect(page.locator(".local-practice-result")).toContainText(
@@ -315,12 +324,12 @@ test("syntax errors and infinite loops remain learner results without remote fal
   await editor.fill("export function solve( {");
   await run(page);
   await expect(page.locator(".local-practice-result")).toContainText(
-    "Confira a escrita do código",
+    "Erro de sintaxe ou tipo",
   );
   await editor.fill("export function solve(input) { while (true) {} }");
   await run(page);
   await expect(page.locator(".local-practice-result")).toContainText(
-    "O teste demorou demais",
+    "Tempo de execução excedido",
     { timeout: 15_000 },
   );
   expect(remote).toHaveLength(0);
@@ -341,7 +350,7 @@ test("syntax errors and infinite loops remain learner results without remote fal
     await typedEditor.fill(source);
     await run(page);
     await expect(page.locator(".local-practice-result")).toContainText(
-      "Confira a escrita do código",
+      "Erro de sintaxe ou tipo",
       { timeout: 15000 },
     );
   }
@@ -356,7 +365,9 @@ test("changing language aborts pending local work and ignores stale replies", as
   await editor.fill("export function solve(input) { while (true) {} }");
   await run(page);
   await expect(
-    page.getByText("Testando no seu dispositivo…", { exact: true }),
+    page
+      .locator(".local-practice-result")
+      .getByText("Executando…", { exact: true }),
   ).toBeVisible();
   await page.getByLabel("Linguagem", { exact: true }).selectOption("python");
   await expect(page.locator(".local-practice-result")).toHaveCount(0);
@@ -374,7 +385,9 @@ test("leaving the page cancels pending local work", async ({ page }) => {
   await editor.fill("export function solve(input) { while (true) {} }");
   await run(page);
   await expect(
-    page.getByText("Testando no seu dispositivo…", { exact: true }),
+    page
+      .locator(".local-practice-result")
+      .getByText("Executando…", { exact: true }),
   ).toBeVisible();
   await page
     .getByRole("link", { name: "Desafios", exact: true })
@@ -418,7 +431,7 @@ test("local success and errors remain readable at responsive boundaries in both 
     );
     await run(page);
     await expect(page.locator(".local-practice-result")).toContainText(
-      "Teste concluído",
+      "Retorno da função",
     );
     for (const theme of ["dark", "light"]) {
       await page.evaluate((theme) => {
@@ -439,7 +452,7 @@ test("local success and errors remain readable at responsive boundaries in both 
     );
     await run(page);
     await expect(page.locator(".local-practice-result")).toContainText(
-      "O teste encontrou um erro",
+      "Erro de execução",
     );
     for (const theme of ["dark", "light"]) {
       await page.evaluate((theme) => {

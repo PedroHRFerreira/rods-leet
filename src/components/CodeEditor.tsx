@@ -109,7 +109,7 @@ export default function CodeEditor({
         />
       ) : (
         <Editor
-          height="380px"
+          height="clamp(320px, 48dvh, 560px)"
           language={
             path.endsWith(".json")
               ? "json"

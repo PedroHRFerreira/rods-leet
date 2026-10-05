@@ -4,8 +4,6 @@ type Lesson = {
   id: string;
   title: string;
   explanation: string;
-  javascript: string;
-  python: string;
   jsBody: string;
   pyBody: string;
   examples: PublicChallenge["examples"];
@@ -18,13 +16,9 @@ const lessons: Lesson[] = [
     id: "literal-number",
     title: "Seu primeiro número",
     explanation:
-      "Neste passo, sua resposta será o número 7. Troque o 0 por 7 na linha return do modelo pronto. return devolve a resposta da função. Escreva o número sem aspas e mantenha as outras linhas.",
-    javascript:
-      "Números ficam sem aspas. Mantenha export function solve(input) e as chaves { }. Troque return 0; por return 7;. export permite que a aplicação encontre solve; a palavra input pode ficar sem uso neste passo.",
-    python:
-      "Números ficam sem aspas. Mantenha def solve(input): e os quatro espaços antes de return. Troque return 0 por return 7. A indentação indica que essa linha pertence à função; input pode ficar sem uso neste passo.",
-    jsBody: "  // Troque somente 0 pelo número pedido.\n  return 0;",
-    pyBody: "    # Troque somente 0 pelo número pedido.\n    return 0",
+      "Crie uma função que devolva o número 7. Este desafio não recebe entrada.",
+    jsBody: "  // Escreva sua solução aqui.\n  return 0;",
+    pyBody: "    # Escreva sua solução aqui.\n    return 0",
     examples: [
       {
         input: null,
@@ -39,11 +33,7 @@ const lessons: Lesson[] = [
     id: "literal-text",
     title: "Seu primeiro texto",
     explanation:
-      "Agora sua resposta será o texto Olá, mundo! Escreva essa mensagem entre as aspas na linha return. Mantenha o acento, a vírgula, o espaço e a exclamação. As aspas marcam o começo e o fim do texto; elas não fazem parte da resposta.",
-    javascript:
-      'Escreva o texto entre aspas simples ou duplas, por exemplo return "Oi";. Mantenha a estrutura export function solve(input) do modelo e substitua apenas o texto vazio.',
-    python:
-      'Escreva o texto entre aspas simples ou duplas, por exemplo return "Oi". Preserve os quatro espaços antes de return e substitua apenas o texto vazio.',
+      "Crie uma função que devolva o texto Olá, mundo! Preserve o acento, a vírgula, o espaço e a exclamação. Este desafio não recebe entrada.",
     jsBody: '  // Preencha o texto entre as aspas.\n  return "";',
     pyBody: '    # Preencha o texto entre as aspas.\n    return ""',
     examples: [
@@ -60,13 +50,11 @@ const lessons: Lesson[] = [
     id: "named-value",
     title: "Dê um nome ao valor",
     explanation:
-      "Uma variável dá um nome a um valor. Troque o valor de pontos de 0 para 10 no modelo. O sinal = guarda o valor nesse nome. return pontos devolve o valor guardado. Para aprovar, a função precisa devolver o número 10.",
-    javascript:
-      "const pontos = 0; cria o nome pontos e guarda 0 nele. return pontos; devolve o valor guardado. Troque somente 0 por 10. const serve quando não vamos atribuir outro valor ao mesmo nome.",
-    python:
-      "pontos = 0 cria o nome pontos e guarda 0 nele. return pontos devolve o valor guardado. Troque somente 0 por 10. As duas linhas ficam com quatro espaços dentro da função.",
-    jsBody: "  // Guarde 10 neste nome.\n  const pontos = 0;\n  return pontos;",
-    pyBody: "    # Guarde 10 neste nome.\n    pontos = 0\n    return pontos",
+      "Uma pontuação inicial vale 10. Guarde essa pontuação na variável pontos e devolva seu valor. Este desafio não recebe entrada.",
+    jsBody:
+      "  // Escreva sua solução aqui.\n  const pontos = 0;\n  return pontos;",
+    pyBody:
+      "    # Escreva sua solução aqui.\n    pontos = 0\n    return pontos",
     examples: [
       {
         input: null,
@@ -81,11 +69,7 @@ const lessons: Lesson[] = [
     id: "console-and-return",
     title: "Veja a mensagem e devolva a resposta",
     explanation:
-      "Escreva Estou aprendendo na variável mensagem. Execute o código para ver essa mensagem na saída. console.log, em JavaScript, e print, em Python, mostram mensagens. return devolve a resposta que será avaliada ao submeter. Mostrar mensagens ajuda a estudar, mas a aprovação depende da resposta devolvida.",
-    javascript:
-      "console.log(mensagem); mostra o valor na saída. return mensagem; entrega o valor para a avaliação. Preencha a variável mensagem com o texto pedido, mantendo ambas as linhas para observar a diferença.",
-    python:
-      "print(mensagem) mostra o valor na saída. return mensagem entrega o valor para a avaliação. Preencha a variável mensagem com o texto pedido, mantendo ambas as linhas para observar a diferença.",
+      "Mostre o texto Estou aprendendo na saída do código e devolva esse mesmo texto como resposta. Este desafio não recebe entrada.",
     jsBody:
       '  // Preencha a mensagem pedida.\n  const mensagem = "";\n  console.log(mensagem); // Mostra para você.\n  return mensagem; // Devolve para a aplicação.',
     pyBody:
@@ -104,14 +88,9 @@ const lessons: Lesson[] = [
     id: "input-echo",
     title: "Conheça o valor de entrada",
     explanation:
-      "Agora sua função recebe um número pelo nome input. Troque return 0 por return input para devolver o número recebido. input é o parâmetro: o nome usado para acessar a entrada. A aplicação chama sua função com diferentes números. Você não precisa pedir dados pelo teclado.",
-    javascript:
-      'Em solve(input), input é o nome do valor recebido. return input; devolve esse valor. Escreva input sem aspas: "input" seria um texto, não o número recebido. Preserve export e o nome solve.',
-    python:
-      'Em def solve(input):, input é o nome do valor recebido. return input devolve esse valor. Escreva input sem aspas: "input" seria um texto. Preserve o nome solve e os quatro espaços da linha return.',
-    jsBody: "  // Devolva o valor recebido, usando o nome input.\n  return 0;",
-    pyBody:
-      "    # Devolva o valor recebido, usando o nome input.\n    return 0",
+      "Receba um número e devolva esse mesmo número, sem modificá-lo.",
+    jsBody: "  // Escreva sua solução aqui.\n  return 0;",
+    pyBody: "    # Escreva sua solução aqui.\n    return 0",
     examples: [
       {
         input: 4,
@@ -132,18 +111,14 @@ const lessons: Lesson[] = [
     id: "function-double",
     title: "Transforme a entrada em uma resposta",
     explanation:
-      "Devolva o dobro do número recebido em input. Depois de return, escreva input * 2. O símbolo * multiplica: 3 * 2 resulta em 6. A aplicação chama sua função com diferentes números. No próximo desafio, você vai somar dois valores recebidos.",
-    javascript:
-      "O operador * multiplica: 3 * 2 vale 6. Use input * 2 depois de return. A função recebe um único número neste passo, então não use input.a. Mantenha export function solve(input); nós chamamos a função por você.",
-    python:
-      "O operador * multiplica: 3 * 2 vale 6. Use input * 2 depois de return. A função recebe um único número neste passo. Mantenha def solve(input): e a indentação; nós chamamos a função por você.",
-    jsBody: "  // Acrescente a multiplicação por 2.\n  return input;",
-    pyBody: "    # Acrescente a multiplicação por 2.\n    return input",
+      "Receba um número e devolva seu dobro. A função deve funcionar para números positivos, negativos e zero.",
+    jsBody: "  // Escreva sua solução aqui.\n  return input;",
+    pyBody: "    # Escreva sua solução aqui.\n    return input",
     examples: [
       {
         input: 3,
         output: 6,
-        explanation: "Recebe 3, calcula 3 * 2 e devolve 6.",
+        explanation: "O dobro de 3 é 6.",
       },
       {
         input: -4,
@@ -170,11 +145,6 @@ export function firstStepChallenges(base: PublicChallenge): PublicChallenge[] {
       versionId: `${lesson.id}:v1`,
       title: lesson.title,
       description: lesson.explanation,
-      descriptionsByLanguage: {
-        javascript: `${lesson.explanation}\n\n${lesson.javascript}`,
-        typescript: `${lesson.explanation}\n\n${lesson.javascript} Em TypeScript, a anotação após input descreve seu tipo; mantenha a anotação do modelo.`,
-        python: `${lesson.explanation}\n\n${lesson.python}`,
-      },
       examples: lesson.examples,
       constraints: lesson.inputType
         ? [

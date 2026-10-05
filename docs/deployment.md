@@ -126,7 +126,6 @@ Validações locais adicionais: `python3 scripts/test-database.py` cobre permiss
 
 Compras, equipagem, metas extras e prêmios exigem conta cadastrada. Preservar `EMAIL_REGISTRATION_ENABLED=false` e `VITE_EMAIL_REGISTRATION_ENABLED=false` enquanto o cadastro permanecer desativado. A comunidade Discord é um convite opcional e não participa da autorização da loja.
 
-
 ## Feedback público no Discord
 
 A partir de 4 de outubro de 2026, o formulário não coleta contato por e-mail. Exige confirmação de publicação no canal geral do servidor Rods Leet. O contrato aceita somente categoria, mensagem, `publishToDiscord: true` e desafio opcional; identidade e destino são definidos no servidor. Feedbacks anteriores continuam privados e não são reenviados.

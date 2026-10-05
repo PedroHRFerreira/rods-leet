@@ -113,10 +113,7 @@ function challenge(
     difficulty,
     description,
     examples,
-    constraints: [
-      ...constraints,
-      "O perfil de execução publicado abaixo informa CPU por caso, compilação e prazo total de segurança.",
-    ],
+    constraints,
     complexityGoal: { time, space },
     kind: "function",
     baseXp: difficulty === "easy" ? 100 : difficulty === "medium" ? 200 : 350,
@@ -135,21 +132,6 @@ const ex = (
   explanation?: string,
 ): Example => ({ input, output, ...(explanation ? { explanation } : {}) });
 
-const beginnerDescriptions = (
-  goal: string,
-): Partial<Record<(typeof allProgrammingLanguages)[number], string>> => ({
-  python: `Em Python, inteiros usam o tipo int. ${goal} Declare valores com =. Na função do modelo, devolva com return.`,
-  javascript: `Em JavaScript, números inteiros usam o tipo number. ${goal} Use const para valores que não serão reatribuídos. Na função do modelo, devolva com return.`,
-  typescript: `Em TypeScript, inteiros usam o tipo number. ${goal} Use const/let e uma anotação como : number se quiser. Na função do modelo, devolva com return.`,
-  java: `Em Java, use o tipo primitivo int. ${goal} Declare com int nome = valor;. Na função do modelo, retorne a resposta do método.`,
-  csharp: `Em C#, use o tipo int. ${goal} Declare com int nome = valor;. Na função do modelo, retorne a resposta do método.`,
-  cpp: `Em C++, use o tipo int. ${goal} Declare com int nome = valor;. Na função do modelo, retorne a resposta.`,
-  c: `Em C, use o tipo int. ${goal} Declare com int nome = valor;. Na função do modelo, retorne a resposta.`,
-  go: `Em Go, inteiros simples usam int. ${goal} Declare com := ou var. Na função do modelo, devolva com return.`,
-  rust: `Em Rust, use i32 para estes inteiros. ${goal} Declare com let. Na função do modelo, devolva a expressão final ou use return.`,
-  kotlin: `Em Kotlin, use Int. ${goal} Declare com val ou var. Na função do modelo, devolva o resultado.`,
-});
-
 const logic: PublicChallenge[] = [
   {
     ...challenge(
@@ -157,7 +139,7 @@ const logic: PublicChallenge[] = [
       "Primeira soma",
       "logic",
       "easy",
-      "Comece pelos inteiros: números sem parte decimal, como −3, 0 e 42. Receba {a, b}, dois inteiros, e retorne sua soma. Este desafio apresenta parâmetros, retorno e o tipo inteiro sem exigir laços ou coleções.",
+      "Receba {a, b}, dois números inteiros, e retorne sua soma.",
       [ex({ a: 2, b: 3 }, 5), ex({ a: -8, b: 8 }, 0)],
       [
         "−1.000.000 ≤ a, b ≤ 1.000.000",
@@ -166,15 +148,6 @@ const logic: PublicChallenge[] = [
       "O(1)",
       "O(1)",
     ),
-    descriptionsByLanguage: {
-      ...beginnerDescriptions("Receba a e b e retorne a soma deles."),
-      javascript:
-        "A entrada é um objeto com dois números: {a, b}. Dentro de solve(input), leia o primeiro com input.a e o segundo com input.b. Calcule a soma e devolva com return. Preserve export e o nome solve: a aplicação chama essa função sozinha com cada entrada. Uma função chamada teste(a, b) não segue o modelo, e chamar teste(2, 3) manualmente não fornece uma resposta para as outras entradas.",
-      typescript:
-        "A entrada é um objeto com dois números: {a, b}. Dentro de solve(input), leia os valores com input.a e input.b. A anotação de tipo do modelo explica que os dois são number. Calcule a soma e devolva com return. Preserve export, o nome solve e a assinatura fornecida: a aplicação chama a função sozinha para cada entrada.",
-      python:
-        'A entrada é um dicionário com dois números: {"a": 2, "b": 3}. Dentro de solve(input), leia os valores com input["a"] e input["b"]. Calcule a soma e devolva com return. Preserve def solve(input): e a indentação: a aplicação chama a função sozinha para cada entrada. Não precisa usar input() nem chamar solve manualmente.',
-    },
     languageIds: [...allProgrammingLanguages],
     starterFilesByLanguage: beginnerTemplates(),
   },
@@ -184,7 +157,7 @@ const logic: PublicChallenge[] = [
       "Bônus na variável",
       "logic",
       "easy",
-      "Uma variável guarda um valor que pode ser reutilizado no programa. Receba um inteiro points, guarde points + 10 em uma variável chamada total e retorne total. O juiz verifica o valor devolvido; o nome sugerido ajuda a praticar declaração, atribuição e retorno.",
+      "Um jogador recebe 10 pontos de bônus. Receba sua pontuação inteira points e retorne a pontuação final após o bônus.",
       [ex(5, 15), ex(-10, 0)],
       [
         "−1.000.000 ≤ points ≤ 1.000.000",
@@ -192,9 +165,6 @@ const logic: PublicChallenge[] = [
       ],
       "O(1)",
       "O(1)",
-    ),
-    descriptionsByLanguage: beginnerDescriptions(
-      "Receba points, calcule points + 10 em uma variável total e retorne total.",
     ),
     languageIds: [...allProgrammingLanguages],
     starterFilesByLanguage: beginnerTemplates(),
@@ -205,14 +175,11 @@ const logic: PublicChallenge[] = [
       "Par ou ímpar",
       "logic",
       "easy",
-      "Um inteiro é par quando sua divisão por 2 deixa resto zero. Receba um inteiro n e retorne true quando ele for par, ou false quando for ímpar. Pratique uma variável, o operador de resto e uma expressão condicional simples.",
+      "Receba um inteiro n e retorne true quando ele for par, ou false quando for ímpar. Zero é par.",
       [ex(4, true), ex(-3, false), ex(0, true)],
       ["−1.000.000.000 ≤ n ≤ 1.000.000.000", "Zero é um inteiro par."],
       "O(1)",
       "O(1)",
-    ),
-    descriptionsByLanguage: beginnerDescriptions(
-      "Receba n e use o resto da divisão por 2 para retornar se ele é par.",
     ),
     languageIds: [...allProgrammingLanguages],
     starterFilesByLanguage: beginnerTemplates(),
@@ -300,7 +267,7 @@ const logic: PublicChallenge[] = [
     "Raiz digital",
     "logic",
     "medium",
-    "Receba uma string de dígitos decimais não vazia, possivelmente com zeros à esquerda. Some seus dígitos repetidamente até restar um único dígito e retorne esse dígito como número. Evite converter a entrada inteira para um tipo numérico.",
+    "Receba uma string de dígitos decimais não vazia, possivelmente com zeros à esquerda. Some seus dígitos repetidamente até restar um único dígito e retorne esse dígito como número.",
     [ex("9875", 2, "29 → 11 → 2"), ex("00000", 0)],
     ["1 ≤ quantidade de dígitos ≤ 100.000", "Apenas caracteres 0–9."],
     "O(n)",
@@ -336,7 +303,7 @@ const logic: PublicChallenge[] = [
     "Calculadora da masmorra",
     "logic",
     "hard",
-    "Avalie uma expressão com inteiros não negativos, +, -, *, parênteses e espaços. Respeite precedência usual e associatividade à esquerda. Não há operadores unários. O objetivo pedagógico é construir um parser, com duas pilhas ou descida recursiva. Retorne um inteiro.",
+    "Avalie uma expressão com inteiros não negativos, +, -, *, parênteses e espaços. Respeite precedência usual e associatividade à esquerda. Não há operadores unários. Retorne um inteiro.",
     [ex("2 * (3 + 4) - 5", 9), ex("10 - 3 - 2", 5)],
     [
       "Expressão válida, de 1 a 10.000 caracteres",
@@ -415,7 +382,7 @@ const algorithms: PublicChallenge[] = [
     "Busca no arquivo ordenado",
     "algorithms",
     "easy",
-    "Receba {values, target}, onde values está em ordem crescente. Retorne o índice da primeira ocorrência de target, ou -1 quando ausente. O objetivo pedagógico é usar busca binária; duplicatas são permitidas.",
+    "Receba {values, target}, onde values está em ordem crescente. Retorne o índice da primeira ocorrência de target, ou -1 quando ausente. Duplicatas são permitidas.",
     [
       ex({ values: [1, 3, 3, 8], target: 3 }, 1),
       ex({ values: [], target: 2 }, -1),
@@ -566,7 +533,7 @@ const algorithms: PublicChallenge[] = [
     "Ordem das missões",
     "algorithms",
     "hard",
-    "Receba {n, edges}. Uma aresta [a, b] significa que a missão a precisa terminar antes de b. Retorne a menor ordem topológica lexicográfica, escolhendo sempre a menor missão disponível. Retorne [] se existir ciclo.",
+    "Receba {n, edges}. Uma aresta [a, b] significa que a missão a precisa terminar antes de b. Retorne a menor ordem topológica lexicográfica. Retorne [] se existir ciclo.",
     [
       ex(
         {
@@ -983,7 +950,7 @@ const structures: PublicChallenge[] = [
     "Os maiores tesouros",
     "data-structures",
     "medium",
-    "Receba {values, k}. Retorne os k maiores valores em ordem decrescente, preservando repetições. Para k zero, retorne []. Busque usar memória proporcional a k.",
+    "Receba {values, k}. Retorne os k maiores valores em ordem decrescente, preservando repetições. Para k zero, retorne [].",
     [
       ex({ values: [5, 1, 5, 3], k: 3 }, [5, 5, 3]),
       ex({ values: [1, 2], k: 0 }, []),
@@ -1014,10 +981,7 @@ function sql(
       difficulty,
       description,
       examples,
-      [
-        ...constraints,
-        "Memória combinada: 1 GiB para o cliente e 512 MiB para PostgreSQL.",
-      ],
+      constraints,
       "Depende do plano da consulta e dos dados",
       "Depende do plano da consulta",
     ),
@@ -1082,7 +1046,10 @@ const sqlChallenges: PublicChallenge[] = [
         ],
       ),
     ],
-    ["Colunas: city (text), total (bigint).", "Use ordenação NULLS LAST."],
+    [
+      "Colunas: city (text), total (bigint).",
+      "Cidades sem valor aparecem por último.",
+    ],
   ),
   sql(
     "sql-order-owner",

@@ -24,7 +24,6 @@ import {
   MessageSquare,
   Play,
   Send,
-  ShieldCheck,
   Sparkles,
   Terminal,
   Trophy,
@@ -47,11 +46,7 @@ import {
   VISITOR_CHALLENGE_LIMIT,
 } from "../components/VisitorProgressCard";
 import { useSubmissionConfirmation } from "../lib/useSubmissionConfirmation";
-import {
-  FunctionGuide,
-  firstStepTask,
-  modelFunctionName,
-} from "../components/FunctionGuide";
+import { FunctionGuide, modelFunctionName } from "../components/FunctionGuide";
 import { LANGUAGES, completionReward } from "../domain/rules";
 import type {
   Attempt,
@@ -297,9 +292,6 @@ function ChallengeWorkspace({
     ? "Executar testa o primeiro exemplo público neste navegador, sem aprovação nem XP. Submeter envia a solução para a avaliação oficial."
     : executionMessage;
   const topic = topics.find((item) => item.id === challenge.topicId);
-  const prerequisite = challenge.prerequisites?.[0]
-    ? challengeById.get(challenge.prerequisites[0])
-    : undefined;
   const guidedNextChallenge = challenge.learningPath?.nextChallengeId
     ? catalog.find(
         (item) => item.id === challenge.learningPath?.nextChallengeId,
@@ -649,10 +641,6 @@ function ChallengeWorkspace({
             Hard <small>Fase 2</small>
           </span>
         </div>
-        <span className="arena-contract">
-          <ShieldCheck size={14} />
-          Todos os testes obrigatórios precisam passar
-        </span>
       </div>
       {attempt?.mode === "hard" && <HardClock attempt={attempt} />}
       {error && (
@@ -683,7 +671,7 @@ function ChallengeWorkspace({
                 { id: "description", label: "Enunciado", icon: BookOpen },
                 {
                   id: "learning",
-                  label: "Plano de aprendizado",
+                  label: "Aprender",
                   icon: Sparkles,
                 },
                 { id: "hints", label: "Dicas", icon: Lightbulb },
@@ -714,71 +702,18 @@ function ChallengeWorkspace({
             {activePanel === "description" && (
               <>
                 <h2>Sua missão</h2>
-                {challenge.tags?.includes("primeiros passos") ? (
-                  <p className="problem-description">
-                    {challenge.description
-                      .split(/(?<=\.)\s+/)
-                      .slice(0, 2)
-                      .join(" ")}
-                  </p>
-                ) : (
-                  <div className="problem-description-paragraphs">
-                    {(
-                      challenge.descriptionsByLanguage?.[language] ??
-                      challenge.description
-                    )
-                      .split(/\n\s*\n/)
-                      .map((paragraph, index) => (
-                        <p className="problem-description" key={index}>
-                          {paragraph}
-                        </p>
-                      ))}
-                  </div>
-                )}
-                <FunctionGuide challenge={challenge} language={language} />
-                {challenge.tags?.includes("primeiros passos") && (
-                  <details className="guided-mission-details">
-                    <summary>Leia a explicação completa da missão</summary>
-                    {(
-                      challenge.descriptionsByLanguage?.[language] ??
-                      challenge.description
-                    )
-                      .split(/\n\s*\n/)
-                      .map((paragraph, index) => (
-                        <p className="problem-description" key={index}>
-                          {paragraph}
-                        </p>
-                      ))}
-                  </details>
-                )}
-                {challenge.learningPath && (
-                  <aside className="learning-path-note">
-                    <strong>
-                      Lógica · passo {challenge.learningPath.position} de{" "}
-                      {challenge.learningPath.total}
-                    </strong>
-                    {prerequisite && (
-                      <span>
-                        Antes deste, vale revisar{" "}
-                        <Link to={`/desafios/${prerequisite.slug}`}>
-                          {prerequisite.title}
-                        </Link>
-                        .
-                      </span>
-                    )}
-                    {nextChallenge && (
-                      <span>
-                        Após aprovar, siga para{" "}
-                        <Link
-                          to={`/desafios/${nextChallenge.slug}?language=${language}`}
-                        >
-                          {nextChallenge.title}
-                        </Link>
-                        .
-                      </span>
-                    )}
-                  </aside>
-                )}
+                <div className="problem-description-paragraphs">
+                  {(
+                    challenge.descriptionsByLanguage?.[language] ??
+                    challenge.description
+                  )
+                    .split(/\n\s*\n/)
+                    .map((paragraph, index) => (
+                      <p className="problem-description" key={index}>
+                        {paragraph}
+                      </p>
+                    ))}
+                </div>
                 {challenge.sqlSchema && (
                   <>
                     <h3>Estrutura dos dados</h3>
@@ -809,23 +744,18 @@ function ChallengeWorkspace({
                     ))}
                   </>
                 )}
-                <h3>Contrato e limites</h3>
+                <h3>Regras da entrada</h3>
                 <ul className="constraint-list">
                   {challenge.constraints.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
                 {challenge.limits && (
-                  <details
-                    className="execution-limits-details"
-                    open={!challenge.tags?.includes("primeiros passos")}
-                  >
-                    <summary>Limites de execução</summary>
+                  <details className="execution-limits-details">
+                    <summary>Detalhes técnicos</summary>
                     <div className="published-limits">
                       <p className="published-limits-explanation">
-                        Cada caso tem seu próprio limite. A compilação acontece
-                        uma vez; o prazo total de segurança inclui compilação e
-                        todos os casos executados no trabalho.
+                        Limites aplicados à execução do código.
                       </p>
                       <dl>
                         <div>
@@ -866,10 +796,7 @@ function ChallengeWorkspace({
                     </div>
                   </details>
                 )}
-                <p className="problem-footnote">
-                  Os testes oficiais incluem casos adicionais. Seus dados e
-                  respostas esperadas permanecem privados.
-                </p>
+                <FunctionGuide challenge={challenge} language={language} />
               </>
             )}
             {activePanel === "learning" && (
@@ -1085,7 +1012,7 @@ function ChallengeWorkspace({
                 <Terminal size={16} />
                 Resultados
               </h2>
-              <span>Execuções livres · sem limite de tentativas</span>
+              <span>Saída do código ou avaliação do envio</span>
             </div>
             {official.isError && (
               <div className="arena-alert" role="alert">
@@ -1132,17 +1059,10 @@ function ChallengeWorkspace({
                 <span>
                   <Terminal size={24} />
                 </span>
-                <strong>Seu próximo aprendizado começa no código.</strong>
-                <p>
-                  Execute seu código quantas vezes quiser para aprender. Submeta
-                  quando estiver pronta para a avaliação oficial.
-                </p>
+                <strong>Saída do código</strong>
+                <p>Execute para ver o retorno da função.</p>
               </div>
             ) : null}
-            <div className="results-note">
-              <ShieldCheck size={13} />
-              <span>{studyMessage}</span>
-            </div>
           </section>
         </div>
       </div>
@@ -1518,18 +1438,8 @@ function SourceWorkspace({
       {language !== "sql" && (
         <div className="program-controls">
           <p>
-            {firstStepTask(challenge.id) ? (
-              <>
-                <strong>O que fazer: </strong>
-                {firstStepTask(challenge.id)}
-              </>
-            ) : (
-              <>
-                Complete <code>{modelFunctionName(challenge, language)}</code> e
-                devolva a resposta com <code>return</code>. A aplicação chama a
-                função por você.
-              </>
-            )}
+            Edite a função <code>{modelFunctionName(challenge, language)}</code>{" "}
+            do modelo.
           </p>
           <button
             type="button"
@@ -1775,14 +1685,49 @@ function SubmissionResult({
         <span className="evaluation-spinner" />
         <strong>
           {submission.status === "queued"
-            ? "Sua solução está na fila"
-            : "Avaliando sua solução…"}
+            ? "Na fila…"
+            : kind === "run"
+              ? "Executando…"
+              : "Avaliando…"}
         </strong>
         <p>
           Você pode continuar editando. Esta avaliação usa o código enviado.
         </p>
       </div>
     );
+  if (kind === "run") {
+    const executionError =
+      submission.verdict &&
+      !["accepted", "wrong_answer"].includes(submission.verdict);
+    return (
+      <div
+        className="submission-result"
+        role={executionError ? "alert" : "status"}
+      >
+        {submission.publicCases?.map((item, index) => (
+          <div className="program-output" key={`${index}:${item.label}`}>
+            <strong>{item.label} · Retorno da função</strong>
+            <pre>{item.actual ?? "(sem retorno)"}</pre>
+          </div>
+        ))}
+        {submission.stdout !== undefined && (
+          <div className="program-output">
+            <strong>Saída do código</strong>
+            <pre>{submission.stdout || "(nenhuma saída)"}</pre>
+          </div>
+        )}
+        {submission.stderr && (
+          <div className="program-output">
+            <strong>Erro de execução</strong>
+            <pre>{submission.stderr}</pre>
+          </div>
+        )}
+        {executionError && !submission.stderr && (
+          <p>{submission.message || "Não foi possível executar o código."}</p>
+        )}
+      </div>
+    );
+  }
   const accepted = submission.verdict === "accepted";
   const infrastructure = submission.verdict === "infrastructure_error";
   return (
@@ -1798,17 +1743,12 @@ function SubmissionResult({
         ) : (
           <XCircle size={21} />
         )}
-        {kind === "run" && accepted
-          ? "Execução concluída"
-          : hard && !accepted && !infrastructure
-            ? "Solução rejeitada"
-            : submission.verdict
-              ? verdictLabels[submission.verdict]
-              : "Avaliação concluída"}
+        {hard && !accepted && !infrastructure
+          ? "Solução rejeitada"
+          : submission.verdict
+            ? verdictLabels[submission.verdict]
+            : "Avaliação concluída"}
       </h3>
-      {kind === "run" && (
-        <p>Edite e execute quantas vezes quiser. Executar não altera seu XP.</p>
-      )}
       {submission.message && <p>{submission.message}</p>}
       {kind === "submit" && !accepted && !infrastructure && (
         <p>
