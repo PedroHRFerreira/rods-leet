@@ -126,3 +126,58 @@ it("propagates ownership validation without claiming a completion", async () => 
     error: { code: "attempt_not_found" },
   });
 });
+
+it("requires login before an anonymous visitor answers an eleventh distinct question", async () => {
+  const original = mocks.rows.getMockImplementation()!;
+  mocks.rows.mockImplementation((table, query) =>
+    table === "completions"
+      ? Promise.resolve(
+          Array.from({ length: 10 }, (_, index) => ({
+            challenge_id: `solved-${index}`,
+          })),
+        )
+      : original(table, query),
+  );
+  const response = await answer({ optionId: "b" });
+  expect(response.status).toBe(403);
+  expect(await response.json()).toMatchObject({
+    error: { code: "visitor_challenge_limit" },
+  });
+  expect(mocks.rpc.mock.calls.some(([name]) => name === "submit_quiz")).toBe(
+    false,
+  );
+});
+
+it("allows the tenth distinct question and counts repeated completion rows only once", async () => {
+  const original = mocks.rows.getMockImplementation()!;
+  mocks.rows.mockImplementation((table, query) =>
+    table === "completions"
+      ? Promise.resolve(
+          Array.from({ length: 18 }, (_, index) => ({
+            challenge_id: `solved-${index % 9}`,
+          })),
+        )
+      : original(table, query),
+  );
+  expect((await answer({ optionId: "b" })).status).toBe(200);
+});
+
+it("counts only official eligible completions toward the visitor allowance", async () => {
+  const original = mocks.rows.getMockImplementation()!;
+  mocks.rows.mockImplementation((table, query) => {
+    if (table !== "completions") return original(table, query);
+    const official = Array.from({ length: 9 }, (_, index) => ({
+      challenge_id: `solved-${index}`,
+    }));
+    return Promise.resolve(
+      query.includes("reward_eligible=eq.true")
+        ? official
+        : [...official, { challenge_id: "solution-practice" }],
+    );
+  });
+  expect((await answer({ optionId: "b" })).status).toBe(200);
+  expect(mocks.rows).toHaveBeenCalledWith(
+    "completions",
+    expect.stringContaining("reward_eligible=eq.true"),
+  );
+});

@@ -34,3 +34,10 @@
 - Loja v2 oferece personagens/skins, molduras, títulos, cores e temas completos, com prévias, coleções e ofertas reais. Conservar IDs, saldo e itens já adquiridos. Presentes de marcos não devem ser cobrados no marco que os concede. Conteúdo de estudo permanece gratuito, sem caixas aleatórias ou venda de XP.
 - Compras e premiações continuam exclusivas para contas cadastradas; visitantes podem visualizar loja e ranking, mas não recebem prêmios semanais. Cadastro não será ativado como parte do redesenho da loja.
 - Manter ranking geral e adicionar top 5 semanal por XP ganho no período, com pelo menos três conclusões distintas e conta cadastrada. Semana fecha segunda-feira às 00h em America/Sao_Paulo. Premiar 500/350/250/150/100 moedas e cosméticos exclusivos, automaticamente e sem duplicação ou crédito retroativo de semanas encerradas.
+
+# Acesso e continuidade — atualização de 05/10/2026
+
+- A orientação atual substitui a restrição anterior a login somente por e-mail: oferecer Google, entrada por e-mail, cadastro e recuperação funcionais.
+- Visitantes podem concluir dez desafios distintos; antes de concluir um novo após esse limite, exigir conta com mensagem clara, retorno ao desafio e preservação do progresso ao cadastrar a identidade visitante. Desafios já concluídos permanecem disponíveis para estudo.
+- Não bloquear Submeter por configuração de interface ou consulta antiga de disponibilidade. Somente operações em andamento, entradas inválidas, aprovação já registrada, limite de visitante e falhas reais de infraestrutura justificam impedir o envio; explicar o motivo e preservar o código.
+- Escolha posterior de 05/10/2026: publicar cadastro e acesso por Google por enquanto. Manter entrada de contas antigas com senha; adiar cadastro e recuperação por e-mail até existir envio transacional configurado. Isso não ativa notificações de feedback ao administrador.

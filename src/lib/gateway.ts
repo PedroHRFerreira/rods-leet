@@ -25,11 +25,19 @@ export interface GatewaySession {
 }
 export interface GatewayAuth {
   getSession(): Promise<GatewaySession | null>;
-  signIn(provider: "github" | "google"): Promise<void>;
+  signIn(
+    provider: "github" | "google",
+    returnTo?: string,
+    intent?: "login" | "upgrade",
+  ): Promise<void>;
   signOut(): Promise<void>;
   signInWithPassword?(email: string, password: string): Promise<void>;
-  signUp?(email: string, displayName: string): Promise<AuthResult>;
-  requestPasswordReset?(email: string): Promise<void>;
+  signUp?(
+    email: string,
+    displayName: string,
+    returnTo?: string,
+  ): Promise<AuthResult>;
+  requestPasswordReset?(email: string, returnTo?: string): Promise<void>;
   updatePassword?(password: string): Promise<void>;
   confirmEmail?(tokenHash: string, type: EmailConfirmationType): Promise<void>;
 }
@@ -579,16 +587,16 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
           ? () => options.auth!.signInWithPassword!(email, password)
           : undefined,
       ),
-    signUp: (email, displayName) =>
+    signUp: (email, displayName, returnTo) =>
       authAction(
         options.auth?.signUp
-          ? () => options.auth!.signUp!(email, displayName)
+          ? () => options.auth!.signUp!(email, displayName, returnTo)
           : undefined,
       ),
-    requestPasswordReset: (email) =>
+    requestPasswordReset: (email, returnTo) =>
       authAction(
         options.auth?.requestPasswordReset
-          ? () => options.auth!.requestPasswordReset!(email)
+          ? () => options.auth!.requestPasswordReset!(email, returnTo)
           : undefined,
       ),
     updatePassword: (password) =>
@@ -603,7 +611,7 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
           ? () => options.auth!.confirmEmail!(tokenHash, type)
           : undefined,
       ),
-    async signIn(provider) {
+    async signIn(provider, returnTo, intent) {
       if (!live)
         throw new GatewayError(
           "authentication_unconfigured",
@@ -611,7 +619,7 @@ export function createGateway(options: GatewayOptions = {}): AppGateway {
           503,
         );
       try {
-        await options.auth!.signIn(provider);
+        await options.auth!.signIn(provider, returnTo, intent);
       } catch {
         throw new GatewayError(
           "authentication_failed",

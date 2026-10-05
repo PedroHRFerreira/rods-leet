@@ -92,8 +92,28 @@ describe("cookie BFF authentication", () => {
     ]);
     expect(navigate).toHaveBeenCalledWith(destination);
   });
+  test("Google linking navigates to the verified OAuth endpoint and forwards the return path", async () => {
+    const destination =
+      "https://accounts.google.com/o/oauth2/v2/auth?client_id=test";
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce(json(session))
+      .mockResolvedValueOnce(json({ url: destination }));
+    const navigate = vi.fn();
+    await createBffAuth({ fetch: send, navigate }).signIn(
+      "google",
+      "/desafios/two-sum",
+    );
+    expect(JSON.parse(send.mock.calls[1][1].body)).toEqual({
+      provider: "google",
+      returnTo: "/desafios/two-sum",
+    });
+    expect(navigate).toHaveBeenCalledWith(destination);
+  });
   test.each([
     "https://evil.example/auth/v1/authorize?provider=google",
+    "https://accounts.google.com.evil.example/o/oauth2/v2/auth",
+    "https://accounts.google.com/evil",
     "https://bsjcuygtpiqyomnulpsw.supabase.co/evil?provider=google",
     "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize?provider=github",
     "https://bsjcuygtpiqyomnulpsw.supabase.co.evil.example/auth/v1/authorize?provider=google",

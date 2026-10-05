@@ -42,6 +42,10 @@ import { challengeById, topics } from "../content/catalog";
 import { LearningResourceList } from "../components/LearningResourceList";
 import { LearningProgress } from "../components/LearningProgress";
 import { ResultReaction } from "../components/ResultReaction";
+import {
+  VisitorProgressCard,
+  VISITOR_CHALLENGE_LIMIT,
+} from "../components/VisitorProgressCard";
 import { useSubmissionConfirmation } from "../lib/useSubmissionConfirmation";
 import {
   FunctionGuide,
@@ -94,6 +98,7 @@ const verdictLabels = {
 export default function ChallengePage() {
   const { slug = "" } = useParams();
   const gateway = useGateway();
+  const [blockedChallenge, setBlockedChallenge] = useState<string | null>(null);
   const challenge = useQuery({
     queryKey: ["challenge", slug],
     queryFn: () => gateway.getChallenge(slug),
@@ -121,6 +126,22 @@ export default function ChallengePage() {
       />
     );
   }
+  const completedIds = new Set(dashboard.data.completedChallengeIds);
+  const visitorAtLimit =
+    dashboard.data.profile.anonymous === true &&
+    !completedIds.has(challenge.data.id) &&
+    (completedIds.size >= VISITOR_CHALLENGE_LIMIT ||
+      blockedChallenge === challenge.data.id);
+  if (visitorAtLimit) {
+    return (
+      <div className="page challenge-account-gate">
+        <Link className="text-link" to="/desafios">
+          <ArrowLeft size={16} /> Voltar aos desafios
+        </Link>
+        <VisitorProgressCard dashboard={dashboard.data} blocked />
+      </div>
+    );
+  }
   if (challenge.data.kind === "quiz") {
     return (
       <Suspense fallback={<LoadingState label="Preparando a pergunta…" />}>
@@ -137,6 +158,7 @@ export default function ChallengePage() {
       key={`${challenge.data.id}:${dashboard.data.profile.id}`}
       challenge={challenge.data}
       dashboard={dashboard.data}
+      onVisitorLimit={() => setBlockedChallenge(challenge.data.id)}
     />
   );
 }
@@ -144,9 +166,11 @@ export default function ChallengePage() {
 function ChallengeWorkspace({
   challenge,
   dashboard,
+  onVisitorLimit,
 }: {
   challenge: PublicChallenge;
   dashboard: Dashboard;
+  onVisitorLimit: () => void;
 }) {
   const [params, setParams] = useSearchParams();
   const requestedLanguage = params.get("language") as LanguageId | null;
@@ -433,10 +457,6 @@ function ChallengeWorkspace({
     if (kind === "submit" && approved) return;
     const useLocal =
       kind === "run" && executionMode === "function" && studyAvailable;
-    if (!useLocal && executionStatus !== "ready") {
-      setError(executionMessage);
-      return;
-    }
     executing.current = true;
     const generation = ++executionGeneration.current;
     const controller = new AbortController();
@@ -475,8 +495,16 @@ function ChallengeWorkspace({
           `Prática no navegador indisponível: ${outcome.message} ${executionStatus === "ready" ? "O teste será executado pelo servidor." : "Tente executar pelo servidor quando o serviço estiver disponível."}`,
         );
       }
-      if (executionStatus !== "ready") {
-        setError(executionMessage);
+      // A cached health report must never leave an otherwise valid solution
+      // disabled. Verify the executor when the user actually sends it.
+      const checked = await execution.refetch();
+      if (!currentExecution()) return;
+      if (checked.isError || checked.data?.status !== "ready") {
+        setError(
+          checked.data?.status === "busy"
+            ? "O avaliador está ocupado. Clique em Submeter solução novamente em instantes. Seu código está salvo e nenhuma tentativa foi consumida."
+            : "Não foi possível conectar ao avaliador agora. Clique em Submeter solução para tentar novamente. Seu código está salvo e nenhuma tentativa foi consumida.",
+        );
         return;
       }
       const current = await ensureAttempt(generation);
@@ -502,7 +530,15 @@ function ChallengeWorkspace({
       setSubmissionId(next.id);
       setSubmissionKind(kind);
     } catch (cause) {
-      if (currentExecution()) setError(errorText(cause));
+      if (currentExecution()) {
+        if (
+          cause instanceof GatewayError &&
+          cause.code === "visitor_challenge_limit"
+        ) {
+          onVisitorLimit();
+          void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        } else setError(errorText(cause));
+      }
     } finally {
       if (currentExecution()) {
         executing.current = false;
@@ -1613,7 +1649,7 @@ function SourceWorkspace({
         <button
           type="button"
           className="button button-primary"
-          disabled={busy || !file || executionStatus !== "ready" || approved}
+          disabled={busy || !file || approved}
           title={
             approved
               ? "Este desafio já foi aprovado"
@@ -1642,8 +1678,9 @@ function SourceWorkspace({
       </div>
       {!approved && executionStatus !== "ready" && (
         <p className="submission-guidance" role="status">
-          <strong>Submissão indisponível. </strong>
-          {executionMessage}
+          <strong>Vamos conferir o avaliador ao enviar. </strong>
+          Você pode submeter sua solução para tentar conectar novamente. Seu
+          código está salvo.
         </p>
       )}
       <ChallengeDialog

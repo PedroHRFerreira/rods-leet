@@ -26,6 +26,7 @@ import {
   cosmeticTitle,
 } from "../components/CosmeticAvatar";
 import { DiscordCommunity } from "../components/DiscordCommunity";
+import { VisitorProgressCard } from "../components/VisitorProgressCard";
 
 function SubmissionPreferences({ identity }: { identity: string }) {
   const quiz = useSubmissionConfirmation(identity, "quiz");
@@ -59,9 +60,6 @@ function SubmissionPreferences({ identity }: { identity: string }) {
 
 export default function ProfilePage() {
   const gateway = useGateway();
-  const registrationDisabled =
-    import.meta.env.VITE_EMAIL_REGISTRATION_ENABLED === "false" &&
-    import.meta.env.VITE_GOOGLE_LOGIN_ENABLED !== "true";
   const queryClient = useQueryClient();
   const signOut = useMutation({
     mutationFn: () => gateway.signOut(),
@@ -137,7 +135,9 @@ export default function ProfilePage() {
             <p>{registered ? "Conta cadastrada" : "Perfil de visitante"}</p>
             <span className="profile-access">
               <span />
-              Beta aberto · sem login obrigatório
+              {registered
+                ? "Conta gratuita · progresso salvo"
+                : "10 desafios grátis antes do cadastro"}
             </span>
           </div>
           <div className="profile-next-level">
@@ -193,25 +193,20 @@ export default function ProfilePage() {
               </div>
             ))}
           </section>
-          <section className="panel account-panel">
-            <div className="account-section-heading">
-              <span className="aside-icon">
-                <ShieldCheck size={21} />
-              </span>
-              <div>
-                <h2>
-                  {registered
-                    ? "Sua conta está conectada"
-                    : "Guarde suas conquistas"}
-                </h2>
-                <p>
-                  {registered
-                    ? "Seu progresso, suas moedas e seus itens estão guardados nesta conta."
-                    : `Você pode estudar e ganhar moedas-base como visitante; compras e itens equipáveis exigem uma conta cadastrada.${registrationDisabled ? " O cadastro está desativado nesta versão." : ""}`}
-                </p>
+          {registered ? (
+            <section className="panel account-panel">
+              <div className="account-section-heading">
+                <span className="aside-icon">
+                  <ShieldCheck size={21} />
+                </span>
+                <div>
+                  <h2>Sua conta está conectada</h2>
+                  <p>
+                    Seu progresso, suas moedas e seus itens estão guardados
+                    nesta conta.
+                  </p>
+                </div>
               </div>
-            </div>
-            {registered ? (
               <>
                 <button
                   className="button button-secondary"
@@ -226,18 +221,10 @@ export default function ProfilePage() {
                   </p>
                 )}
               </>
-            ) : (
-              <>
-                <p className="account-note">
-                  Apagar os dados do site pode fazer você perder o acesso a esta
-                  sessão. Seus rascunhos permanecem neste navegador.
-                </p>
-                <Link className="button button-primary" to="/conta">
-                  Ver opções de acesso
-                </Link>
-              </>
-            )}
-          </section>
+            </section>
+          ) : (
+            <VisitorProgressCard dashboard={data} />
+          )}
           <section className="panel account-panel profile-rewards">
             <h2>Estude, conquiste e personalize</h2>
             <p>

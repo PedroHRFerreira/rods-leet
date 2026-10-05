@@ -428,10 +428,18 @@ export interface AppGateway {
   saveDraft(input: DraftInput): Promise<DraftInput>;
   /** Explicit user choice only: keep local code over the latest remote draft. */
   resolveDraftConflict?(input: DraftInput): Promise<DraftInput>;
-  signIn(provider: "github" | "google"): Promise<void>;
+  signIn(
+    provider: "github" | "google",
+    returnTo?: string,
+    intent?: "login" | "upgrade",
+  ): Promise<void>;
   signInWithPassword(email: string, password: string): Promise<void>;
-  signUp(email: string, displayName: string): Promise<AuthResult>;
-  requestPasswordReset(email: string): Promise<void>;
+  signUp(
+    email: string,
+    displayName: string,
+    returnTo?: string,
+  ): Promise<AuthResult>;
+  requestPasswordReset(email: string, returnTo?: string): Promise<void>;
   updatePassword(password: string): Promise<void>;
   confirmEmail(tokenHash: string, type: EmailConfirmationType): Promise<void>;
   signOut(): Promise<void>;

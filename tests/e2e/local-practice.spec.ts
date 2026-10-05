@@ -47,7 +47,8 @@ test.afterAll(() => server?.kill());
 const challenge = challenges.find((item) => item.id === "sum-two-integers")!;
 async function setup(
   page: Page,
-  executionStatus: "ready" | "offline" = "ready",
+  executionStatus: "ready" | "offline" | (() => "ready" | "offline") = "ready",
+  completedChallengeIds: string[] = [],
 ) {
   const remote: Array<{ path: string; body: unknown }> = [];
   await page.addInitScript(() =>
@@ -68,12 +69,19 @@ async function setup(
           anonymous: true,
         },
         remoteRunsRemaining: null,
+        completedChallengeIds,
+        completedCount: completedChallengeIds.length,
       };
     else if (path === "/api/challenges") body = challenges;
     else if (path.startsWith("/api/challenges/"))
       body = { ...challenge, executionAvailable: true };
     else if (path === "/api/execution-status")
-      body = { status: executionStatus };
+      body = {
+        status:
+          typeof executionStatus === "function"
+            ? executionStatus()
+            : executionStatus,
+      };
     else if (path.startsWith("/api/attempts"))
       body = {
         id: "local-attempt",
@@ -117,17 +125,27 @@ async function run(page: Page) {
     .click();
 }
 
-test("offline executor explains disabled submissions and preserves other languages", async ({
+test("offline executor allows retries without consuming attempts and preserves other languages", async ({
   page,
 }, info) => {
   const remote = await setup(page, "offline");
   const editor = await openEditor(page);
   await expect(
-    page.getByText("Submissão indisponível.", { exact: true }),
+    page.getByText("Vamos conferir o avaliador ao enviar.", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Submeter solução", exact: true }),
-  ).toBeDisabled();
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Submeter solução", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirmar submissão", exact: true })
+    .click();
+  await expect(page.locator(".arena-alert[role=alert]")).toContainText(
+    "nenhuma tentativa foi consumida",
+  );
+  expect(remote).toHaveLength(0);
   await editor.fill(
     "export function solve(input) { return input.a + input.b; }",
   );
@@ -137,11 +155,11 @@ test("offline executor explains disabled submissions and preserves other languag
   for (const width of [320, 390, 800, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(
-      page.getByText("Submissão indisponível.", { exact: true }),
+      page.getByText("Vamos conferir o avaliador ao enviar.", { exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Submeter solução", exact: true }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     if (process.env.RODS_VISUAL_CAPTURE === "true") {
       await page.locator(".code-actions").scrollIntoViewIfNeeded();
       await page.screenshot({
@@ -153,7 +171,7 @@ test("offline executor explains disabled submissions and preserves other languag
     .getByRole("button", { name: "Ativar tema claro", exact: true })
     .click();
   await expect(
-    page.getByText("Submissão indisponível.", { exact: true }),
+    page.getByText("Vamos conferir o avaliador ao enviar.", { exact: true }),
   ).toBeVisible();
   if (process.env.RODS_VISUAL_CAPTURE === "true") {
     for (const width of [320, 1280]) {
@@ -169,7 +187,7 @@ test("offline executor explains disabled submissions and preserves other languag
     await languages.selectOption(language);
     await expect(
       page.getByRole("button", { name: "Submeter solução", exact: true }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     if (language !== "javascript" && language !== "typescript")
       await expect(
         page.getByRole("button", {
@@ -178,6 +196,65 @@ test("offline executor explains disabled submissions and preserves other languag
         }),
       ).toBeDisabled();
   }
+});
+
+test("submit refreshes stale offline health and sends after recovery", async ({
+  page,
+}) => {
+  let ready = false;
+  const remote = await setup(page, () => (ready ? "ready" : "offline"));
+  await openEditor(page);
+  await expect(
+    page.getByText("Vamos conferir o avaliador ao enviar.", { exact: true }),
+  ).toBeVisible();
+  ready = true;
+  await page
+    .getByRole("button", { name: "Submeter solução", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirmar submissão", exact: true })
+    .click();
+  await expect.poll(() => remote.length).toBe(1);
+  expect(remote[0].path).toBe("/api/submissions");
+});
+
+test("ten distinct completed challenges require account before a new challenge", async ({
+  page,
+}) => {
+  const completed = challenges
+    .filter((item) => item.id !== challenge.id)
+    .slice(0, 10)
+    .map((item) => item.id);
+  const remote = await setup(page, "ready", completed);
+  await page.goto(`${baseURL}/desafios/${challenge.id}?language=javascript`);
+  await expect(
+    page.getByRole("heading", {
+      name: "10 desafios concluídos. Seu próximo passo é criar uma conta.",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Submeter solução", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Criar conta e guardar progresso" }),
+  ).toHaveAttribute(
+    "href",
+    /mode=signup&returnTo=%2Fdesafios%2Fsum-two-integers%3Flanguage%3Djavascript/,
+  );
+  expect(remote).toHaveLength(0);
+});
+
+test("completed challenges remain open and duplicate progress does not trigger the limit", async ({
+  page,
+}) => {
+  await setup(page, "ready", Array(10).fill(challenge.id));
+  await openEditor(page);
+  await expect(
+    page.getByRole("button", { name: "Desafio aprovado", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Executar código", exact: true }),
+  ).toBeEnabled();
 });
 
 test("JS and TS run in real isolated workers without server runs, XP or completion", async ({

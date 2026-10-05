@@ -21,6 +21,7 @@ import { WorkersAiTutor } from "../_shared/tutor.ts";
 import { recommend } from "../_shared/recommendations.ts";
 import { executorStatus } from "../coordinator/index.ts";
 import { evaluateConceptQuiz } from "../../../judge/concept-quiz.ts";
+import { visitorMustSignIn } from "../_shared/visitor-progress.ts";
 import { validateProductFeedback } from "../../../src/domain/product-feedback.ts";
 import type { ProductFeedbackReceipt } from "../../../src/lib/contracts.ts";
 
@@ -40,6 +41,8 @@ const errorMessages: Record<string, string> = {
   solution_locked:
     "O gabarito abre após aprovação ou três submissões incorretas.",
   authentication_required: "Entre com sua conta para continuar.",
+  visitor_challenge_limit:
+    "Você concluiu 10 desafios! Entre ou crie sua conta gratuita para continuar e guardar suas conquistas.",
   account_required: "Compras e itens equipáveis exigem uma conta cadastrada.",
   item_not_purchasable: "Este item é uma conquista e não está à venda.",
   item_not_owned: "Adquira este item antes de equipá-lo.",
@@ -94,7 +97,7 @@ export async function handler(request: Request): Promise<Response> {
       .replace(/^\/functions\/v1\/api/, "")
       .replace(/^\/api/, "");
     const db = new Database();
-    if (Deno.env.get("BFF_REQUIRED") === "true") await verifyBff(request, db);
+    await verifyBff(request, db);
     const user = await authenticatedUser(request);
     await rateLimit(
       db,
@@ -266,6 +269,22 @@ export async function handler(request: Request): Promise<Response> {
         c.languageIds.some((id) => context.availableLanguages.includes(id)),
       ),
     });
+    const requireVisitorProgress = async (challengeId: string) => {
+      if (!user.anonymous) return;
+      const completed = await db.rows<Row>(
+        "completions",
+        `user_id=eq.${user.id}&reward_eligible=eq.true&select=challenge_id`,
+      );
+      if (
+        visitorMustSignIn(
+          true,
+          completed.map((row) => row.challenge_id),
+          challengeId,
+        )
+      ) {
+        throw new ApiError("visitor_challenge_limit", 403);
+      }
+    };
     const ownAttempt = async (id: string) => {
       const rows = await db.rows<Row>(
         "attempts",
@@ -274,11 +293,18 @@ export async function handler(request: Request): Promise<Response> {
       if (!rows[0]) throw new ApiError("attempt_not_found", 404);
       return rows[0];
     };
+    const submissionReview = (submission: Row) =>
+      submission.integrity_status && submission.integrity_status !== "clear"
+        ? db.rpc<string | null>("submission_review", {
+            p_user: user.id,
+            p_submission: submission.id,
+          })
+        : Promise.resolve(null);
     const attemptResponse = async (a: Row) => {
       const [subs, completions, attempts] = await Promise.all([
         db.rows<Row>(
           "submissions",
-          `attempt_id=eq.${a.id}&user_id=eq.${user.id}&select=kind,status`,
+          `attempt_id=eq.${a.id}&user_id=eq.${user.id}&select=id,kind,status,integrity_status&order=created_at.desc`,
         ),
         db.rows<Row>(
           "completions",
@@ -293,12 +319,16 @@ export async function handler(request: Request): Promise<Response> {
           )}&select=rejected_count`,
         ),
       ]);
+      const latest = subs.find(
+        (submission) => submission.kind === "submission",
+      );
       return presentAttempt(
         a,
         context.assistance.find((h: Row) => h.challenge_id === a.challenge_id),
         subs,
         completions.length > 0,
         attempts.reduce((n, r) => n + r.rejected_count, 0),
+        latest ? await submissionReview(latest) : null,
       );
     };
     if (request.method === "GET" && path === "/challenges") {
@@ -336,6 +366,7 @@ export async function handler(request: Request): Promise<Response> {
     if (request.method === "POST" && path === "/attempts") {
       const body = await readJson(request);
       const c = challenge(body.challengeVersionId);
+      await requireVisitorProgress(c.id);
       const a = await db.rpc<Row>("start_attempt", {
         p_user: user.id,
         p_version: c.versionId,
@@ -354,6 +385,7 @@ export async function handler(request: Request): Promise<Response> {
       const optionId = stringValue(body.optionId, "option", 64);
       if (!c.quiz.options.some((option) => option.id === optionId))
         throw new ApiError("invalid_option");
+      await requireVisitorProgress(c.id);
       const evaluation = evaluateConceptQuiz(c.id, optionId);
       const s = await db.rpc<Row>("submit_quiz", {
         p_user: user.id,
@@ -372,6 +404,8 @@ export async function handler(request: Request): Promise<Response> {
         presentSubmission(
           s,
           xp.reduce((sum, row) => sum + row.amount, 0),
+          false,
+          await submissionReview(s),
         ),
       );
     }
@@ -379,6 +413,9 @@ export async function handler(request: Request): Promise<Response> {
       request.method === "POST" &&
       (path === "/runs" || path === "/submissions")
     ) {
+      const body = await readJson(request);
+      const c = challenge(body.challengeVersionId);
+      await requireVisitorProgress(c.id);
       const readiness = await fetch(
         `${env("SUPABASE_URL")}/functions/v1/coordinator?check=ready`,
         {
@@ -393,8 +430,6 @@ export async function handler(request: Request): Promise<Response> {
           409,
         );
       }
-      const body = await readJson(request);
-      const c = challenge(body.challengeVersionId);
       const language = stringValue(body.languageId, "language");
       const executionMode = body.executionMode ?? "function";
       if (executionMode !== "function" && executionMode !== "program")
@@ -454,7 +489,10 @@ export async function handler(request: Request): Promise<Response> {
         })
         .catch(() => console.error('{"event":"wake_failed"}'));
       EdgeRuntime.waitUntil(wake);
-      return json(presentSubmission(s), 202);
+      return json(
+        presentSubmission(s, 0, false, await submissionReview(s)),
+        202,
+      );
     }
     if (request.method === "GET" && /^\/submissions\/[^/]+$/.test(path)) {
       const rows = await db.rows<Row>(
@@ -473,6 +511,7 @@ export async function handler(request: Request): Promise<Response> {
           s,
           xp.reduce((n, r) => n + r.amount, 0),
           false,
+          await submissionReview(s),
         ),
       );
     }
@@ -678,15 +717,16 @@ export async function handler(request: Request): Promise<Response> {
       return json(response);
     }
     if (request.method === "GET" && path === "/dashboard") {
-      const [completed, recent] = await Promise.all([
+      const [completed, recent, integrity] = await Promise.all([
         db.rows<Row>(
           "completions",
-          `user_id=eq.${user.id}&select=challenge_id,created_at`,
+          `user_id=eq.${user.id}&reward_eligible=eq.true&select=challenge_id,created_at`,
         ),
         db.rows<Row>(
           "submissions",
-          `user_id=eq.${user.id}&kind=eq.submission&select=id,attempt_id,status,verdict,created_at,finished_at,challenge_version_id&order=created_at.desc&limit=20`,
+          `user_id=eq.${user.id}&kind=eq.submission&select=id,attempt_id,status,verdict,created_at,finished_at,challenge_version_id,integrity_status&order=created_at.desc&limit=20`,
         ),
+        db.rpc("integrity_summary", { p_user: user.id }),
       ]);
       const ids = [...new Set(completed.map((r) => r.challenge_id))];
       const days = new Set(completed.map((r) => r.created_at.slice(0, 10)));
@@ -711,6 +751,7 @@ export async function handler(request: Request): Promise<Response> {
           frameId: profile.frame_id ?? null,
           titleId: profile.title_id ?? null,
         },
+        integrity,
         coins: profile.coins,
         xp: profile.xp,
         ...levelForXp(profile.xp),
@@ -719,9 +760,13 @@ export async function handler(request: Request): Promise<Response> {
         streakDays: streak,
         completedChallengeIds: ids,
         activityDays: [...days].sort(),
-        recentSubmissions: recent
-          .slice(0, 8)
-          .map((r) => presentSubmission(r, 0, true)),
+        recentSubmissions: await Promise.all(
+          recent
+            .slice(0, 8)
+            .map(async (row) =>
+              presentSubmission(row, 0, true, await submissionReview(row)),
+            ),
+        ),
         recommendations: recommend(catalog, ids, recent as never),
         remoteRunsRemaining: null,
         tutorMessagesRemaining: Math.max(0, 2 - context.usage.tutor_calls),
@@ -740,7 +785,10 @@ export async function handler(request: Request): Promise<Response> {
           "profiles",
           "select=id,display_name,xp,reached_at,avatar_id,name_color_id,theme_id,frame_id,title_id",
         ),
-        db.rows<Row>("completions", "select=user_id,challenge_id"),
+        db.rows<Row>(
+          "completions",
+          "reward_eligible=eq.true&select=user_id,challenge_id",
+        ),
       ]);
       const ranked = players
         .map((p) => ({

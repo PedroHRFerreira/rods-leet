@@ -1,6 +1,6 @@
 # Regras vigentes do CodeGamer
 
-Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre documentos anteriores. O primeiro beta é gratuito e acessível sem login obrigatório. Uma sessão anônima interna separa os dados e o progresso de cada visitante. Hard é uma capacidade da segunda fase e só pode ser habilitado após homologação.
+Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre documentos anteriores. O beta é gratuito: visitantes podem concluir dez desafios distintos antes de precisar de uma conta para novos desafios. Uma sessão anônima interna separa os dados e o progresso de cada visitante. Hard é uma capacidade da segunda fase e só pode ser habilitado após homologação.
 
 ## Avaliação e progresso
 
@@ -53,7 +53,9 @@ Estas regras consolidam a instrução aprovada pelo usuário e prevalecem sobre 
 
 ## Moedas, loja e login próprio — atualização aprovada em 2026-10-02
 
-- Exploração continua livre. Cadastro converte a identidade anônima por confirmação de e-mail e definição de senha, preservando progresso, rascunhos e moedas. Login em conta existente abre os dados daquela conta, sem mesclar visitantes. Não oferecer login Google/GitHub nesta versão.
+- Atualização de 05/10/2026: cadastro e acesso usam Google. Criar conta vincula a identidade de visitante, preservando progresso e moedas; entrar em conta existente abre os dados dessa conta, sem mesclar visitantes. Contas antigas com senha ainda podem entrar. Cadastro e recuperação por e-mail ficam desativados por escolha do usuário enquanto não houver envio transacional configurado.
+- Depois de dez conclusões distintas válidas, exigir conta para novos desafios, com contador, benefícios, ações de cadastro/entrada e retorno ao desafio. Revisar desafios concluídos continua permitido; prática com solução e conclusões sob revisão não avançam o contador oficial.
+- Submeter continua acionável quando a consulta de disponibilidade está antiga: conferir novamente o avaliador antes de abrir tentativa ou enviar código. Explicar falhas reais, permitir nova tentativa e preservar o rascunho; falhas técnicas não consomem tentativas.
 - Moedas apenas por estudo: primeira conclusão distinta concede 10; cada novo nível concede 25; os dias 7 e 30 de cada sequência UTC concedem 50 e 200. Repetição de desafio, linguagem ou modo não duplica prêmio. Falhas não geram transações de moedas.
 - As moedas começam na migração, sem prêmios retroativos do histórico. XP, níveis, conclusões e dicas anteriores permanecem.
 - Nível 5 concede o avatar Coruja sábia; sequência de 30 dias concede Chama constante. Outros cosméticos exigem níveis indicados no catálogo. Presentes obtidos permanecem equipáveis mesmo se o nível mínimo da compra não estiver alcançado.

@@ -135,14 +135,22 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
   }
   return {
     getSession,
-    async signIn(provider) {
+    async signIn(provider, returnTo, intent) {
       if (provider !== "google")
         throw new GatewayError(
           "provider_unavailable",
           "Entre com e-mail e senha.",
           410,
         );
-      const result = (await post("/auth/start", { provider }, true)) as {
+      const result = (await post(
+        "/auth/start",
+        {
+          provider,
+          ...(returnTo ? { returnTo } : {}),
+          ...(intent ? { intent } : {}),
+        },
+        true,
+      )) as {
         url?: unknown;
       };
       let target: URL;
@@ -150,9 +158,13 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
         if (typeof result?.url !== "string") throw new Error();
         target = new URL(result.url);
         if (
-          target.origin !== "https://bsjcuygtpiqyomnulpsw.supabase.co" ||
-          target.pathname !== "/auth/v1/authorize" ||
-          target.searchParams.get("provider") !== "google" ||
+          !(
+            (target.origin === "https://bsjcuygtpiqyomnulpsw.supabase.co" &&
+              target.pathname === "/auth/v1/authorize" &&
+              target.searchParams.get("provider") === "google") ||
+            (target.origin === "https://accounts.google.com" &&
+              ["/o/oauth2/auth", "/o/oauth2/v2/auth"].includes(target.pathname))
+          ) ||
           target.username ||
           target.password ||
           target.hash
@@ -172,10 +184,10 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
       invalidate();
       await getSession();
     },
-    async signUp(email, displayName) {
+    async signUp(email, displayName, returnTo) {
       const result = (await post(
         "/auth/signup",
-        { email, displayName },
+        { email, displayName, ...(returnTo ? { returnTo } : {}) },
         true,
       )) as { requiresEmailConfirmation?: unknown };
       if (result.requiresEmailConfirmation !== true)
@@ -186,8 +198,8 @@ export function createBffAuth(options: BffAuthOptions = {}): GatewayAuth {
         );
       return { requiresEmailConfirmation: true };
     },
-    async requestPasswordReset(email) {
-      await post("/auth/recover", { email });
+    async requestPasswordReset(email, returnTo) {
+      await post("/auth/recover", { email, ...(returnTo ? { returnTo } : {}) });
     },
     async confirmEmail(tokenHash, type) {
       await post("/auth/confirm", { tokenHash, type });

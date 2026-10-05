@@ -416,7 +416,7 @@ describe("BFF security boundary", () => {
 });
 
 describe("Google server PKCE", () => {
-  async function oauthFixture() {
+  async function oauthFixture(anonymous = false) {
     const original = randomToken();
     const originalId = await digest(original);
     const encrypted = await seal(
@@ -440,12 +440,18 @@ describe("Google server PKCE", () => {
       expiresAt: new Date(Date.now() + 3600_000).toISOString(),
     });
     const send = vi.fn(async (target, init) => {
+      if (String(target).endsWith("/auth/v1/user"))
+        return Response.json({ id: "visitor", is_anonymous: anonymous });
+      if (String(target).includes("/user/identities/authorize"))
+        return Response.json({
+          url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=test",
+        });
       if (String(target).includes("/auth/v1/token?grant_type=pkce")) {
         return Response.json({
           access_token: "google-access-secret",
           refresh_token: "google-refresh-secret",
           expires_in: 3600,
-          user: { id: "google-account" },
+          user: { id: anonymous ? "visitor" : "google-account" },
         });
       }
       if (String(target).endsWith("/functions/v1/api/dashboard"))
@@ -470,7 +476,11 @@ describe("Google server PKCE", () => {
       return Response.json(true);
     });
     vi.stubGlobal("fetch", send);
-    const start = async (csrf = "csrf-google") =>
+    const start = async (
+      csrf = "csrf-google",
+      returnTo?: string,
+      intent?: "login" | "upgrade",
+    ) =>
       handleBff(
         new Request(url("/auth/start"), {
           method: "POST",
@@ -480,7 +490,11 @@ describe("Google server PKCE", () => {
             "x-csrf-token": csrf,
             cookie: `${SESSION_COOKIE}=${original}`,
           },
-          body: JSON.stringify({ provider: "google" }),
+          body: JSON.stringify({
+            provider: "google",
+            ...(returnTo ? { returnTo } : {}),
+            ...(intent ? { intent } : {}),
+          }),
         }),
         { ...env, GOOGLE_LOGIN_ENABLED: "true" },
       );
@@ -551,6 +565,109 @@ describe("Google server PKCE", () => {
         String(target).includes("grant_type=pkce"),
       ),
     ).toHaveLength(1);
+  });
+  it("links Google to the anonymous identity without exposing its token", async () => {
+    const fixture = await oauthFixture(true);
+    const started = await fixture.start("csrf-google", undefined, "upgrade");
+    expect(started.status).toBe(200);
+    const result = await started.json();
+    expect(result.url).toBe(
+      "https://accounts.google.com/o/oauth2/v2/auth?client_id=test",
+    );
+    const call = fixture.send.mock.calls.find(([target]) =>
+      String(target).includes("/user/identities/authorize"),
+    )!;
+    expect(call[1].headers.Authorization).toBe("Bearer visitor-secret");
+    expect(
+      new URL(String(call[0])).searchParams.get("code_challenge_method"),
+    ).toBe("s256");
+    expect(JSON.stringify(result)).not.toContain("visitor-secret");
+  });
+  it.each([
+    [
+      "/desafios/two-sum?language=typescript",
+      "/desafios/two-sum?language=typescript",
+    ],
+    ["https://evil.example", "/perfil"],
+    ["//evil.example", "/perfil"],
+    ["/\\evil.example", "/perfil"],
+    ["/auth/callback", "/perfil"],
+    ["/conta", "/perfil"],
+  ])(
+    "returns after Google only to a safe application path: %s",
+    async (returnTo, expected) => {
+      const fixture = await oauthFixture();
+      const started = await fixture.start("csrf-google", returnTo);
+      const opaque = started.headers
+        .get("set-cookie")!
+        .match(/=([a-f0-9]{64});/)![1];
+      const id = await digest(opaque);
+      const pending = await unseal<{ state: string }>(
+        fixture.rows.get(id)!.payload,
+        env.BFF_ENCRYPTION_KEY,
+        id,
+      );
+      const finished = await handleBff(
+        new Request(url(`/auth/callback?state=${pending.state}&code=code`), {
+          headers: {
+            cookie: `${SESSION_COOKIE}=${fixture.original}; ${OAUTH_COOKIE}=${opaque}`,
+          },
+        }),
+        { ...env, GOOGLE_LOGIN_ENABLED: "true" },
+      );
+      expect(finished.headers.get("location")).toBe(expected);
+    },
+  );
+  it("keeps the visitor identity and challenge destination through Google registration", async () => {
+    const fixture = await oauthFixture(true);
+    const started = await fixture.start(
+      "csrf-google",
+      "/desafios/find-max",
+      "upgrade",
+    );
+    const opaque = started.headers
+      .get("set-cookie")!
+      .match(/=([a-f0-9]{64});/)![1];
+    const id = await digest(opaque);
+    const pending = await unseal<{ state: string; upgradeUserId: string }>(
+      fixture.rows.get(id)!.payload,
+      env.BFF_ENCRYPTION_KEY,
+      id,
+    );
+    expect(pending.upgradeUserId).toBe("visitor");
+    const finished = await handleBff(
+      new Request(
+        url(`/auth/callback?state=${pending.state}&code=upgrade-code`),
+        {
+          headers: {
+            cookie: `${SESSION_COOKIE}=${fixture.original}; ${OAUTH_COOKIE}=${opaque}`,
+          },
+        },
+      ),
+      { ...env, GOOGLE_LOGIN_ENABLED: "true" },
+    );
+    expect(finished.headers.get("location")).toBe("/desafios/find-max");
+    const next = finished.headers
+      .get("set-cookie")!
+      .match(/=([a-f0-9]{64});/)![1];
+    const nextId = await digest(next);
+    const registered = await unseal<{ user: { id: string } }>(
+      fixture.rows.get(nextId)!.payload,
+      env.BFF_ENCRYPTION_KEY,
+      nextId,
+    );
+    expect(registered.user.id).toBe("visitor");
+  });
+  it("does not link a Google identity onto an already registered account", async () => {
+    const fixture = await oauthFixture(false);
+    expect(
+      (await fixture.start("csrf-google", undefined, "upgrade")).status,
+    ).toBe(409);
+    expect(
+      fixture.send.mock.calls.some(([target]) =>
+        String(target).includes("/user/identities/authorize"),
+      ),
+    ).toBe(false);
   });
   it("rejects forged CSRF before creating authorization state", async () => {
     const fixture = await oauthFixture();

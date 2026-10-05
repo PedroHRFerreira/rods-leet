@@ -293,6 +293,24 @@ async function getSession(
     await service(env, { op: "release", id, owner: lease.owner });
   }
 }
+function authReturnPath(value: unknown): string {
+  if (
+    typeof value !== "string" ||
+    value.length > 2048 ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    Array.from(value).some((char) => char === "\\" || char.charCodeAt(0) <= 32)
+  )
+    return "/perfil";
+  const target = new URL(value, "https://return.invalid");
+  if (
+    target.origin !== "https://return.invalid" ||
+    target.pathname.startsWith("/auth/") ||
+    target.pathname === "/conta"
+  )
+    return "/perfil";
+  return target.pathname + target.search + target.hash;
+}
 function redirect(location: string, cookies: string[] = []) {
   const headers = new Headers({ ...securityHeaders, Location: location });
   for (const value of cookies) headers.append("Set-Cookie", value);
@@ -320,8 +338,19 @@ export async function handleBff(
       )
         throw new HttpError(415, "json_required");
       const input = JSON.parse(await readBounded(request.body, 1024));
-      if (input?.provider !== "google" || Object.keys(input).length !== 1)
+      if (
+        input?.provider !== "google" ||
+        Object.keys(input).some(
+          (key) => key !== "provider" && key !== "returnTo" && key !== "intent",
+        )
+      )
         throw new HttpError(400, "provider_unavailable");
+      if (
+        input.intent !== undefined &&
+        input.intent !== "login" &&
+        input.intent !== "upgrade"
+      )
+        throw new HttpError(400, "invalid_credentials");
       const current = token ? await getSession(env, token, true) : null;
       if (!current || !token)
         throw new HttpError(401, "authentication_required");
@@ -349,6 +378,10 @@ export async function handleBff(
           {
             verifier,
             state,
+            returnTo: authReturnPath(input.returnTo),
+            ...(input.intent === "upgrade"
+              ? { upgradeUserId: current.user.id }
+              : {}),
             sessionId: await digest(token),
             origin: env.APP_ORIGIN,
             expiresAt: Date.now() + 600_000,
@@ -365,7 +398,43 @@ export async function handleBff(
       );
       authorization.searchParams.set("code_challenge", challenge);
       authorization.searchParams.set("code_challenge_method", "s256");
-      const response = json({ url: authorization.href });
+      let destination = authorization.href;
+      if (input.intent === "upgrade") {
+        const user = await authRequest(
+          env,
+          "/user",
+          "GET",
+          undefined,
+          current.access_token,
+        );
+        if (user.is_anonymous !== true)
+          throw new HttpError(409, "account_already_registered");
+        // Upgrade the existing anonymous identity so accepted challenges, XP and
+        // server drafts retain their owner. Never silently switch guest accounts.
+        const linking = new URL(authorization);
+        linking.pathname = "/auth/v1/user/identities/authorize";
+        linking.searchParams.set("skip_http_redirect", "true");
+        const linked = await authRequest(
+          env,
+          linking.pathname.replace("/auth/v1", "") + linking.search,
+          "GET",
+          undefined,
+          current.access_token,
+        );
+        if (typeof linked.url !== "string")
+          throw new HttpError(502, "invalid_response");
+        const target = new URL(linked.url);
+        if (
+          target.origin !== "https://accounts.google.com" ||
+          !["/o/oauth2/auth", "/o/oauth2/v2/auth"].includes(target.pathname) ||
+          target.username ||
+          target.password ||
+          target.hash
+        )
+          throw new HttpError(502, "invalid_response");
+        destination = target.href;
+      }
+      const response = json({ url: destination });
       response.headers.append("Set-Cookie", cookie(OAUTH_COOKIE, opaque, 600));
       return response;
     }
@@ -386,6 +455,8 @@ export async function handleBff(
         const pending = await unseal<{
           verifier: string;
           state: string;
+          returnTo?: string;
+          upgradeUserId?: string;
           sessionId: string;
           origin: string;
           expiresAt: number;
@@ -417,9 +488,14 @@ export async function handleBff(
           auth_code: code,
           code_verifier: pending.verifier,
         });
+        if (pending.upgradeUserId && tokens.user.id !== pending.upgradeUserId)
+          throw new HttpError(401, "authentication_failed");
         const session = await establishSession(env, tokens, token);
         const cookies = session.headers.getSetCookie();
-        return redirect("/perfil", [...cookies, expired]);
+        return redirect(authReturnPath(pending.returnTo), [
+          ...cookies,
+          expired,
+        ]);
       } catch {
         return redirect("/conta?authError=google", [expired]);
       }
@@ -471,7 +547,7 @@ export async function handleBff(
       const password = () => {
         if (
           typeof input.password !== "string" ||
-          input.password.length < 10 ||
+          input.password.length < (url.pathname === "/auth/login" ? 1 : 10) ||
           input.password.length > 128
         )
           throw new HttpError(400, "invalid_password");
@@ -487,7 +563,7 @@ export async function handleBff(
       if (url.pathname === "/auth/recover") {
         await authRequest(
           env,
-          `/recover?redirect_to=${encodeURIComponent(env.APP_ORIGIN + "/conta/confirmar")}`,
+          `/recover?redirect_to=${encodeURIComponent(env.APP_ORIGIN + "/conta/confirmar?returnTo=" + encodeURIComponent(authReturnPath(input.returnTo)))}`,
           "POST",
           { email: email() },
         );
@@ -529,7 +605,7 @@ export async function handleBff(
         // Preserve the anonymous identity. Password is set only after email verification.
         await authRequest(
           env,
-          `/user?redirect_to=${encodeURIComponent(env.APP_ORIGIN + "/conta/confirmar")}`,
+          `/user?redirect_to=${encodeURIComponent(env.APP_ORIGIN + "/conta/confirmar?returnTo=" + encodeURIComponent(authReturnPath(input.returnTo)))}`,
           "PUT",
           {
             email: email(),

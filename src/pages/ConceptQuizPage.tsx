@@ -25,6 +25,10 @@ import { PageHeading } from "../components/ui";
 import { LearningProgress } from "../components/LearningProgress";
 import { useSubmissionConfirmation } from "../lib/useSubmissionConfirmation";
 import {
+  VisitorProgressCard,
+  VISITOR_CHALLENGE_LIMIT,
+} from "../components/VisitorProgressCard";
+import {
   QuizConfirmation,
   QuizFeedback,
 } from "../components/ConceptQuizFeedback";
@@ -66,7 +70,15 @@ export default function ConceptQuizPage({
   const [unconfirmed, setUnconfirmed] = useState(false);
   const [result, setResult] = useState<PublicSubmission | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
   const completed = dashboard.completedChallengeIds.includes(challenge.id);
+  const visitor =
+    dashboard.profile.anonymous || !dashboard.profile.authenticated;
+  const visitorAtLimit =
+    visitor &&
+    new Set(dashboard.completedChallengeIds).size >= VISITOR_CHALLENGE_LIMIT;
+  const needsAccount =
+    visitor && !completed && (visitorAtLimit || limitReached);
   const attemptKey = [
     "quiz-attempt",
     dashboard.profile.id,
@@ -79,7 +91,7 @@ export default function ConceptQuizPage({
         { challengeVersionId: challenge.versionId, mode: "normal" },
         openingKey.current,
       ),
-    enabled: dashboard.profile.authenticated && !completed,
+    enabled: dashboard.profile.authenticated && !completed && !needsAccount,
     retry: false,
   });
   const approved =
@@ -106,9 +118,18 @@ export default function ConceptQuizPage({
     ? `/desafios/${nextChallenge.slug}${language && (nextChallenge.kind === "quiz" || nextChallenge.languageIds.some((id) => id === language)) ? `?language=${encodeURIComponent(language)}` : ""}`
     : "/trilhas";
   const quiz = challenge.quiz;
+  const accountBlocked =
+    needsAccount ||
+    (attempt.error instanceof GatewayError &&
+      attempt.error.code === "visitor_challenge_limit");
 
   async function sendAnswer() {
     if (sending.current || approved) return;
+    if (accountBlocked) {
+      setLimitReached(true);
+      setConfirmationOpen(false);
+      return;
+    }
     const current = attempt.data;
     if (!pendingAnswer.current && (!current || !selected)) return;
     if (!pendingAnswer.current) {
@@ -178,6 +199,16 @@ export default function ConceptQuizPage({
         }),
       ]);
     } catch (cause) {
+      if (
+        cause instanceof GatewayError &&
+        cause.code === "visitor_challenge_limit"
+      ) {
+        pendingAnswer.current = null;
+        setUnconfirmed(false);
+        setLimitReached(true);
+        await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        return;
+      }
       if (
         cause instanceof GatewayError &&
         cause.code === "challenge_already_completed"
@@ -262,7 +293,9 @@ export default function ConceptQuizPage({
           </pre>
         )}
       </section>
-      {approved ? (
+      {accountBlocked ? (
+        <VisitorProgressCard dashboard={dashboard} blocked />
+      ) : approved ? (
         <section
           className="concept-quiz-completed panel"
           aria-label="Etapa concluída"
@@ -288,6 +321,7 @@ export default function ConceptQuizPage({
               A seguir: {nextChallenge.title}
             </p>
           )}
+          {visitorAtLimit && <VisitorProgressCard dashboard={dashboard} />}
         </section>
       ) : (
         <form
@@ -326,7 +360,9 @@ export default function ConceptQuizPage({
               ))}
             </div>
           </fieldset>
-          {attempt.isPending && <p role="status">Preparando sua pergunta…</p>}
+          {attempt.isPending && attempt.fetchStatus === "fetching" && (
+            <p role="status">Preparando sua pergunta…</p>
+          )}
           <QuizFeedback
             result={result}
             identity={dashboard.profile.id}

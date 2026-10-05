@@ -187,3 +187,68 @@ it("disables social login", async () => {
   ).toBe(410);
   expect(send).not.toHaveBeenCalled();
 });
+
+it.each(["/auth/signup", "/auth/recover"])(
+  "preserves a safe challenge destination in %s emails",
+  async (path) => {
+    const { send } = await mockAuth();
+    const response = await handleBff(
+      request(path, {
+        email: "student@example.com",
+        displayName: "Student",
+        returnTo: "/desafios/find-max?language=python",
+      }),
+      env,
+    );
+    expect(response.status).toBe(200);
+    const call = send.mock.calls.find(([target]) =>
+      String(target).includes("redirect_to="),
+    )!;
+    const redirect = new URL(
+      new URL(String(call[0])).searchParams.get("redirect_to")!,
+    );
+    expect(redirect.origin).toBe(env.APP_ORIGIN);
+    expect(redirect.pathname).toBe("/conta/confirmar");
+    expect(redirect.searchParams.get("returnTo")).toBe(
+      "/desafios/find-max?language=python",
+    );
+  },
+);
+it("rejects external email return destinations", async () => {
+  const { send } = await mockAuth();
+  await handleBff(
+    request("/auth/recover", {
+      email: "student@example.com",
+      returnTo: "//evil.example",
+    }),
+    env,
+  );
+  const call = send.mock.calls.find(([target]) =>
+    String(target).includes("redirect_to="),
+  )!;
+  const redirect = new URL(
+    new URL(String(call[0])).searchParams.get("redirect_to")!,
+  );
+  expect(redirect.searchParams.get("returnTo")).toBe("/perfil");
+});
+
+it("allows legacy passwords at login while keeping new password policy", async () => {
+  const { send } = await mockAuth(false);
+  const response = await handleBff(
+    request("/auth/login", {
+      email: "student@example.com",
+      password: "oldpwd",
+    }),
+    env,
+  );
+  expect(response.status).toBe(200);
+  expect(
+    send.mock.calls.some(([target]) =>
+      String(target).includes("grant_type=password"),
+    ),
+  ).toBe(true);
+  expect(
+    (await handleBff(request("/auth/password", { password: "oldpwd" }), env))
+      .status,
+  ).toBe(400);
+});

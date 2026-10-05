@@ -178,11 +178,26 @@ describe("public exploration and server authority", () => {
     auth.signUp = vi.fn(async () => ({ requiresEmailConfirmation: true }));
     auth.confirmEmail = vi.fn(async () => {});
     auth.updatePassword = vi.fn(async () => {});
+    auth.requestPasswordReset = vi.fn(async () => {});
     const gateway = createGateway(s.options);
-    expect(await gateway.signUp("alice@example.com", "Alice")).toEqual({
+    expect(
+      await gateway.signUp("alice@example.com", "Alice", "/desafios/find-max"),
+    ).toEqual({
       requiresEmailConfirmation: true,
     });
-    expect(auth.signUp).toHaveBeenCalledWith("alice@example.com", "Alice");
+    expect(auth.signUp).toHaveBeenCalledWith(
+      "alice@example.com",
+      "Alice",
+      "/desafios/find-max",
+    );
+    await gateway.requestPasswordReset(
+      "alice@example.com",
+      "/desafios/find-max",
+    );
+    expect(auth.requestPasswordReset).toHaveBeenCalledWith(
+      "alice@example.com",
+      "/desafios/find-max",
+    );
     await gateway.confirmEmail("hash", "email_change");
     await gateway.updatePassword("new password");
     expect(auth.confirmEmail).toHaveBeenCalledWith("hash", "email_change");

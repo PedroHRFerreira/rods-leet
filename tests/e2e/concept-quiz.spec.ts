@@ -174,7 +174,7 @@ async function confirm(page: import("@playwright/test").Page) {
     .click();
 }
 
-test("concepts start without an editor and lead through ten questions to code", async ({
+test("concepts lead through ten questions and explain account access before code", async ({
   page,
 }, info) => {
   const state = await setup(page);
@@ -255,10 +255,13 @@ test("concepts start without an editor and lead through ten questions to code", 
       .click();
   }
   await expect(page).toHaveURL(/literal-number\?language=python/);
-  await expect(page.getByRole("combobox", { name: "Linguagem" })).toHaveValue(
-    "python",
+  await expect(page.getByRole("combobox", { name: "Linguagem" })).toHaveCount(
+    0,
   );
   expect(state.completed.size).toBe(10);
+  await expect(page.locator(".visitor-progress-card")).toContainText(
+    "10 desafios concluídos",
+  );
   expect(
     state.paths.filter((p) => p.includes("quiz-submissions")),
   ).toHaveLength(11);
@@ -292,6 +295,54 @@ test("a lost response retries the same answer without allowing a second choice",
 });
 
 const skipLabel = "Não pedir confirmação novamente neste navegador";
+
+test("a visitor with ten completed challenges gets an explicit login gate before a new question", async ({
+  page,
+}) => {
+  const state = await setup(page);
+  for (let index = 0; index < 10; index++)
+    state.completed.add(`solved-${index}`);
+  await page.goto(`${baseURL}/desafios/concept-values`);
+  await expect(page.locator(".visitor-progress-card")).toContainText(
+    "10 desafios concluídos",
+  );
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Criar conta e guardar progresso" }),
+  ).toHaveAttribute(
+    "href",
+    /mode=signup&returnTo=%2Fdesafios%2Fconcept-values/,
+  );
+  expect(state.paths.some((path) => path === "POST /api/attempts")).toBe(false);
+  expect(state.answers).toHaveLength(0);
+});
+
+test("a server limit reached in another tab replaces retry feedback with account access", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.route("**/api/quiz-submissions", (route) =>
+    route.fulfill({
+      status: 403,
+      json: {
+        error: {
+          code: "visitor_challenge_limit",
+          message: "Entre para continuar.",
+        },
+      },
+    }),
+  );
+  await page.goto(`${baseURL}/desafios/concept-values`);
+  await page.getByRole("radio").nth(1).check();
+  await confirm(page);
+  await expect(
+    page.locator(".visitor-progress-card[role='alert']"),
+  ).toBeVisible();
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Já tenho uma conta", exact: true }),
+  ).toBeVisible();
+});
 
 test("confirmation preference is saved only on send, persists, and can be re-enabled from profile", async ({
   page,

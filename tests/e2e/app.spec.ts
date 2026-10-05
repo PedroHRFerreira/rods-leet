@@ -373,7 +373,7 @@ test("tutor stays hidden and profile is available without login", async ({
     page.getByRole("heading", { name: "Perfil e progresso" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Beta aberto · sem login obrigatório"),
+    page.getByText("10 desafios grátis antes do cadastro"),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: /GitHub/ })).toHaveCount(0);
 });

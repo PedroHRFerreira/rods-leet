@@ -92,7 +92,9 @@ begin
  for j in 1..2 loop perform pg_temp.complete_study(people[7],'min-'||j,previous_week+interval '1 hour',5000); end loop;
  for j in 1..3 loop perform pg_temp.complete_study(people[8],'zero-'||j,previous_week+interval '1 hour'); end loop;
  update public.profiles set xp=100000 where id=people[9]; -- Total balance cannot create weekly activity.
- for j in 1..3 loop perform pg_temp.complete_study(guest,'guest-rank-'||j,previous_week+interval '1 hour',5000); end loop;
+ -- Revisit three existing guest challenges in another mode: keep the visitor
+ -- under ten distinct completions while preserving high-XP ranking exclusion.
+ for j in 1..3 loop perform pg_temp.complete_study(guest,'guest-'||j,previous_week+interval '1 hour',5000,'hard'); end loop;
  perform pg_temp.complete_study(people[10],'edge-1',previous_week+interval '1 hour',100);
  perform pg_temp.complete_study(people[10],'edge-2',week-interval '1 millisecond',100);
  perform pg_temp.complete_study(people[10],'edge-3',week,100);

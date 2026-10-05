@@ -1,6 +1,11 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Legacy heterogeneous PostgREST rows; presenters expose explicit fields only.
 export type Row = Record<string, any>;
-export function presentSubmission(row: Row, xp = 0, hideDetails = false) {
+export function presentSubmission(
+  row: Row,
+  xp = 0,
+  hideDetails = false,
+  reviewProtocol?: string | null,
+) {
   const result = row.public_result ?? {};
   return {
     id: row.id,
@@ -30,7 +35,10 @@ export function presentSubmission(row: Row, xp = 0, hideDetails = false) {
           stderr: result.stderr,
         }
       : {}),
-    xpAwarded: xp,
+    integrityStatus: row.integrity_status ?? "clear",
+    reviewProtocol: reviewProtocol ?? undefined,
+    xpAwarded:
+      row.integrity_status && row.integrity_status !== "clear" ? 0 : xp,
   };
 }
 export function presentAttempt(
@@ -39,12 +47,19 @@ export function presentAttempt(
   submissions: Row[] = [],
   solved = false,
   rejects = row.rejected_count,
+  reviewProtocol?: string | null,
 ) {
   const expired =
     row.state === "active" &&
     row.deadline_at &&
     new Date(row.deadline_at).getTime() < Date.now();
+  const latest = submissions.find(
+    (submission) => submission.kind === "submission",
+  );
   return {
+    latestSubmissionId: latest?.id,
+    integrityStatus: latest?.integrity_status ?? "clear",
+    reviewProtocol: reviewProtocol ?? undefined,
     id: row.id,
     challengeId: row.challenge_id,
     challengeVersionId: row.challenge_version_id,

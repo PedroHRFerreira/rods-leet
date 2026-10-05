@@ -574,7 +574,11 @@ test("email signup preserves visitor session and requests no password before con
   expect(state.authCalls).toEqual([
     {
       path: "/auth/signup",
-      body: { email: "luna@example.test", displayName: "Luna" },
+      body: {
+        email: "luna@example.test",
+        displayName: "Luna",
+        returnTo: "/perfil",
+      },
     },
   ]);
   await fits(page);
@@ -590,11 +594,11 @@ test("confirmation survives initial identity remount and sets password", async (
   await page.goto(
     `${baseURL}/conta/confirmar?token_hash=${"ab".repeat(32)}&type=email_change`,
   );
-  await expect(page).toHaveURL(`${baseURL}/conta/confirmar`);
+  await expect(page).toHaveURL(`${baseURL}/conta/confirmar?returnTo=%2Fperfil`);
   // Wait on authenticated dashboard rendering so initial identity remount has completed.
   await expect(page.locator(".topbar-coins")).toBeVisible();
   await page.getByRole("button", { name: "Confirmar e continuar" }).click();
-  await expect(page).toHaveURL(`${baseURL}/conta/senha`);
+  await expect(page).toHaveURL(`${baseURL}/conta/senha?returnTo=%2Fperfil`);
   await page.getByLabel(/^Nova senha/).fill("secure-password");
   await page.getByLabel("Repita a nova senha").fill("secure-password");
   await page.getByRole("button", { name: "Salvar senha" }).click();
@@ -647,7 +651,10 @@ test("Google login protects the request, blocks repeated clicks and redirects to
     page.getByRole("button", { name: "Criar conta", exact: true }),
   ).toBeDisabled();
   expect(state.authCalls).toEqual([
-    { path: "/auth/start", body: { provider: "google" } },
+    {
+      path: "/auth/start",
+      body: { provider: "google", returnTo: "/perfil", intent: "login" },
+    },
   ]);
   expect(state.googleCalls).toEqual([{ method: "POST", csrf: "csrf" }]);
   await fits(page);
@@ -725,6 +732,10 @@ test("Google remains available when email registration is disabled in production
     await page.goto(`${googleOnlyURL}/conta`);
     await expect(
       page.getByRole("button", { name: "Criar conta", exact: true }),
+    ).toBeEnabled();
+    await expect(page.locator(".economy-auth-tabs button")).toHaveCount(2);
+    await expect(
+      page.getByRole("button", { name: "Recuperar senha", exact: true }),
     ).toHaveCount(0);
     await expect(
       page.getByRole("button", { name: "Enviar confirmação", exact: true }),
@@ -736,7 +747,10 @@ test("Google remains available when email registration is disabled in production
     await expect(page.getByRole("alert")).toBeVisible();
     await expect(google).toBeEnabled();
     expect(state.authCalls).toEqual([
-      { path: "/auth/start", body: { provider: "google" } },
+      {
+        path: "/auth/start",
+        body: { provider: "google", returnTo: "/perfil", intent: "login" },
+      },
     ]);
     expect(state.googleCalls).toEqual([{ method: "POST", csrf: "csrf" }]);
     await fits(page);
@@ -744,6 +758,45 @@ test("Google remains available when email registration is disabled in production
       path: `/tmp/rods-auth-google-only-${info.project.name}.png`,
       fullPage: true,
     });
+    await page.goto(`${googleOnlyURL}/conta?mode=signup&returnTo=%2Fdesafios`);
+    await expect(
+      page.getByRole("heading", { name: "Guarde cada conquista" }),
+    ).toBeVisible();
+    await expect(page.getByLabel("E-mail", { exact: true })).toHaveCount(0);
+    await expect(
+      page.getByLabel("Nome de usuário", { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Enviar confirmação", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Criar conta com Google", exact: true }),
+    ).toBeEnabled();
+    await page
+      .getByRole("button", { name: "Criar conta com Google", exact: true })
+      .click();
+    await expect(page.getByRole("alert")).toBeVisible();
+    expect(state.authCalls[1]).toEqual({
+      path: "/auth/start",
+      body: { provider: "google", returnTo: "/desafios", intent: "upgrade" },
+    });
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Continuar com Google", exact: true }),
+    ).toBeEnabled();
+    await expect(
+      page.getByText("Já tenho uma conta com senha", { exact: true }),
+    ).toBeVisible();
+    // An old recovery link must land on usable login when email is deferred.
+    await page.goto(
+      `${googleOnlyURL}/conta?mode=recovery&returnTo=%2Fdesafios`,
+    );
+    await expect(
+      page.getByRole("button", { name: "Continuar com Google", exact: true }),
+    ).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Enviar link de recuperação" }),
+    ).toHaveCount(0);
     await page
       .getByText("Já tenho uma conta com senha", { exact: true })
       .click();
@@ -753,8 +806,9 @@ test("Google remains available when email registration is disabled in production
       .locator("form")
       .getByRole("button", { name: "Entrar", exact: true })
       .click();
-    await expect(page).toHaveURL(`${googleOnlyURL}/perfil`);
+    await expect(page).toHaveURL(`${googleOnlyURL}/desafios`);
     expect(state.authCalls.map((call) => call.path)).toEqual([
+      "/auth/start",
       "/auth/start",
       "/auth/login",
     ]);
@@ -790,4 +844,83 @@ test("successful login opens the account and recovery uses a generic receipt", a
     "/auth/recover",
     "/auth/login",
   ]);
+});
+
+test("Google registration upgrades the guest and keeps the challenge destination", async ({
+  page,
+}) => {
+  const state = await setup(page, { anonymous: true });
+  await page.route(
+    "https://bsjcuygtpiqyomnulpsw.supabase.co/auth/v1/authorize**",
+    (route) => route.fulfill({ contentType: "text/html", body: "Google" }),
+  );
+  const returnTo = "/desafios/sum-two-integers?language=javascript";
+  await page.goto(
+    `${baseURL}/conta?mode=signup&returnTo=${encodeURIComponent(returnTo)}`,
+  );
+  await page
+    .getByRole("button", { name: "Criar conta com Google", exact: true })
+    .click();
+  await expect(page).toHaveURL(/supabase.co\/auth\/v1\/authorize/);
+  expect(state.authCalls).toEqual([
+    {
+      path: "/auth/start",
+      body: { provider: "google", returnTo, intent: "upgrade" },
+    },
+  ]);
+});
+
+test("recovery confirmation keeps its destination through verification and password setup", async ({
+  page,
+}) => {
+  const state = await setup(page, { anonymous: true });
+  const returnTo = "/desafios/sum-two-integers?language=javascript";
+  await page.goto(
+    `${baseURL}/conta?mode=recovery&returnTo=${encodeURIComponent(returnTo)}`,
+  );
+  await page.getByLabel("E-mail", { exact: true }).fill("luna@example.test");
+  await page
+    .getByRole("button", { name: "Enviar link de recuperação" })
+    .click();
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Se este e-mail tiver uma conta" }),
+  ).toBeVisible();
+  expect(state.authCalls[0]).toEqual({
+    path: "/auth/recover",
+    body: { email: "luna@example.test", returnTo },
+  });
+  await page.goto(
+    `${baseURL}/conta/confirmar?token_hash=${"ab".repeat(32)}&type=recovery&returnTo=${encodeURIComponent(returnTo)}`,
+  );
+  await expect(page).toHaveURL(
+    `${baseURL}/conta/confirmar?returnTo=${encodeURIComponent(returnTo)}`,
+  );
+  await page.getByRole("button", { name: "Confirmar e continuar" }).click();
+  await expect(page).toHaveURL(
+    `${baseURL}/conta/senha?returnTo=${encodeURIComponent(returnTo)}`,
+  );
+  await page.getByLabel(/^Nova senha/).fill("secure-password");
+  await page.getByLabel("Repita a nova senha").fill("secure-password");
+  await page.getByRole("button", { name: "Salvar senha" }).click();
+  await expect(page).toHaveURL(`${baseURL}${returnTo}`);
+});
+
+test("existing accounts can enter with their earlier six-character password", async ({
+  page,
+}) => {
+  const state = await setup(page, { anonymous: true });
+  await page.goto(`${baseURL}/conta`);
+  await page.getByLabel("E-mail", { exact: true }).fill("luna@example.test");
+  await page.getByLabel(/^Senha/).fill("oldpwd");
+  await page
+    .locator("form")
+    .getByRole("button", { name: "Entrar", exact: true })
+    .click();
+  await expect(page).toHaveURL(`${baseURL}/perfil`);
+  expect(state.authCalls[0]).toEqual({
+    path: "/auth/login",
+    body: { email: "luna@example.test", password: "oldpwd" },
+  });
 });

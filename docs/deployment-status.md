@@ -1,5 +1,15 @@
 # Rods Leet — ambiente de testes
 
+## Acesso e continuidade publicados — 5 de outubro de 2026
+
+Frontend e BFF publicados na branch de produção `main`, Pages [3c4a3e63](https://3c4a3e63.rods-leet.pages.dev). O domínio `https://rodsleet.com` confirmou os assets `index-C1CfPJ2E.js` e `index-DFczxq-P.css`. API versão 54 ativa com verificação JWT e assinatura BFF preservadas; migrações `202610050001` e `202610050002` aplicadas. O histórico remoto de integridade `202610040002` foi recuperado para o repositório sem reaplicação.
+
+Interface de acesso refeita, Google disponível, perfil com benefícios e contador de conquistas. Visitantes podem concluir dez desafios distintos oficialmente; novos desafios exigem conta depois desse limite, inclusive na API e no banco. Criar conta Google vincula a identidade visitante e preserva seu progresso. Login em conta existente abre o histórico daquela conta. Cadastro e recuperação por e-mail continuam desativados por escolha do usuário; login por senha de contas existentes permanece disponível.
+
+Validação: 611 testes unitários, 133 cenários únicos de navegador aprovados entre a suíte e repetições dirigidas, um caso de tablet omitido no projeto mobile; tipos frontend/BFF/Deno, lint, formatação, builds e invariantes PostgreSQL local aprovados. Layouts de 320 a 1440 px e temas claro/escuro inspecionados. Teste autorizado em produção com visitante novo confirmou sessão/dashboard 200, início de vinculação Google 200 para `accounts.google.com`, bloqueio de cadastro por e-mail 503 e botão Submeter disponível. O login Google completo e seu callback não foram concluídos nesse teste.
+
+**Pendência operacional:** o avaliador segue `offline` em produção. Clicar em Submeter mostra falha de conexão, preserva o código e não consome tentativa; avaliação oficial de código não foi restabelecida. O gateway local está saudável, mas o túnel anterior expirou. A revisão automática rejeitou enviar a credencial existente ao novo túnel temporário, mesmo após autorização específica do usuário; a URL do coordenador não foi alterada por esse caminho. Detalhes em [acesso e continuidade](auth-continuity-2026-10-05.md).
+
 ## Último estado confirmado — loja e recompensas v2, 3 de outubro de 2026
 
 A migração `202610030001_shop_rewards_v2.sql` e a Edge Function `api` versão 42 foram publicadas no projeto existente. O banco confirmou 37 itens, dois jobs ativos de premiação, nenhum resultado histórico premiado e preservação exata dos totais anteriores: 98 perfis, 3.879 XP, 95 moedas, zero itens no inventário e 125 registros de ledger. Escrita em resultados e execução direta do RPC semanal continuam recusadas aos papéis do navegador. Frontend publicado no commit `22eef7a`, Pages `417e94cc-e378-4441-a4e3-4e566eb2bca7`, com sucesso confirmado no painel Cloudflare.

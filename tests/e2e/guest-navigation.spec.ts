@@ -28,11 +28,11 @@ test("exploration remains free and explains registered account access without a 
     ).toHaveCount(0);
   }
   await expect(
-    page.getByRole("link", { name: "Ver opções de acesso", exact: true }),
+    page.getByRole("link", { name: "Criar conta e guardar progresso" }),
   ).toBeVisible();
   await expect(page.locator("main")).toContainText("Perfil de visitante");
   await expect(page.locator("main")).toContainText(
-    "compras e itens equipáveis exigem uma conta cadastrada",
+    "Libere a loja, itens equipáveis e recompensas das metas de estudo",
   );
 });
 
